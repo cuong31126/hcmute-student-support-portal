@@ -109,6 +109,9 @@ public class SecurityConfig {
                 .deleteCookies("JSESSIONID")
                 .permitAll()
             )
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/api/**", "/ws-chat/**")
+            )
             .exceptionHandling(ex -> ex
                 .accessDeniedPage("/error/403")
             )
