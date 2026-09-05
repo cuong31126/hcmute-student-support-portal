@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Đăng Nhập - QAUTE Portal</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="row justify-content-center py-4">
+        <div class="col-md-6 col-lg-4">
+            <div class="card p-4 shadow-sm">
+                <div class="text-center mb-3">
+                    <span class="badge bg-primary px-3 py-2 fs-6 mb-2">QAUTE PORTAL</span>
+                    <h5 class="fw-bold text-dark mb-1">Đăng Nhập Hệ Thống</h5>
+                    <p class="small text-muted mb-0">Sử dụng tài khoản Sinh viên hoặc Cán bộ</p>
+                </div>
+
+                <!-- Error Alert -->
+                <div th:if="${param.error}" class="alert alert-danger small py-2">
+                    <i class="bi bi-exclamation-circle me-1"></i>Tên đăng nhập hoặc mật khẩu không chính xác!
+                </div>
+                <div th:if="${param.logout}" class="alert alert-info small py-2">
+                    <i class="bi bi-info-circle me-1"></i>Đã đăng xuất thành công khỏi hệ thống.
+                </div>
+
+                <form th:action="@{/auth/login}" method="post">
+                    <div class="mb-3">
+                        <label for="username" class="form-label small fw-semibold">Tên đăng nhập / Email</label>
+                        <input type="text" id="username" name="username" class="form-control" placeholder="Nhập username hoặc email..." required autofocus>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label small fw-semibold">Mật khẩu</label>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary fw-semibold">Đăng Nhập</button>
+                    </div>
+                </form>
+
+                <div class="text-center small border-top pt-3 text-muted">
+                    Chưa có tài khoản sinh viên? <a th:href="@{/auth/register}" class="text-primary fw-semibold text-decoration-none">Đăng ký ngay</a>
+                </div>
+
+                <!-- Sample Account Hint -->
+                <div class="bg-light p-2 rounded mt-3 text-secondary" style="font-size: 11px;">
+                    <strong>💡 Tài khoản mẫu thử nghiệm:</strong><br>
+                    • Sinh viên: <code>student01</code> / <code>Password123@</code><br>
+                    • Cán bộ Tuyển sinh: <code>staff_tuyensinh</code> / <code>Password123@</code><br>
+                    • Cán bộ Đào tạo: <code>staff_daotao</code> / <code>Password123@</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

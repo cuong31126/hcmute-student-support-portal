@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Đăng Ký Tài Khoản - QAUTE Portal</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="row justify-content-center py-4">
+        <div class="col-md-7 col-lg-5">
+            <div class="card p-4 shadow-sm">
+                <div class="text-center mb-3">
+                    <span class="badge bg-success px-3 py-2 fs-6 mb-2">ĐĂNG KÝ SINH VIÊN</span>
+                    <h5 class="fw-bold text-dark mb-1">Tạo Tài Khoản Sinh Viên</h5>
+                    <p class="small text-muted mb-0">Sử dụng Email trường (@student.hcmute.edu.vn)</p>
+                </div>
+
+                <form th:action="@{/auth/register}" th:object="${registerForm}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Tên đăng nhập (Mã số sinh viên)</label>
+                        <input type="text" th:field="*{username}" class="form-control" placeholder="VD: 21110001" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Họ và tên</label>
+                        <input type="text" th:field="*{fullName}" class="form-control" placeholder="Nguyễn Văn A" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Email sinh viên</label>
+                        <input type="email" th:field="*{email}" class="form-control" placeholder="21110001@student.hcmute.edu.vn" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Mật khẩu</label>
+                        <input type="password" th:field="*{password}" class="form-control" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary fw-semibold">Đăng Ký Tài Khoản</button>
+                    </div>
+                </form>
+
+                <div class="text-center small border-top pt-3 text-muted">
+                    Đã có tài khoản? <a th:href="@{/auth/login}" class="text-primary fw-semibold text-decoration-none">Đăng nhập ngay</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

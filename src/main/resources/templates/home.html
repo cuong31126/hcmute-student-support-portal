@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Trang Chủ - QAUTE Portal HCMUTE</title>
+</head>
+<body>
+<div th:fragment="content">
+    
+    <!-- Hero Banner Section -->
+    <div class="card bg-white border-0 shadow-sm p-4 p-md-5 mb-4 text-center" style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; border-radius: 12px;">
+        <h1 class="display-6 fw-bold mb-3 text-white">Cổng Tư Vấn & Hỗ Trợ Học Vụ Sinh Viên</h1>
+        <p class="lead mb-4 text-white-50 fs-6 max-w-700 mx-auto">
+            Hệ thống giải đáp thắc mắc quy chế, đăng ký môn học, điểm thi, chứng chỉ ngoại ngữ và tiếp nhận Ticket hỗ trợ sinh viên trường ĐH Sư phạm Kỹ thuật TP.HCM.
+        </p>
+
+        <!-- Search Bar -->
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <form th:action="@{/faqs}" method="get" class="d-flex bg-white rounded-pill p-1 shadow">
+                    <input type="text" name="q" class="form-control border-0 rounded-pill ps-3 shadow-none" placeholder="Tìm câu hỏi: nộp chứng chỉ tiếng anh, hoãn thi, học phí...">
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-semibold text-dark">
+                        <i class="bi bi-search me-1"></i>Tìm kiếm
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card h-100 p-3 text-center hover-shadow">
+                <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-circle mb-3 mx-auto" style="width: 50px; height: 50px;">
+                    <i class="bi bi-robot fs-4"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Trợ Lý AI Học Vụ</h5>
+                <p class="small text-muted mb-3">Tự động trả lời 2.600+ câu hỏi quy chế học vụ tức thì 24/7.</p>
+                <button onclick="document.getElementById('btn-open-ai-chat').click()" class="btn btn-outline-primary btn-sm mt-auto">Mở Khung Chat</button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 p-3 text-center hover-shadow">
+                <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success rounded-circle mb-3 mx-auto" style="width: 50px; height: 50px;">
+                    <i class="bi bi-ticket-perforated fs-4"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Gửi Ticket Tư Vấn</h5>
+                <p class="small text-muted mb-3">Gửi yêu cầu tới Phòng Đào tạo, Tuyển sinh, Khoa (Cam kết SLA 24h - 72h).</p>
+                <a th:href="@{/tickets/create}" class="btn btn-outline-success btn-sm mt-auto">Tạo Ticket Ngay</a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 p-3 text-center hover-shadow">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-dark rounded-circle mb-3 mx-auto" style="width: 50px; height: 50px;">
+                    <i class="bi bi-search fs-4"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Kho Câu Hỏi FAQ</h5>
+                <p class="small text-muted mb-3">Tra cứu câu trả lời chính thức từ các Thầy/Cô và chuyên viên đào tạo.</p>
+                <a th:href="@{/faqs}" class="btn btn-outline-dark btn-sm mt-auto">Xem Tất Cả FAQ</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Directory Section -->
+    <div class="card p-4">
+        <h5 class="fw-bold mb-3 text-dark d-flex align-items-center">
+            <i class="bi bi-buildings text-primary me-2"></i>Đơn Vị Tư Vấn Trọng Tâm
+        </h5>
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-4" th:each="dept : ${departments}">
+                <div class="p-3 border rounded bg-light h-100">
+                    <h6 class="fw-bold text-primary mb-1" th:text="${dept.name}">Tên Khoa/Phòng</h6>
+                    <p class="small text-muted mb-2" th:text="${dept.description}">Mô tả chức năng</p>
+                    <div class="small text-secondary">
+                        <div><i class="bi bi-geo-alt me-1"></i><span th:text="${dept.officeLocation}">A1-201</span></div>
+                        <div><i class="bi bi-envelope me-1"></i><span th:text="${dept.contactEmail}">email@hcmute.edu.vn</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

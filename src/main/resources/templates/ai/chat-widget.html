@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head></head>
+<body>
+<div th:fragment="chat-widget">
+    <!-- Floating Button -->
+    <button id="btn-open-ai-chat" class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+            style="position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; z-index: 1050; background-color: #1e3a8a; border: none;"
+            title="Mở Trợ lý AI Tư Vấn">
+        <i class="bi bi-chat-dots-fill fs-4 text-white"></i>
+    </button>
+
+    <!-- Chat Box Container (Floating Window) -->
+    <div id="ai-chat-box" class="card shadow-lg border-0 d-none"
+         style="position: fixed; bottom: 95px; right: 25px; width: 380px; height: 500px; z-index: 1050; border-radius: 12px; overflow: hidden;">
+        
+        <!-- Header -->
+        <div class="card-header text-white d-flex align-items-center justify-content-between py-2 px-3" style="background-color: #1e3a8a;">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-robot me-2 fs-5"></i>
+                <div>
+                    <h6 class="mb-0 fw-bold">Trợ Lý AI Học Vụ 24/7</h6>
+                    <small class="text-white-50" style="font-size: 11px;">Tra cứu tri thức & Hỗ trợ tạo Ticket</small>
+                </div>
+            </div>
+            <button type="button" id="btn-close-ai-chat" class="btn-close btn-close-white" aria-label="Close"></button>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div id="ai-chat-messages" class="card-body p-3 overflow-auto" style="background-color: #f8f9fa; height: 375px;">
+            <div class="d-flex mb-3">
+                <div class="rounded p-2 text-dark bg-white border shadow-sm small" style="max-width: 85%;">
+                    👋 Xin chào! Tôi là Trợ lý AI của trường. Bạn có câu hỏi nào về <strong>Quy chế học vụ, Nộp chứng chỉ tiếng Anh, Điểm thi, Học phí hay Đăng ký môn học</strong> không?
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Input Footer -->
+        <div class="card-footer bg-white p-2 border-top">
+            <div class="input-group input-group-sm">
+                <input type="text" id="ai-chat-input" class="form-control" placeholder="Nhập câu hỏi của bạn..." autocomplete="off">
+                <button class="btn btn-primary px-3" id="btn-send-ai-message" type="button" style="background-color: #1e3a8a;">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script điều khiển Chatbot & Đối soát FAQ -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnOpen = document.getElementById('btn-open-ai-chat');
+            const btnClose = document.getElementById('btn-close-ai-chat');
+            const chatBox = document.getElementById('ai-chat-box');
+            const chatInput = document.getElementById('ai-chat-input');
+            const btnSend = document.getElementById('btn-send-ai-message');
+            const messagesContainer = document.getElementById('ai-chat-messages');
+
+            if (btnOpen && chatBox) {
+                btnOpen.addEventListener('click', () => {
+                    chatBox.classList.toggle('d-none');
+                    if (!chatBox.classList.contains('d-none')) {
+                        chatInput.focus();
+                    }
+                });
+                btnClose.addEventListener('click', () => chatBox.classList.add('d-none'));
+
+                btnSend.addEventListener('click', handleUserQuery);
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') handleUserQuery();
+                });
+            }
+
+            function handleUserQuery() {
+                const query = chatInput.value.trim();
+                if (!query) return;
+
+                // 1. Render tin nhắn User
+                appendMessage('user', query);
+                chatInput.value = '';
+
+                // 2. Loading indicator
+                const loadingId = 'ai-loading-' + Date.now();
+                appendLoading(loadingId);
+
+                // 3. Gọi API đối soát tri thức /api/v1/faqs/match
+                fetch(`/api/v1/faqs/match?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        removeLoading(loadingId);
+                        if (data.success && data.data && data.data.length > 0) {
+                            const topMatch = data.data[0];
+                            let answerHtml = `<strong>💡 Giải đáp theo quy chế:</strong><br>${topMatch.answer.replace(/\\n/g, '<br>')}`;
+                            answerHtml += `<br><small class="text-muted mt-2 d-block">🏢 Nguồn: ${topMatch.departmentName}</small>`;
+
+                            // Nếu điểm tin cậy chưa tuyệt đối, thêm nút chuyển sang Ticket
+                            answerHtml += `
+                                <div class="mt-2 pt-2 border-top">
+                                    <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-outline-primary btn-sm w-100" style="font-size: 11px;">
+                                        <i class="bi bi-envelope-plus me-1"></i>Gửi câu hỏi này thành Ticket tới Cán bộ
+                                    </a>
+                                </div>
+                            `;
+                            appendMessage('ai', answerHtml);
+                        } else {
+                            // Không tìm thấy trong FAQ -> Gợi ý chuyển sang Ticket
+                            const fallbackHtml = `
+                                Dạ hiện tại câu hỏi này chưa có trong bộ câu hỏi thường gặp hoặc cần Cán bộ kiểm tra hồ sơ riêng của bạn.<br><br>
+                                <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-primary btn-sm w-100" style="background-color: #1e3a8a;">
+                                    <i class="bi bi-ticket-perforated me-1"></i>Tạo Ticket gửi Ban Tư Vấn
+                                </a>
+                            `;
+                            appendMessage('ai', fallbackHtml);
+                        }
+                    })
+                    .catch(() => {
+                        removeLoading(loadingId);
+                        appendMessage('ai', 'Có sự cố kết nối tới máy chủ tri thức. Bạn có thể nhấn <a href="/tickets/create">Gửi yêu cầu trực tiếp</a> nhé!');
+                    });
+            }
+
+            function appendMessage(sender, htmlContent) {
+                const div = document.createElement('div');
+                div.className = sender === 'user' ? 'd-flex justify-content-end mb-2' : 'd-flex mb-2';
+                const bubble = document.createElement('div');
+                bubble.className = sender === 'user' 
+                    ? 'rounded p-2 text-white bg-primary small shadow-sm' 
+                    : 'rounded p-2 text-dark bg-white border small shadow-sm ai-message-bubble';
+                bubble.style.maxWidth = '85%';
+                if (sender === 'user') bubble.style.backgroundColor = '#1e3a8a';
+                bubble.innerHTML = htmlContent;
+                div.appendChild(bubble);
+                messagesContainer.appendChild(div);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function appendLoading(id) {
+                const div = document.createElement('div');
+                div.id = id;
+                div.className = 'd-flex mb-2 text-muted small fst-italic';
+                div.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div>AI đang tra cứu quy chế...';
+                messagesContainer.appendChild(div);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function removeLoading(id) {
+                const elem = document.getElementById(id);
+                if (elem) elem.remove();
+            }
+        });
+    </script>
+</div>
+</body>
+</html>
