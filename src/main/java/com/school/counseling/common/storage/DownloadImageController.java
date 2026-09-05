@@ -44,7 +44,7 @@ public class DownloadImageController {
                 
                 response.setContentType(mimeType);
                 try (InputStream is = new FileInputStream(file)) {
-                    IOUtils.copy(is, response.getOutputStream());
+                    org.springframework.util.StreamUtils.copy(is, response.getOutputStream());
                 }
             } else {
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
