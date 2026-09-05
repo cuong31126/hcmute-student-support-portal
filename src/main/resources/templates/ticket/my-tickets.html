@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Danh Sách Yêu Cầu Của Tôi - QAUTE Portal</title>
+</head>
+<body>
+<div th:fragment="content">
+    
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">Danh Sách Yêu Cầu Tư Vấn Của Tôi</h4>
+            <p class="small text-muted mb-0">Theo dõi tiến độ và nhận phản hồi từ các Khoa / Phòng ban</p>
+        </div>
+        <a th:href="@{/tickets/create}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Gửi Yêu Cầu Mới
+        </a>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${#lists.isEmpty(tickets)}" class="card p-5 text-center text-muted">
+        <i class="bi bi-inbox fs-1 text-secondary mb-2"></i>
+        <h5>Bạn chưa gửi yêu cầu tư vấn nào</h5>
+        <p class="small mb-3">Nếu có bất kỳ thắc mắc nào về học vụ, điểm số, học phí hay tuyển sinh, hãy gửi câu hỏi cho Ban Tư Vấn.</p>
+        <div><a th:href="@{/tickets/create}" class="btn btn-primary btn-sm">Tạo Yêu Cầu Đầu Tiên</a></div>
+    </div>
+
+    <!-- Ticket Table -->
+    <div th:if="${!#lists.isEmpty(tickets)}" class="card overflow-hidden shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="ticketsTable">
+                <thead class="table-light text-secondary small">
+                    <tr>
+                        <th style="width: 150px;">Mã Ticket</th>
+                        <th>Tiêu Đề Yêu Cầu</th>
+                        <th>Đơn Vị Tiếp Nhận</th>
+                        <th>Trạng Thái</th>
+                        <th>Thời Hạn SLA</th>
+                        <th class="text-end">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="t : ${tickets}">
+                        <td><code class="fw-bold text-primary" th:text="${t.ticketCode}">TK-XXXX</code></td>
+                        <td>
+                            <div class="fw-semibold text-dark" th:text="${t.title}">Tiêu đề</div>
+                            <small class="text-muted" th:text="'Gửi lúc: ' + ${#temporals.format(t.createdAt, 'HH:mm dd/MM/yyyy')}">00:00 01/01/2026</small>
+                        </td>
+                        <td><span class="badge bg-light text-dark border" th:text="${t.departmentName}">Phòng Đào tạo</span></td>
+                        <td>
+                            <span th:if="${t.status == 'OPEN'}" class="badge bg-warning text-dark">Chờ tiếp nhận</span>
+                            <span th:if="${t.status == 'IN_PROGRESS'}" class="badge bg-info text-dark">Đang xử lý</span>
+                            <span th:if="${t.status == 'WAITING_STUDENT'}" class="badge bg-secondary">Chờ bạn bổ sung</span>
+                            <span th:if="${t.status == 'RESOLVED'}" class="badge bg-success">Đã giải quyết</span>
+                            <span th:if="${t.status == 'CLOSED'}" class="badge bg-dark">Đã đóng</span>
+                        </td>
+                        <td>
+                            <span th:if="${t.isOverdue}" class="badge bg-danger"><i class="bi bi-clock-history me-1"></i>Quá hạn</span>
+                            <span th:if="${t.isDueSoon and !t.isOverdue}" class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Sắp đến hạn</span>
+                            <span th:if="${!t.isOverdue and !t.isDueSoon}" class="small text-muted" th:text="${#temporals.format(t.dueDate, 'HH:mm dd/MM/yyyy')}">Hạn chót</span>
+                        </td>
+                        <td class="text-end">
+                            <a th:href="@{'/tickets/detail/' + ${t.id}}" class="btn btn-outline-primary btn-sm btn-view-ticket">
+                                <i class="bi bi-eye me-1"></i>Xem Chi Tiết
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

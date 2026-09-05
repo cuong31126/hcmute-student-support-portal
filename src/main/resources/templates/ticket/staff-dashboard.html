@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Bàn Xử Lý Yêu Cầu Cán Bộ - QAUTE Portal</title>
+</head>
+<body>
+<div th:fragment="content">
+    
+    <!-- Dashboard Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-2">
+        <div>
+            <span class="badge bg-warning text-dark me-2">STAFF WORKSPACE</span>
+            <h4 class="fw-bold text-dark mb-0 d-inline align-middle">Bàn Tiếp Nhận & Xử Lý Ticket</h4>
+            <p class="small text-muted mb-0 mt-1" th:text="'Đơn vị quản lý: ' + ${currentDepartment.name} + ' (' + ${currentDepartment.officeLocation} + ')'">Khoa / Phòng</p>
+        </div>
+        
+        <!-- Filter Dropdown -->
+        <form th:action="@{/staff/tickets}" method="get" class="d-flex align-items-center gap-2">
+            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="ALL" th:selected="${selectedStatus == 'ALL'}">Tất cả trạng thái</option>
+                <option value="OPEN" th:selected="${selectedStatus == 'OPEN'}">Chờ tiếp nhận (OPEN)</option>
+                <option value="IN_PROGRESS" th:selected="${selectedStatus == 'IN_PROGRESS'}">Đang xử lý (IN_PROGRESS)</option>
+                <option value="RESOLVED" th:selected="${selectedStatus == 'RESOLVED'}">Đã giải quyết (RESOLVED)</option>
+                <option value="CLOSED" th:selected="${selectedStatus == 'CLOSED'}">Đã đóng (CLOSED)</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- Summary Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card p-3 border-start border-4 border-warning bg-white shadow-sm">
+                <small class="text-muted text-uppercase fw-bold" style="font-size: 11px;">Chờ Tiếp Nhận</small>
+                <h3 class="fw-bold text-dark mb-0" th:text="${countOpen}">0</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 border-start border-4 border-info bg-white shadow-sm">
+                <small class="text-muted text-uppercase fw-bold" style="font-size: 11px;">Đang Xử Lý</small>
+                <h3 class="fw-bold text-dark mb-0" th:text="${countInProgress}">0</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 border-start border-4 border-danger bg-white shadow-sm">
+                <small class="text-muted text-uppercase fw-bold" style="font-size: 11px;">Cảnh Báo Quá Hạn (SLA)</small>
+                <h3 class="fw-bold text-danger mb-0" th:text="${countOverdue}">0</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 border-start border-4 border-success bg-white shadow-sm">
+                <small class="text-muted text-uppercase fw-bold" style="font-size: 11px;">Đã Giải Quyết</small>
+                <h3 class="fw-bold text-success mb-0" th:text="${countResolved}">0</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table of Tickets -->
+    <div class="card overflow-hidden shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="ticketsTable">
+                <thead class="table-light text-secondary small">
+                    <tr>
+                        <th>Mã Ticket</th>
+                        <th>Người Gửi</th>
+                        <th>Tiêu Đề Yêu Cầu</th>
+                        <th>Mức Ưu Tiên</th>
+                        <th>Trạng Thái</th>
+                        <th>Hạn Chót SLA</th>
+                        <th class="text-end">Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(tickets)}">
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-3 d-block mb-1"></i>Hiện không có yêu cầu nào trong danh mục này.
+                        </td>
+                    </tr>
+                    <tr th:each="t : ${tickets}">
+                        <td><code class="fw-bold text-primary" th:text="${t.ticketCode}">TK-XXXX</code></td>
+                        <td>
+                            <div class="fw-semibold text-dark" th:text="${t.creatorName != null ? t.creatorName : t.guestName}">Nguyễn Văn A</div>
+                            <small class="text-muted" th:text="${t.guestEmail != null ? t.guestEmail : 'Sinh viên'}">sv@hcmute.edu.vn</small>
+                        </td>
+                        <td>
+                            <a th:href="@{'/tickets/detail/' + ${t.id}}" class="fw-bold text-decoration-none text-dark d-block" th:text="${t.title}">Tiêu đề</a>
+                            <small class="text-muted" th:text="'Gửi lúc: ' + ${#temporals.format(t.createdAt, 'HH:mm dd/MM/yyyy')}">Thời gian</small>
+                        </td>
+                        <td>
+                            <span th:if="${t.priority == 'URGENT'}" class="badge bg-danger">Khẩn cấp (24h)</span>
+                            <span th:if="${t.priority == 'HIGH'}" class="badge bg-warning text-dark">Cao (48h)</span>
+                            <span th:if="${t.priority == 'MEDIUM'}" class="badge bg-secondary">Bình thường (72h)</span>
+                            <span th:if="${t.priority == 'LOW'}" class="badge bg-light text-dark border">Thấp (7d)</span>
+                        </td>
+                        <td>
+                            <span th:if="${t.status == 'OPEN'}" class="badge bg-warning text-dark">Chờ nhận</span>
+                            <span th:if="${t.status == 'IN_PROGRESS'}" class="badge bg-info text-dark">Đang xử lý</span>
+                            <span th:if="${t.status == 'RESOLVED'}" class="badge bg-success">Đã giải quyết</span>
+                            <span th:if="${t.status == 'CLOSED'}" class="badge bg-dark">Đã đóng</span>
+                        </td>
+                        <td>
+                            <div class="badge-sla-deadline">
+                                <span th:if="${t.isOverdue}" class="badge bg-danger"><i class="bi bi-exclamation-octagon me-1"></i>Quá hạn (Overdue)</span>
+                                <span th:if="${t.isDueSoon and !t.isOverdue}" class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Sắp đến hạn 24h</span>
+                                <span th:if="${!t.isOverdue and !t.isDueSoon}" class="small text-muted" th:text="${#temporals.format(t.dueDate, 'HH:mm dd/MM/yyyy')}">Hạn</span>
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                <!-- Nút Claim -->
+                                <form th:if="${t.status == 'OPEN'}" th:action="@{'/staff/tickets/' + ${t.id} + '/claim'}" method="post" class="m-0">
+                                    <button type="submit" class="btn btn-primary btn-sm fw-semibold">
+                                        <i class="bi bi-hand-index-thumb me-1"></i>Tiếp nhận xử lý
+                                    </button>
+                                </form>
+
+                                <!-- Nút Xem chi tiết / Phản hồi -->
+                                <a th:href="@{'/tickets/detail/' + ${t.id}}" class="btn btn-outline-secondary btn-sm btn-view-ticket">
+                                    <i class="bi bi-arrow-right-short fs-6"></i>Chi Tiết
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

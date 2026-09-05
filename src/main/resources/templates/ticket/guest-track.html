@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Tra Cứu Tiến Độ Yêu Cầu (Guest) - QAUTE Portal</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            
+            <!-- Tracking Box -->
+            <div class="card p-4 shadow-sm mb-4">
+                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                    <div>
+                        <span class="badge bg-primary me-2">TRA CỨU TIẾN ĐỘ GUEST</span>
+                        <h4 class="fw-bold text-dark mb-0 d-inline align-middle" th:text="'Mã Ticket: ' + ${ticket.ticketCode}">TK-XXXX</h4>
+                    </div>
+                    <div>
+                        <span th:if="${ticket.status == 'OPEN'}" class="badge bg-warning text-dark fs-6">Chờ tiếp nhận</span>
+                        <span th:if="${ticket.status == 'IN_PROGRESS'}" class="badge bg-info text-dark fs-6">Đang xử lý</span>
+                        <span th:if="${ticket.status == 'RESOLVED'}" class="badge bg-success fs-6">Đã giải quyết</span>
+                        <span th:if="${ticket.status == 'CLOSED'}" class="badge bg-secondary fs-6">Đã đóng</span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">Người gửi:</small>
+                        <strong th:text="${ticket.guestName}">Nguyễn Văn Thí Sinh</strong> (<span th:text="${ticket.guestEmail}">email</span>)
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">Đơn vị tiếp nhận:</small>
+                        <strong class="text-primary" th:text="${ticket.departmentName}">Phòng Tuyển sinh</strong>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">Thời điểm gửi:</small>
+                        <span th:text="${#temporals.format(ticket.createdAt, 'HH:mm - dd/MM/yyyy')}">00:00 01/01/2026</span>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">Hạn cam kết SLA:</small>
+                        <span class="text-danger fw-bold" th:text="${#temporals.format(ticket.dueDate, 'HH:mm - dd/MM/yyyy')}">00:00 02/01/2026</span>
+                    </div>
+                </div>
+
+                <!-- Title & Content -->
+                <div class="bg-light p-3 rounded mb-3">
+                    <h6 class="fw-bold text-dark mb-2" th:text="${ticket.title}">Tiêu đề</h6>
+                    <p class="mb-0 text-secondary" style="white-space: pre-line;" th:text="${ticket.description}">Nội dung yêu cầu</p>
+                </div>
+
+                <!-- Attachments -->
+                <div th:if="${!#lists.isEmpty(ticket.attachments)}" class="mb-3">
+                    <h6 class="fw-bold small text-muted mb-2">Tệp đính kèm:</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a th:each="att : ${ticket.attachments}" th:href="${att.fileUrl}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-paperclip me-1"></i><span th:text="${att.fileName}">file.pdf</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Timeline -->
+            <div class="card p-4 shadow-sm">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-clock-history me-2 text-primary"></i>Lịch Sử Trao Đổi & Phản Hồi</h5>
+                
+                <div class="timeline">
+                    <div th:each="h : ${ticket.histories}" class="border-start border-3 border-primary ps-3 pb-3 mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="text-dark" th:text="${h.actorName}">Người phản hồi</strong>
+                            <small class="text-muted" th:text="${#temporals.format(h.createdAt, 'HH:mm dd/MM/yyyy')}">Thời gian</small>
+                        </div>
+                        <div class="p-2 rounded bg-light border small text-secondary" style="white-space: pre-line;" th:text="${h.actionNote}">
+                            Nội dung phản hồi
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>

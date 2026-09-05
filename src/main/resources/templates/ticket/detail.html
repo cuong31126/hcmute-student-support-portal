@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title th:text="'Chi Tiết Yêu Cầu #' + ${ticket.ticketCode} + ' - QAUTE Portal'">Chi Tiết Ticket</title>
+</head>
+<body>
+<div th:fragment="content">
+    
+    <div class="row g-4">
+        <!-- Main Content (Left Column) -->
+        <div class="col-lg-8">
+            
+            <!-- Ticket Info Card -->
+            <div class="card p-4 shadow-sm mb-4">
+                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                    <div>
+                        <span class="badge bg-primary bg-opacity-10 text-primary me-2" th:text="${ticket.departmentName}">Phòng Đào tạo</span>
+                        <h4 class="fw-bold text-dark mb-0 d-inline align-middle" th:text="${ticket.title}">Tiêu đề yêu cầu</h4>
+                    </div>
+                    <div>
+                        <span th:if="${ticket.status == 'OPEN'}" class="badge bg-warning text-dark fs-6 badge-ticket-status">Chờ tiếp nhận</span>
+                        <span th:if="${ticket.status == 'IN_PROGRESS'}" class="badge bg-info text-dark fs-6 badge-ticket-status">Đang xử lý</span>
+                        <span th:if="${ticket.status == 'WAITING_STUDENT'}" class="badge bg-secondary fs-6 badge-ticket-status">Chờ bạn bổ sung</span>
+                        <span th:if="${ticket.status == 'RESOLVED'}" class="badge bg-success fs-6 badge-ticket-status">Đã giải quyết</span>
+                        <span th:if="${ticket.status == 'CLOSED'}" class="badge bg-dark fs-6 badge-ticket-status">Đã đóng</span>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="p-3 bg-light rounded mb-3">
+                    <p class="mb-0 text-dark" style="white-space: pre-line;" th:text="${ticket.description}">Nội dung yêu cầu</p>
+                </div>
+
+                <!-- Attachments -->
+                <div th:if="${!#lists.isEmpty(ticket.attachments)}" class="mb-2">
+                    <h6 class="small fw-bold text-muted mb-2"><i class="bi bi-paperclip me-1"></i>Tệp đính kèm:</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a th:each="att : ${ticket.attachments}" th:href="${att.fileUrl}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-file-earmark-arrow-down me-1"></i><span th:text="${att.fileName}">file.pdf</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Timeline & Conversation -->
+            <div class="card p-4 shadow-sm mb-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-chat-left-dots text-primary me-2"></i>Trao Đổi & Phản Hồi</h5>
+
+                <div th:each="h : ${ticket.histories}" class="border-start border-3 border-primary ps-3 pb-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                            <strong class="text-dark" th:text="${h.actorName}">Cán bộ tư vấn</strong>
+                            <span th:if="${h.toStatus == 'RESOLVED'}" class="badge bg-success ms-2">Giải pháp</span>
+                        </div>
+                        <small class="text-muted" th:text="${#temporals.format(h.createdAt, 'HH:mm dd/MM/yyyy')}">Thời gian</small>
+                    </div>
+                    <div class="p-3 rounded bg-light border text-dark" style="white-space: pre-line;" th:text="${h.actionNote}">
+                        Nội dung trao đổi
+                    </div>
+                </div>
+
+                <!-- Reply Form (Nếu Ticket chưa bị đóng) -->
+                <div th:if="${ticket.status != 'CLOSED'}" class="border-top pt-3 mt-2">
+                    <form th:action="@{'/tickets/' + ${ticket.id} + '/reply'}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="replyContent" class="form-label small fw-semibold">Viết phản hồi / Bổ sung thông tin:</label>
+                            <textarea id="replyContent" name="content" rows="3" class="form-control form-control-sm" placeholder="Nhập câu trả lời hoặc thông tin bổ sung..." required></textarea>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <input type="file" name="files" class="form-control form-control-sm" style="max-width: 300px;" multiple>
+                            <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold">
+                                <i class="bi bi-send me-1"></i>Gửi Phản Hồi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sidebar Info (Right Column) -->
+        <div class="col-lg-4">
+            
+            <div class="card p-3 shadow-sm mb-3">
+                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Thông Tin Cam Kết SLA</h6>
+                <div class="mb-2">
+                    <small class="text-muted d-block">Mã yêu cầu:</small>
+                    <code class="fw-bold fs-6 text-primary" th:text="${ticket.ticketCode}">TK-XXXX</code>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted d-block">Mức độ ưu tiên:</small>
+                    <span class="badge bg-secondary" th:text="${ticket.priority}">MEDIUM</span>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted d-block">Thời hạn giải quyết (SLA):</small>
+                    <div class="badge-sla-deadline">
+                        <strong class="text-danger" th:text="${#temporals.format(ticket.dueDate, 'HH:mm - dd/MM/yyyy')}">00:00 01/01/2026</strong>
+                        <span th:if="${ticket.isOverdue}" class="badge bg-danger ms-1">Quá hạn</span>
+                        <span th:if="${ticket.isDueSoon and !ticket.isOverdue}" class="badge bg-warning text-dark ms-1">Sắp đến hạn 24h</span>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted d-block">Cán bộ phụ trách:</small>
+                    <strong th:text="${ticket.assignedStaffName != null ? ticket.assignedStaffName : 'Chưa có cán bộ nhận'}">ThS. Phạm Thị Thu Sương</strong>
+                </div>
+            </div>
+
+            <!-- Action Box for Student: Close & Rate -->
+            <div th:if="${ticket.status == 'RESOLVED'}" class="card p-3 shadow-sm border-success bg-success bg-opacity-10">
+                <h6 class="fw-bold text-success mb-2"><i class="bi bi-check-circle me-1"></i>Vấn đề đã được giải đáp!</h6>
+                <p class="small text-muted mb-3">Nếu bạn đã hài lòng với câu trả lời từ Thầy/Cô, vui lòng xác nhận đóng yêu cầu và chấm điểm chất lượng tư vấn.</p>
+                <form th:action="@{'/tickets/' + ${ticket.id} + '/close'}" method="post">
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Đánh giá độ hài lòng:</label>
+                        <select name="rating" class="form-select form-select-sm">
+                            <option value="5">⭐⭐⭐⭐⭐ Rất hài lòng (5 sao)</option>
+                            <option value="4">⭐⭐⭐⭐ Hài lòng (4 sao)</option>
+                            <option value="3">⭐⭐⭐ Bình thường (3 sao)</option>
+                            <option value="2">⭐⭐ Chưa hài lòng (2 sao)</option>
+                            <option value="1">⭐ Không hài lòng (1 sao)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm w-100 fw-semibold">
+                        <i class="bi bi-check-lg me-1"></i>Xác Nhận & Đóng Ticket
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

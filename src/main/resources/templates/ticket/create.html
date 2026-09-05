@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Gửi Yêu Cầu Tư Vấn Mới - QAUTE Portal</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card p-4 shadow-sm">
+                <!-- Header -->
+                <div class="border-bottom pb-3 mb-3">
+                    <h4 class="fw-bold text-dark mb-1 d-flex align-items-center">
+                        <i class="bi bi-ticket-perforated text-primary me-2"></i>Tạo Yêu Cầu Tư Vấn Học Vụ
+                    </h4>
+                    <p class="small text-muted mb-0">Hệ thống phân luồng tới đúng Khoa/Phòng và cam kết thời hạn giải đáp (SLA)</p>
+                </div>
+
+                <form th:action="@{/tickets/create}" method="post" enctype="multipart/form-data">
+                    
+                    <!-- Guest Input Section (chỉ hiển thị nếu chưa đăng nhập) -->
+                    <div sec:authorize="isAnonymous()" class="bg-light p-3 rounded mb-3 border">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-badge me-1"></i>Thông Tin Người Gửi (Khách vãng lai / Thí sinh)</h6>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label for="guestName" class="form-label small fw-semibold">Họ và tên của bạn <span class="text-danger">*</span></label>
+                                <input type="text" id="guestName" name="guestName" class="form-control form-control-sm" placeholder="VD: Nguyễn Văn Thí Sinh" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="guestEmail" class="form-label small fw-semibold">Email nhận kết quả giải đáp <span class="text-danger">*</span></label>
+                                <input type="email" id="guestEmail" name="guestEmail" class="form-control form-control-sm" placeholder="email_cua_ban@gmail.com" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Department Selection -->
+                    <div class="mb-3">
+                        <label for="departmentId" class="form-label small fw-semibold">Chọn Đơn vị / Phòng ban tiếp nhận <span class="text-danger">*</span></label>
+                        <select id="departmentId" name="departmentId" class="form-select" required>
+                            <option value="" disabled selected>-- Vui lòng chọn Khoa / Phòng ban --</option>
+                            <option th:each="dept : ${departments}" th:value="${dept.id}" th:text="${dept.name} + ' (' + ${dept.officeLocation} + ')'"></option>
+                        </select>
+                    </div>
+
+                    <!-- Priority Selection -->
+                    <div class="mb-3">
+                        <label for="priority" class="form-label small fw-semibold">Mức độ ưu tiên / Thời hạn xử lý</label>
+                        <select id="priority" name="priority" class="form-select">
+                            <option value="MEDIUM" selected>Bình thường - SLA 72 giờ (Hỏi đáp quy chế, học bổng, thông tin chung)</option>
+                            <option value="URGENT">Khẩn cấp - SLA 24 giờ (Sát giờ thi, hoãn thi, sự cố học phí sát hạn)</option>
+                            <option value="HIGH">Cao - SLA 48 giờ (Đăng ký môn học, xét tốt nghiệp, bảng điểm)</option>
+                            <option value="LOW">Thấp - SLA 7 ngày (Khảo sát, đóng góp ý kiến)</option>
+                        </select>
+                    </div>
+
+                    <!-- Title -->
+                    <div class="mb-3">
+                        <label for="title" class="form-label small fw-semibold">Tiêu đề thắc mắc <span class="text-danger">*</span></label>
+                        <input type="text" id="title" name="title" th:value="${initialTitle}" class="form-control" placeholder="Tóm tắt ngắn gọn vấn đề (VD: Thắc mắc về việc nộp chứng chỉ tiếng Anh đầu vào)" required>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label for="description" class="form-label small fw-semibold">Nội dung chi tiết câu hỏi <span class="text-danger">*</span></label>
+                        <textarea id="description" name="description" rows="5" class="form-control" placeholder="Vui lòng mô tả chi tiết: Mã số sinh viên, mã môn học, học kỳ, nội dung vướng mắc để Thầy/Cô hỗ trợ nhanh nhất..." required></textarea>
+                    </div>
+
+                    <!-- File Attachments -->
+                    <div class="mb-4">
+                        <label for="files" class="form-label small fw-semibold">Tệp đính kèm minh chứng (Đơn xin, Phiếu điểm, Hình ảnh, PDF $\le 10\text{MB}$)</label>
+                        <input type="file" id="files" name="files" class="form-control form-control-sm" multiple>
+                        <div class="form-text small">Hỗ trợ định dạng: .pdf, .jpg, .png, .docx. Tối đa 5 tệp.</div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                        <a th:href="@{/}" class="btn btn-outline-secondary btn-sm">Quay Lại</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                            <i class="bi bi-send-fill me-1"></i>Gửi Yêu Cầu Tư Vấn
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
