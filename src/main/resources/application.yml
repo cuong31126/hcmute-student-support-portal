@@ -1,0 +1,71 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 60m
+      cookie:
+        name: JSESSIONID
+        http-only: true
+        same-site: lax
+        secure: false # Set true khi chạy HTTPS
+
+spring:
+  application:
+    name: qaute-portal
+  
+  # Cấu hình Multipart Upload (Hỗ trợ file văn bản & Video tới 100MB)
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 105MB
+
+  # Cấu hình Database (Hỗ trợ MySQL mặc định và profile SQL Server)
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/qaute_portal?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: ${DB_DRIVER:com.mysql.cj.jdbc.Driver}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  # Cấu hình Thymeleaf
+  thymeleaf:
+    cache: false
+    mode: HTML
+    encoding: UTF-8
+
+  # Cấu hình Async Mail Task Executor
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:your_email@gmail.com}
+    password: ${MAIL_PASSWORD:your_app_password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Cấu hình Lưu Trữ & Thư Mục Upload Cục Bộ (Tương thích chuẩn Constant.DIR = C:\upload)
+app:
+  storage:
+    provider: local # 'local' hoặc 'cloudinary'
+    upload-dir: ${UPLOAD_DIR:C:/upload} # Thư mục lưu ảnh/file cục bộ trên máy
+    max-image-size-mb: 10
+    max-doc-size-mb: 100
+    max-video-size-mb: 100
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:demo}
+    api-key: ${CLOUDINARY_API_KEY:123456}
+    api-secret: ${CLOUDINARY_API_SECRET:secret}
+  webhook:
+    nodejs-secret: ${NODEJS_WEBHOOK_SECRET:mySuperSecretWebhookKey2026}

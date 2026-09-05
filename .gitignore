@@ -1,0 +1,63 @@
+# ==============================================================================
+# GITIGNORE FOR QAUTE PORTAL (SPRING BOOT 3 + MAVEN + STS)
+# ==============================================================================
+
+# 1. Thư mục nhạy cảm & bí mật nội bộ theo yêu cầu
+prompt/
+
+# 2. Maven Build Output
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# 3. Eclipse & Spring Tool Suite (STS)
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+.factorypath
+
+# 4. VS Code & JetBrains IDE
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# 5. Node.js & Playwright Testing
+node_modules/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# 6. Log Files & Crash Reports
+*.log
+*.log.*
+logs/
+hs_err_pid*
+
+# 7. OS Generated Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 8. Local Uploads & Temp Storage
+uploads/
+upload/
+C:/upload/
