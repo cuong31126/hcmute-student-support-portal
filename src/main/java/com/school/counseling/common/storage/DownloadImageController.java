@@ -14,8 +14,8 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 
 /**
- * Controller phục vụ xem và tải ảnh từ thư mục Constant.DIR (C:\upload)
- * URL truy cập: /image?fname=ten_file.jpg
+ * Controller phuc vu xem va tai anh tu thu muc Constant.DIR (C:/upload)
+ * URL truy cap: /image?fname=ten_file.jpg
  */
 @Controller
 public class DownloadImageController {
@@ -26,7 +26,7 @@ public class DownloadImageController {
             HttpServletResponse response) {
         
         try {
-            // Tìm trong thư mục con images hoặc thư mục gốc C:\upload
+            // Tim trong thu muc con images hoac thu muc goc C:/upload
             File file = new File(Constant.DIR_IMAGES, fileName);
             if (!file.exists()) {
                 file = new File(Constant.DIR, fileName);

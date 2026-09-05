@@ -13,7 +13,7 @@ import java.io.File;
 public class QautePortalApplication {
 
     public static void main(String[] args) {
-        // Tự động khởi tạo các thư mục upload cục bộ C:\upload nếu chưa tồn tại
+        // Tu dong khoi tao cac thu muc upload cuc bo C:/upload neu chua ton tai
         initUploadDirectories();
         SpringApplication.run(QautePortalApplication.class, args);
     }
