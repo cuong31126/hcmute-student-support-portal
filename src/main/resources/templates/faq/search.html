@@ -7,38 +7,83 @@
 <div th:fragment="content">
     
     <!-- Title Section -->
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 pb-2 border-bottom">
         <div>
-            <h4 class="fw-bold text-dark mb-1">Tra Cứu Câu Hỏi Thường Gặp (FAQ)</h4>
-            <p class="small text-muted mb-0">Bộ dữ liệu gồm hơn 2.600+ câu hỏi và giải đáp học vụ chính thức từ HCMUTE</p>
+            <h4 class="fw-bold text-dark mb-1 d-flex align-items-center">
+                <i class="bi bi-question-diamond-fill text-primary me-2"></i>Tra Cứu Câu Hỏi Thường Gặp (FAQ)
+            </h4>
+            <p class="small text-muted mb-0">Bộ dữ liệu gồm hơn 2.672+ câu hỏi và giải đáp học vụ chính thức từ HCMUTE</p>
         </div>
-        <a th:href="@{/tickets/create}" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-circle me-1"></i>Không tìm thấy? Gửi Ticket
+        <div class="mt-3 mt-md-0">
+            <a th:href="@{/tickets/create}" class="btn btn-primary btn-sm px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-1"></i>Không tìm thấy? Gửi Ticket
+            </a>
+        </div>
+    </div>
+
+    <!-- Department Filter Pills -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a th:href="@{/faqs}" 
+           class="btn btn-sm" 
+           th:classappend="${selectedDept == null ? 'btn-primary' : 'btn-outline-secondary'}">
+            Tất cả đơn vị
+        </a>
+        <a th:each="dept : ${departments}" 
+           th:href="@{/faqs(departmentId=${dept.id})}" 
+           class="btn btn-sm" 
+           th:classappend="${selectedDept == dept.id ? 'btn-primary' : 'btn-outline-secondary'}"
+           th:text="${dept.name}">
+            Phòng Ban
         </a>
     </div>
 
-    <!-- Live Search Input -->
-    <div class="card p-3 mb-4">
+    <!-- Live Search Input Box -->
+    <div class="card p-3 mb-4 shadow-sm border">
         <div class="input-group">
             <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" id="faqSearchInput" th:value="${query}" class="form-control border-start-0 ps-0 shadow-none" placeholder="Nhập từ khóa cần hỏi (VD: nộp chứng chỉ tiếng anh, miễn thi, phúc khảo điểm, học phí...)">
-            <button class="btn btn-primary" type="button" id="btnExecuteSearch">Tìm Kiếm</button>
+            <input type="text" id="faqSearchInput" th:value="${query}" 
+                   class="form-control border-start-0 ps-0 shadow-none" 
+                   placeholder="Nhập câu hỏi hoặc từ khóa (VD: học phí, TOEIC, đăng ký môn học, bảng điểm, đồ án tốt nghiệp...)">
+            <button class="btn btn-primary px-4 fw-semibold d-flex align-items-center" type="button" id="btnExecuteSearch">
+                <span id="searchSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status"></span>
+                <span id="searchText">Tìm Kiếm</span>
+            </button>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+            <small class="text-muted" id="searchHintText">
+                <i class="bi bi-lightning-charge-fill text-warning me-1"></i>Gợi ý: Tìm kiếm tức thì với thuật toán so khớp tri thức AI
+            </small>
+            <button type="button" id="btnClearSearch" class="btn btn-link btn-sm text-decoration-none text-muted p-0 d-none">
+                <i class="bi bi-x-circle me-1"></i>Xóa tìm kiếm
+            </button>
         </div>
     </div>
 
-    <!-- FAQ Results Container -->
+    <!-- Results Status Banner -->
+    <div id="searchResultsMeta" class="mb-3 d-none">
+        <span class="badge bg-secondary" id="resultsCountBadge">0 kết quả</span>
+        <span class="small text-muted ms-2" id="resultsDetailText"></span>
+    </div>
+
+    <!-- FAQ Results Accordion Container -->
     <div id="faqResultsContainer" class="accordion shadow-sm">
-        <div th:each="faq, iter : ${faqs}" class="accordion-item">
+        <div th:each="faq, iter : ${faqsPage.content}" class="accordion-item mb-2 border rounded overflow-hidden">
             <h2 class="accordion-header" th:id="'heading' + ${iter.index}">
-                <button class="accordion-button collapsed fw-semibold text-dark" type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${iter.index}" aria-expanded="false" th:aria-controls="'#collapse' + ${iter.index}">
-                    <span class="badge bg-primary bg-opacity-10 text-primary me-2" th:text="${faq.department.name}">Đơn vị</span>
-                    <span th:text="${faq.question}">Câu hỏi</span>
+                <button class="accordion-button collapsed fw-semibold text-dark py-3" type="button" 
+                        data-bs-toggle="collapse" 
+                        th:data-bs-target="'#collapse' + ${iter.index}" 
+                        aria-expanded="false" 
+                        th:aria-controls="'#collapse' + ${iter.index}">
+                    <span class="badge bg-primary bg-opacity-10 text-primary me-2 px-2 py-1" th:text="${faq.department.name}">Đơn vị</span>
+                    <span class="badge bg-light text-muted border me-2 px-2 py-1" th:text="${faq.category}">Quy chế</span>
+                    <span class="text-dark" th:text="${faq.question}">Câu hỏi</span>
                 </button>
             </h2>
-            <div th:id="'collapse' + ${iter.index}" class="accordion-collapse collapse" th:aria-labelledby="'heading' + ${iter.index}" data-bs-parent="#faqResultsContainer">
+            <div th:id="'collapse' + ${iter.index}" class="accordion-collapse collapse" 
+                 th:aria-labelledby="'heading' + ${iter.index}" data-bs-parent="#faqResultsContainer">
                 <div class="accordion-body bg-light text-secondary">
-                    <p class="mb-2 fw-medium text-dark">Lời giải đáp từ Ban Tư Vấn:</p>
-                    <div class="bg-white p-3 rounded border text-dark" style="white-space: pre-line;" th:text="${faq.answer}">
+                    <p class="mb-2 fw-semibold text-primary"><i class="bi bi-chat-quote-fill me-1"></i>Giải đáp chính thức:</p>
+                    <div class="bg-white p-3 rounded border text-dark shadow-sm" style="white-space: pre-line; line-height: 1.6;" th:text="${faq.answer}">
                         Nội dung trả lời
                     </div>
                 </div>
@@ -46,65 +91,207 @@
         </div>
     </div>
 
-    <!-- Live Dynamic Search Script -->
+    <!-- Server-Side Pagination Bar (Chỉ hiển thị khi không tìm kiếm AJAX) -->
+    <div id="faqPaginationSection" class="d-flex justify-content-between align-items-center mt-4 pt-2 border-top" th:if="${faqsPage.totalPages > 1}">
+        <div class="small text-muted">
+            Hiển thị trang <strong th:text="${faqsPage.number + 1}">1</strong> / <span th:text="${faqsPage.totalPages}">10</span> 
+            (Tổng cộng <span th:text="${faqsPage.totalElements}">2672</span> câu hỏi)
+        </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item" th:classappend="${faqsPage.first ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/faqs(page=${faqsPage.number - 1}, departmentId=${selectedDept})}">
+                        <i class="bi bi-chevron-left"></i> Trước
+                    </a>
+                </li>
+                
+                <li class="page-item" th:if="${faqsPage.number > 2}">
+                    <a class="page-link" th:href="@{/faqs(page=0, departmentId=${selectedDept})}">1</a>
+                </li>
+                <li class="page-item disabled" th:if="${faqsPage.number > 3}">
+                    <span class="page-link">...</span>
+                </li>
+
+                <li class="page-item" 
+                    th:each="i : ${#numbers.sequence(T(java.lang.Math).max(0, faqsPage.number - 2), T(java.lang.Math).min(faqsPage.totalPages - 1, faqsPage.number + 2))}"
+                    th:classappend="${i == faqsPage.number ? 'active' : ''}">
+                    <a class="page-link" th:href="@{/faqs(page=${i}, departmentId=${selectedDept})}" th:text="${i + 1}">1</a>
+                </li>
+
+                <li class="page-item disabled" th:if="${faqsPage.number < faqsPage.totalPages - 4}">
+                    <span class="page-link">...</span>
+                </li>
+                <li class="page-item" th:if="${faqsPage.number < faqsPage.totalPages - 3}">
+                    <a class="page-link" th:href="@{/faqs(page=${faqsPage.totalPages - 1}, departmentId=${selectedDept})}" th:text="${faqsPage.totalPages}">100</a>
+                </li>
+
+                <li class="page-item" th:classappend="${faqsPage.last ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/faqs(page=${faqsPage.number + 1}, departmentId=${selectedDept})}">
+                        Sau <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Live Search & Debounce Script -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const input = document.getElementById('faqSearchInput');
             const btn = document.getElementById('btnExecuteSearch');
+            const btnClear = document.getElementById('btnClearSearch');
             const container = document.getElementById('faqResultsContainer');
+            const spinner = document.getElementById('searchSpinner');
+            const btnText = document.getElementById('searchText');
+            const paginationSec = document.getElementById('faqPaginationSection');
+            const metaSec = document.getElementById('searchResultsMeta');
+            const countBadge = document.getElementById('resultsCountBadge');
+            const detailText = document.getElementById('resultsDetailText');
+
+            // Lưu lại HTML ban đầu phục vụ khôi phục khi xóa tìm kiếm
+            const initialHtml = container.innerHTML;
+            let debounceTimer = null;
 
             function doSearch() {
                 const q = input.value.trim();
-                if (!q) return;
+                if (!q) {
+                    resetToInitial();
+                    return;
+                }
+
+                // Bật Loading
+                spinner.classList.remove('d-none');
+                btnText.textContent = 'Đang tìm...';
+                btnClear.classList.remove('d-none');
+                if (paginationSec) paginationSec.classList.add('d-none');
 
                 fetch(`/api/v1/faqs/match?q=${encodeURIComponent(q)}`)
                     .then(res => res.json())
                     .then(data => {
-                        if (data.success && data.data) {
-                            if (data.data.length === 0) {
-                                container.innerHTML = `
-                                    <div class="card p-4 text-center text-muted">
-                                        <i class="bi bi-info-circle fs-2 text-warning mb-2"></i>
-                                        <p class="mb-2">Không tìm thấy câu trả lời khớp với từ khóa "<strong>${q}</strong>".</p>
-                                        <div><a href="/tickets/create?title=${encodeURIComponent(q)}" class="btn btn-outline-primary btn-sm">Tạo Ticket gửi Cán bộ chuyên môn ngay</a></div>
-                                    </div>
-                                `;
-                                return;
-                            }
+                        spinner.classList.add('d-none');
+                        btnText.textContent = 'Tìm Kiếm';
 
-                            let html = '';
-                            data.data.forEach((item, idx) => {
-                                html += `
-                                    <div class="accordion-item mb-2 border rounded overflow-hidden">
-                                        <h2 class="accordion-header" id="dynHeading${idx}">
-                                            <button class="accordion-button collapsed fw-semibold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#dynCollapse${idx}">
-                                                <span class="badge bg-success bg-opacity-10 text-success me-2">${Math.round(item.confidenceScore * 100)}% Khớp</span>
-                                                <span class="badge bg-primary bg-opacity-10 text-primary me-2">${item.departmentName}</span>
-                                                <span>${item.question}</span>
-                                            </button>
-                                        </h2>
-                                        <div id="dynCollapse${idx}" class="accordion-collapse collapse" data-bs-parent="#faqResultsContainer">
-                                            <div class="accordion-body bg-light text-secondary">
-                                                <p class="mb-2 fw-medium text-dark">Lời giải đáp từ Ban Tư Vấn:</p>
-                                                <div class="bg-white p-3 rounded border text-dark" style="white-space: pre-line;">
-                                                    ${item.answer}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                            });
-                            container.innerHTML = html;
+                        if (data.success && data.data) {
+                            renderResults(data.data, q);
+                        } else {
+                            renderEmpty(q);
                         }
+                    })
+                    .catch(() => {
+                        spinner.classList.add('d-none');
+                        btnText.textContent = 'Tìm Kiếm';
+                        renderEmpty(q);
                     });
             }
 
+            function renderResults(items, query) {
+                metaSec.classList.remove('d-none');
+                countBadge.textContent = `${items.length} câu hỏi khớp`;
+                detailText.textContent = `Kết quả so khớp tự động với từ khóa "${query}"`;
+
+                if (items.length === 0) {
+                    renderEmpty(query);
+                    return;
+                }
+
+                let html = '';
+                items.forEach((item, idx) => {
+                    const matchPercent = Math.round(item.confidenceScore * 100);
+                    const badgeClass = matchPercent >= 80 ? 'bg-success' : 'bg-info text-dark';
+                    const isFirst = idx === 0;
+
+                    html += `
+                        <div class="accordion-item mb-2 border rounded overflow-hidden shadow-sm">
+                            <h2 class="accordion-header" id="dynHeading_${idx}">
+                                <button class="accordion-button ${isFirst ? '' : 'collapsed'} fw-semibold text-dark py-3" type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#dynCollapse_${idx}" 
+                                        aria-expanded="${isFirst ? 'true' : 'false'}" 
+                                        aria-controls="dynCollapse_${idx}">
+                                    <span class="badge ${badgeClass} me-2 px-2 py-1">${matchPercent}% Khớp</span>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary me-2 px-2 py-1">${escapeHtml(item.departmentName)}</span>
+                                    <span class="text-dark">${escapeHtml(item.question)}</span>
+                                </button>
+                            </h2>
+                            <div id="dynCollapse_${idx}" class="accordion-collapse collapse ${isFirst ? 'show' : ''}" 
+                                 aria-labelledby="dynHeading_${idx}" data-bs-parent="#faqResultsContainer">
+                                <div class="accordion-body bg-light text-secondary">
+                                    <p class="mb-2 fw-semibold text-primary"><i class="bi bi-chat-quote-fill me-1"></i>Giải đáp từ Ban Tư Vấn:</p>
+                                    <div class="bg-white p-3 rounded border text-dark shadow-sm" style="white-space: pre-line; line-height: 1.6;">
+                                        ${escapeHtml(item.answer)}
+                                    </div>
+                                    <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">Chưa hài lòng với câu trả lời này?</small>
+                                        <a href="/tickets/create?title=${encodeURIComponent(item.question)}" class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-envelope-plus me-1"></i>Chuyển thành Ticket gửi Cán bộ
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+
+            function renderEmpty(query) {
+                container.innerHTML = `
+                    <div class="card p-5 text-center text-muted border shadow-sm">
+                        <i class="bi bi-question-octagon fs-1 text-warning mb-3"></i>
+                        <h5 class="fw-bold text-dark mb-2">Chưa tìm thấy giải đáp có sẵn</h5>
+                        <p class="mb-3 text-muted">Hệ thống chưa tìm thấy câu hỏi tương tự với từ khóa "<strong>${escapeHtml(query)}</strong>".</p>
+                        <div>
+                            <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                                <i class="bi bi-ticket-perforated me-1"></i>Tạo Ticket Gửi Cán Bộ Chuyên Môn
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function resetToInitial() {
+                container.innerHTML = initialHtml;
+                btnClear.classList.add('d-none');
+                metaSec.classList.add('d-none');
+                if (paginationSec) paginationSec.classList.remove('d-none');
+            }
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            }
+
+            // Click nút Tìm Kiếm
             btn.addEventListener('click', doSearch);
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') doSearch();
+
+            // Gõ phím với Debounce 250ms
+            input.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                if (input.value.trim().length === 0) {
+                    resetToInitial();
+                } else {
+                    debounceTimer = setTimeout(doSearch, 250);
+                }
             });
 
-            // Nếu URL có query ban đầu thì tự search
+            // Nhấn Enter
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(debounceTimer);
+                    doSearch();
+                }
+            });
+
+            // Nút Xóa tìm kiếm
+            btnClear.addEventListener('click', function() {
+                input.value = '';
+                resetToInitial();
+                input.focus();
+            });
+
+            // Nếu URL có query ban đầu
             if (input.value.trim()) {
                 doSearch();
             }

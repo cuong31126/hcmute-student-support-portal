@@ -31,28 +31,31 @@ public class SmartFaqMatcherService {
 
     @PostConstruct
     public void initFaqKnowledgeBase() {
-        try {
-            // 1. Nếu Database chưa có dữ liệu FAQ, nạp mẫu từ form_demo/faq_dataset.json
-            if (faqRepository.count() == 0) {
-                seedFaqsFromJson();
-            }
+        reloadCache();
+    }
 
-            // 2. Nạp toàn bộ FAQs vào bộ nhớ Cache phục vụ so khớp tốc độ cao
+    /**
+     * Nạp lại toàn bộ FAQs từ Database vào RAM Cache phục vụ so khớp tốc độ cao
+     */
+    public void reloadCache() {
+        try {
             List<Faq> faqs = faqRepository.findAll();
             faqCache.clear();
             for (Faq f : faqs) {
+                String deptName = (f.getDepartment() != null) ? f.getDepartment().getName() : "Phòng Đào tạo";
+                Long deptId = (f.getDepartment() != null) ? f.getDepartment().getId() : null;
                 faqCache.add(new FaqCacheItem(
                         f.getId(),
                         f.getQuestion(),
                         f.getAnswer(),
-                        f.getDepartment().getName(),
-                        f.getDepartment().getId(),
+                        deptName,
+                        deptId,
                         tokenize(f.getQuestion() + " " + (f.getKeywords() != null ? f.getKeywords() : ""))
                 ));
             }
-            log.info("Khởi tạo bộ tri thức Smart FAQ Matcher thành công: {} câu hỏi", faqCache.size());
+            log.info("Khởi tạo bộ tri thức Smart FAQ Matcher thành công: {} câu hỏi trong Cache", faqCache.size());
         } catch (Exception e) {
-            log.warn("Lỗi khi khởi tạo bộ tri thức FAQ: {}", e.getMessage());
+            log.warn("Lỗi khi nạp bộ nhớ Cache FAQ: {}", e.getMessage());
         }
     }
 
@@ -67,10 +70,8 @@ public class SmartFaqMatcherService {
             return Collections.emptyList();
         }
 
+        String normQuery = normalize(studentQuestion);
         Set<String> queryTokens = tokenize(studentQuestion);
-        if (queryTokens.isEmpty()) {
-            return Collections.emptyList();
-        }
 
         List<FaqMatchResult> results = new ArrayList<>();
 
@@ -79,8 +80,18 @@ public class SmartFaqMatcherService {
                 continue;
             }
 
-            double score = calculateSimilarity(queryTokens, item.tokens(), studentQuestion, item.question());
-            if (score >= 0.35) { // Ngưỡng tương đồng tối thiểu
+            double score = 0.0;
+            if (!queryTokens.isEmpty() && !item.tokens().isEmpty()) {
+                score = calculateSimilarity(queryTokens, item.tokens(), studentQuestion, item.question());
+            }
+
+            // Fallback: Nếu chuỗi câu hỏi chứa từ khóa tìm kiếm
+            String normItemQuestion = normalize(item.question());
+            if (normItemQuestion.contains(normQuery) || (normQuery.length() >= 3 && normItemQuestion.matches(".*\\b" + Pattern.quote(normQuery) + ".*"))) {
+                score = Math.max(score, 0.65);
+            }
+
+            if (score >= 0.25) { // Ngưỡng tương đồng linh hoạt
                 results.add(new FaqMatchResult(
                         item.id(),
                         item.question(),
@@ -92,10 +103,10 @@ public class SmartFaqMatcherService {
             }
         }
 
-        // Sắp xếp theo điểm tin cậy giảm dần và lấy tối đa 5 kết quả tốt nhất
+        // Sắp xếp theo điểm tin cậy giảm dần và lấy tối đa 15 kết quả tốt nhất
         return results.stream()
                 .sorted(Comparator.comparingDouble(FaqMatchResult::confidenceScore).reversed())
-                .limit(5)
+                .limit(15)
                 .collect(Collectors.toList());
     }
 
@@ -114,8 +125,8 @@ public class SmartFaqMatcherService {
         // Tăng trọng số nếu chuỗi con khớp chính xác
         String normQuery = normalize(rawQuery);
         String normTarget = normalize(rawTarget);
-        if (normTarget.contains(normQuery) || normQuery.contains(normTarget)) {
-            jaccard += 0.35;
+        if (normTarget.contains(normQuery)) {
+            jaccard += 0.40;
         }
 
         return Math.min(1.0, jaccard);
@@ -127,8 +138,8 @@ public class SmartFaqMatcherService {
         String[] words = normalized.split("\\s+");
         Set<String> tokens = new HashSet<>();
         for (String w : words) {
-            if (w.length() >= 2) {
-                tokens.add(w);
+            if (!w.trim().isEmpty()) {
+                tokens.add(w.trim());
             }
         }
         return tokens;
@@ -142,55 +153,7 @@ public class SmartFaqMatcherService {
         return noAccents.replaceAll("[^a-z0-9\\s]", " ").trim();
     }
 
-    private void seedFaqsFromJson() {
-        try {
-            File file = new File("form_demo/faq_dataset.json");
-            if (!file.exists()) {
-                log.info("Không tìm thấy form_demo/faq_dataset.json, bỏ qua bước nạp mẫu");
-                return;
-            }
 
-            Department defaultDept = departmentRepository.findAll().stream().findFirst().orElse(null);
-            if (defaultDept == null) {
-                return;
-            }
-
-            List<Map<String, Object>> records = objectMapper.readValue(file, new TypeReference<>() {});
-            List<Faq> entities = new ArrayList<>();
-
-            int count = 0;
-            for (Map<String, Object> r : records) {
-                if (count >= 500) break; // Nạp 500 câu đầu tiên vào DB để tối ưu thời gian khởi động
-                String title = (String) r.get("title");
-                List<Map<String, String>> replies = (List<Map<String, String>>) r.get("replies");
-
-                String answer = "Vui lòng liên hệ trực tiếp phòng ban phụ trách để được hướng dẫn chi tiết.";
-                if (replies != null && !replies.isEmpty()) {
-                    answer = replies.get(0).get("content");
-                }
-
-                if (title != null && !title.trim().isEmpty() && answer != null) {
-                    entities.add(Faq.builder()
-                            .question(title.trim())
-                            .answer(answer.trim())
-                            .department(defaultDept)
-                            .category("Học vụ")
-                            .keywords(title)
-                            .viewCount(1)
-                            .isActive(true)
-                            .build());
-                    count++;
-                }
-            }
-
-            if (!entities.isEmpty()) {
-                faqRepository.saveAll(entities);
-                log.info("Đã nạp thành công {} câu hỏi FAQ thực tế vào Database!", entities.size());
-            }
-        } catch (Exception e) {
-            log.warn("Không thể nạp dữ liệu từ faq_dataset.json: {}", e.getMessage());
-        }
-    }
 
     public record FaqMatchResult(
             Long id,
