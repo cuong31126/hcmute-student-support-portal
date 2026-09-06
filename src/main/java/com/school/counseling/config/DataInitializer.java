@@ -1,5 +1,10 @@
 package com.school.counseling.config;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.school.counseling.module.ai.entity.Faq;
+import com.school.counseling.module.ai.repository.FaqRepository;
+import com.school.counseling.module.ai.service.SmartFaqMatcherService;
 import com.school.counseling.module.auth.entity.Department;
 import com.school.counseling.module.auth.entity.Role;
 import com.school.counseling.module.auth.entity.User;
@@ -12,10 +17,14 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
- * Tự động khởi tạo dữ liệu mẫu (Roles, Departments, Sample Accounts) khi ứng dụng chạy
+ * Tự động khởi tạo dữ liệu mẫu (Roles, Departments, Sample Accounts, 2.672 FAQs) khi ứng dụng chạy
  */
 @Slf4j
 @Component
@@ -25,7 +34,10 @@ public class DataInitializer implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final DepartmentRepository departmentRepository;
     private final UserRepository userRepository;
+    private final FaqRepository faqRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ObjectMapper objectMapper;
+    private final SmartFaqMatcherService smartFaqMatcherService;
 
     @Override
     public void run(String... args) {
@@ -56,8 +68,17 @@ public class DataInitializer implements CommandLineRunner {
             initUser("student02", defaultPassword, "Nguyễn Ngọc Hương Thanh (SV)", "student02@student.hcmute.edu.vn", roleStudent, null);
 
             log.info("Khởi tạo dữ liệu người dùng mẫu hoàn tất!");
+
+            // 4. Khởi tạo Kho Tri Thức 2.672 FAQs thực tế từ form_demo/faq_dataset.json
+            if (faqRepository.count() == 0) {
+                seedFaqsFromDataset(deptDoan, deptTuyenSinh, deptDaoTao, deptCntt, deptNn);
+            }
+
+            // 5. Đồng bộ vào bộ nhớ Cache RAM cho Smart FAQ Matcher
+            smartFaqMatcherService.reloadCache();
+
         } catch (Exception e) {
-            log.warn("Lỗi khi khởi tạo dữ liệu mẫu (có thể do đã tồn tại): {}", e.getMessage());
+            log.warn("Lỗi khi khởi tạo dữ liệu mẫu: {}", e.getMessage(), e);
         }
     }
 
@@ -95,5 +116,98 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(user);
             log.info("Tạo tài khoản mẫu: {} (Role: {})", username, role.getName());
         }
+    }
+
+    private void seedFaqsFromDataset(Department deptDoan, Department deptTuyenSinh, Department deptDaoTao, Department deptCntt, Department deptNn) {
+        try {
+            File file = new File("form_demo/faq_dataset.json");
+            if (!file.exists()) {
+                log.info("Không tìm thấy tệp form_demo/faq_dataset.json, bỏ qua nạp FAQ");
+                return;
+            }
+
+            log.info("Bắt đầu nạp kho tri thức FAQ từ form_demo/faq_dataset.json...");
+            List<Map<String, Object>> records = objectMapper.readValue(file, new TypeReference<>() {});
+            List<Faq> entities = new ArrayList<>();
+
+            for (Map<String, Object> r : records) {
+                String title = (String) r.get("title");
+                String rawQuestion = (String) r.get("question");
+                List<Map<String, String>> replies = (List<Map<String, String>>) r.get("replies");
+
+                String answer = "Vui lòng liên hệ trực tiếp phòng ban phụ trách để được hướng dẫn chi tiết.";
+                if (replies != null && !replies.isEmpty()) {
+                    String firstContent = replies.get(0).get("content");
+                    if (firstContent != null && !firstContent.trim().isEmpty()) {
+                        answer = firstContent.trim();
+                    }
+                }
+
+                if (title != null && !title.trim().isEmpty()) {
+                    String cleanQuestion = title.trim();
+                    if (cleanQuestion.length() > 490) {
+                        cleanQuestion = cleanQuestion.substring(0, 490);
+                    }
+
+                    // Phân loại đơn vị theo từ khóa
+                    Department targetDept = classifyDepartment(cleanQuestion, deptDoan, deptTuyenSinh, deptDaoTao, deptCntt, deptNn);
+                    String category = resolveCategory(cleanQuestion, targetDept);
+
+                    String keywords = cleanQuestion.length() > 250 ? cleanQuestion.substring(0, 250) : cleanQuestion;
+
+                    int views = 1;
+                    try {
+                        Object viewsObj = r.get("views");
+                        if (viewsObj != null) {
+                            views = Integer.parseInt(viewsObj.toString().trim());
+                        }
+                    } catch (Exception ignored) {}
+
+                    entities.add(Faq.builder()
+                            .question(cleanQuestion)
+                            .answer(answer)
+                            .department(targetDept)
+                            .category(category)
+                            .keywords(keywords)
+                            .viewCount(views)
+                            .isActive(true)
+                            .build());
+                }
+            }
+
+            if (!entities.isEmpty()) {
+                faqRepository.saveAll(entities);
+                log.info("Đã nạp thành công {} câu hỏi FAQ thực tế vào Database MySQL!", entities.size());
+            }
+        } catch (Exception e) {
+            log.warn("Lỗi khi nạp dữ liệu từ faq_dataset.json: {}", e.getMessage(), e);
+        }
+    }
+
+    private Department classifyDepartment(String text, Department deptDoan, Department deptTuyenSinh, Department deptDaoTao, Department deptCntt, Department deptNn) {
+        String lower = text.toLowerCase(Locale.ROOT);
+        if (lower.contains("tuyển sinh") || lower.contains("xét tuyển") || lower.contains("học phí") || lower.contains("chỉ tiêu") || lower.contains("thí sinh") || lower.contains("học bạ")) {
+            return deptTuyenSinh;
+        }
+        if (lower.contains("tiếng anh") || lower.contains("toeic") || lower.contains("vstep") || lower.contains("ielts") || lower.contains("đgnlta") || lower.contains("ngoại ngữ")) {
+            return deptNn;
+        }
+        if (lower.contains("công nghệ thông tin") || lower.contains("cntt") || lower.contains("lập trình") || lower.contains("phần mềm") || lower.contains("đồ án tốt nghiệp cntt")) {
+            return deptCntt;
+        }
+        if (lower.contains("đoàn") || lower.contains("hội sinh viên") || lower.contains("tình nguyện") || lower.contains("mùa hè xanh") || lower.contains("rèn luyện") || lower.contains("kết nạp")) {
+            return deptDoan;
+        }
+        return deptDaoTao; // Mặc định là Phòng Đào tạo & CTSV
+    }
+
+    private String resolveCategory(String text, Department dept) {
+        String lower = text.toLowerCase(Locale.ROOT);
+        if (lower.contains("học phí")) return "Học phí";
+        if (lower.contains("tiếng anh") || lower.contains("toeic")) return "Ngoại ngữ";
+        if (lower.contains("đăng ký") || lower.contains("môn học")) return "Đăng ký môn học";
+        if (lower.contains("tốt nghiệp")) return "Xét tốt nghiệp";
+        if (lower.contains("học bổng")) return "Học bổng";
+        return "Quy chế học vụ";
     }
 }

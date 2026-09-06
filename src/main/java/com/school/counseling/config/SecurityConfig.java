@@ -62,7 +62,9 @@ public class SecurityConfig {
                     "/images/**",
                     "/webjars/**",
                     "/ws-chat/**",
+                    "/api/v1/faqs/**",
                     "/api/v1/ai/**",
+                    "/api/v1/auth/**",
                     "/api/v1/integration/**",
                     "/tickets/guest-track/**"
                 ).permitAll()
