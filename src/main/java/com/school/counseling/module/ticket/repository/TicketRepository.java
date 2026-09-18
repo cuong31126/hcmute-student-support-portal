@@ -1,5 +1,6 @@
 package com.school.counseling.module.ticket.repository;
 
+import com.school.counseling.module.ticket.dto.TicketAccessAuthInfo;
 import com.school.counseling.module.ticket.entity.Ticket;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -30,4 +31,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // Truy vấn danh sách Ticket quá hạn (OVERDUE)
     @Query("SELECT t FROM Ticket t WHERE t.status IN ('OPEN', 'IN_PROGRESS') AND t.dueDate < :now")
     List<Ticket> findOverdueTickets(@Param("now") LocalDateTime now);
+
+    // Truy vấn thông tin sở hữu và phòng ban tối ưu cho phân quyền (không load toàn bộ Ticket Entity)
+    @Query("""
+        SELECT t.id AS id,
+               t.creator.id AS creatorId,
+               t.department.id AS departmentId
+        FROM Ticket t
+        WHERE t.id = :ticketId
+    """)
+    Optional<TicketAccessAuthInfo> findAccessAuthInfoById(@Param("ticketId") Long ticketId);
 }

@@ -1,0 +1,36 @@
+================================================================================
+CHUỖI PROMPT CHAIN: CHẨN ĐOÁN & SỬA LỖI TẬN GỐC (ROOT CAUSE BUG FIXING)
+(Chuỗi tối ưu 2 bước - Không sửa bừa, có test tái hiện, xử lý triệt để)
+================================================================================
+Hướng dẫn sử dụng:
+1. Sao chép và chạy LẦN LƯỢT Bước 1 rồi đến Bước 2.
+2. Dán chi tiết lỗi vào [MÔ TẢ LỖI CỦA BẠN] ở Bước 1.
+================================================================================
+
+--- BƯỚC 1: CHẨN ĐOÁN NGUYÊN NHÂN GỐC RỄ & VIẾT TEST TÁI HIỆN LỖI ---
+Bạn là Senior Debugging Engineer. Hãy kích hoạt quy trình từ skill `.agents/skills/diagnosing-bugs` và đối chiếu với tài liệu trong `docs/`.
+
+Mô tả lỗi gặp phải:
+[Dán chi tiết lỗi: Stack trace, mã lỗi HTTP 403/500, log server, hành vi thực tế vs hành vi kỳ vọng]
+
+QUY TẮC BẮT BUỘC: TUYỆT ĐỐI KHÔNG ĐOÁN MÒ HOẶC SỬA CODE BỪA BÃI TRƯỚC KHI TÌM RA BẰNG CHỨNG.
+
+Yêu cầu thực hiện:
+1. Tái hiện lại chuỗi sự kiện dẫn đến lỗi (Execution trace).
+2. Đọc code liên quan và chỉ ra chính xác DÒNG CODE và NGUYÊN NHÂN GỐC RỄ (Root Cause) gây ra lỗi (NullPointer, LazyInitializationException, vi phạm Foreign Key, sai Security Filter, Transaction Rollback...).
+3. Đánh giá phạm vi ảnh hưởng: Lỗi này có ảnh hưởng đến các màn hình/API khác hay không?
+4. Viết 1 bài Reproduction Test (Unit/Integration Test) mô phỏng lỗi. Bài test này BẮT BUỘC PHẢI FAILED (Red) trên code hiện tại để chứng minh lỗi tồn tại.
+5. Trình bày phân tích nguyên nhân và phương án khắc phục để tôi xác nhận trước khi sửa code.
+
+
+--- BƯỚC 2: SỬA CODE TẬN GỐC, ĐẢM BẢO TEST PASS & RÀ SOÁT TÁC ĐỘNG PHỤ ---
+Dựa trên nguyên nhân gốc rễ đã xác định ở Bước 1, hãy thực hiện sửa lỗi:
+
+Yêu cầu:
+1. Sửa code chính xác tại đúng vị trí gây lỗi:
+   - Xử lý triệt để nguyên nhân gốc rễ (không dùng try-catch bọc tạm hoặc null-check đối phó).
+   - Giữ nguyên cấu trúc logic đúng đắn sẵn có.
+   - Bổ sung log chi tiết (SLF4J) nếu cần.
+2. Đảm bảo bài test tái hiện ở Bước 1 chuyển sang PASSED (Green) và toàn bộ test suite chạy thành công không có lỗi hồi quy (No Regression).
+3. DỌN DẸP FILE TEST DƯ THỪA (TEST CLEANUP): Sau khi test chuyển sang GREEN và lỗi đã được sửa triệt để, BẮT BUỘC PHẢI XÓA BỎ các file Reproduction Test tạm thời (throwaway test) để tránh gây rối mã nguồn, tránh làm phình to thư mục src/test/java và không kéo dài thời gian build (chỉ giữ lại hoặc sáp nhập vào file test chính nếu là nghiệp vụ lâu dài).
+4. Hướng dẫn các bước xác minh thực tế (Manual Verification) từng bước để tôi kiểm tra lại trên trình duyệt / Swagger / Postman.

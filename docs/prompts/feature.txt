@@ -1,0 +1,43 @@
+================================================================================
+CHUỖI PROMPT CHAIN: PHÁT TRIỂN & CẢI THIỆN TÍNH NĂNG (FEATURE DEVELOPMENT)
+(Chuỗi tối ưu 3 bước - Chuẩn TDD, Clean Code & Bám sát Nghiệp vụ docs/)
+================================================================================
+Hướng dẫn sử dụng:
+1. Sao chép và chạy LẦN LƯỢT từng prompt (Bước 1 -> Bước 2 -> Bước 3).
+2. Điền thông tin tính năng vào [YÊU CẦU CỦA BẠN] ở Bước 1.
+================================================================================
+
+--- BƯỚC 1: PHÂN TÍCH NGHIỆP VỤ & THIẾT KẾ BỘ TEST TRƯỚC (TDD SPEC) ---
+Bạn là Principal Software Architect. Hãy đọc kỹ tài liệu nghiệp vụ trong thư mục `docs/` (SRS, brief.md, schema.sql, dev tasks) và kích hoạt kỹ năng trong `.agents/skills/domain-modeling` cùng `.agents/skills/tdd`.
+
+Tính năng cần phát triển / cải thiện:
+[Mô tả tính năng bạn muốn làm hoặc mã task, ví dụ: Task [DEV-B-SP3-02] Diễn đàn sinh viên & Luồng kiểm duyệt bài viết trong docs/team/dev-b-tasks.md]
+
+Yêu cầu thực hiện:
+1. Phân tích nghiệp vụ:
+   - Liệt kê User Stories và Acceptance Criteria dạng Gherkin (Given - When - Then).
+   - Xác định rõ các Business Rules (BRULE) và ràng buộc dữ liệu.
+   - Lập danh sách các file Entity, Service, Controller cần thêm mới hoặc chỉnh sửa.
+2. Viết bộ Test trước (JUnit 5 / Mockito / MockMvc) theo chuẩn TDD:
+   - Bao phủ Happy Path, Validation Failure và Business Rule Violation.
+3. CHƯA VIẾT CODE LOGIC CHÍNH. Hãy trình bày bản Kế hoạch triển khai (Implementation Plan) và mã nguồn bộ Test để tôi duyệt.
+
+
+--- BƯỚC 2: TRIỂN KHAI MÃ NGUỒN HOÀN CHỈNH (BACKEND & DATABASE) ---
+Dựa trên kế hoạch và bộ test ở Bước 1, hãy viết mã nguồn hoàn chỉnh để làm cho 100% các bài test đều PASS (TDD Green Phase):
+
+Yêu cầu:
+1. Tầng Database & Entity: Cập nhật JPA annotations chuẩn (@ManyToOne FetchType.LAZY, @MappedSuperclass Audit, Bean Validation).
+2. Tầng Repository: Viết query chuẩn JPA / JPQL, tối ưu performance tránh N+1 Query.
+3. Tầng Service: Xử lý logic nghiệp vụ chặt chẽ, quản lý giao dịch (@Transactional), ném Business Exception phù hợp.
+4. Tầng Controller / DTO: Tạo DTO có validation, Controller trả về `ApiResponse<T>` với HTTP status code chuẩn RESTful.
+5. Đảm bảo toàn bộ test case ở Bước 1 đều vượt qua và không làm ảnh hưởng đến các module khác.
+
+
+--- BƯỚC 3: RÀ SOÁT CHẤT LƯỢNG (CODE REVIEW) & HƯỚNG DẪN KIỂM THỬ ---
+Hãy kích hoạt skill `.agents/skills/code-review` để thực hiện rà soát toàn diện mã nguồn vừa viết:
+
+Yêu cầu:
+1. Rà soát chuẩn kỹ thuật: Coding conventions, bảo mật phân quyền chéo giữa các Khoa, xử lý lỗi tập trung.
+2. Xác nhận trạng thái test: Đảm bảo toàn bộ test suite chạy thành công 100%. Dọn dẹp/xóa bỏ bất kỳ file test thăm dò tạm thời nào, chỉ giữ lại các bài test nghiệp vụ chính thức có giá trị lâu dài.
+3. Hướng dẫn xác minh thực tế (Manual Verification Steps): Trình bày các bước cụ thể từng bước (tài khoản đăng nhập, URL, nút bấm, dữ liệu mẫu) để tôi kiểm tra tính năng trực tiếp trên trình duyệt / Swagger.

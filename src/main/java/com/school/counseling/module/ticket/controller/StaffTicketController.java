@@ -20,6 +20,7 @@ public class StaffTicketController {
     private final TicketService ticketService;
 
     @GetMapping
+    @PreAuthorize("#departmentId == null or @deptSecurity.canAccessDepartment(#departmentId)")
     public ResponseEntity<ApiResponse<List<TicketResponseDto>>> getStaffTickets(
             @RequestParam(value = "departmentId", required = false) Long departmentId,
             @RequestParam(value = "status", required = false, defaultValue = "ALL") String status) {

@@ -1,0 +1,43 @@
+================================================================================
+CHUỖI PROMPT CHAIN: THIẾT KẾ & TỐI ƯU GIAO DIỆN (UI/UX MODERNIZATION)
+(Chuỗi tối ưu 2 bước - Đẹp mắt, Responsive, Trải nghiệm mượt mà)
+================================================================================
+Hướng dẫn sử dụng:
+1. Sao chép và chạy LẦN LƯỢT Bước 1 rồi đến Bước 2.
+2. Điền thông tin trang giao diện và mong muốn vào [YÊU CẦU CỦA BẠN] ở Bước 1.
+================================================================================
+
+--- BƯỚC 1: KHẢO SÁT GIAO DIỆN & LẬP THIẾT KẾ TRẢI NGHIỆM (UI/UX AUDIT) ---
+Bạn là Senior Frontend Developer & UI/UX Designer. Hãy đọc các file giao diện hiện tại trong `src/main/resources/templates/`, tài liệu thiết kế trong `docs/` và layout hệ thống.
+
+Trang/Thành phần cần cải tiến UI:
+[Điền tên file giao diện hoặc module cần làm đẹp, ví dụ: templates/feed/forum.html hoặc Dashboard Staff hoặc Ticket Detail]
+
+Yêu cầu cải tiến mong muốn:
+[Mô tả mong muốn về phong cách, màu sắc, bố cục, các tính năng tương tác]
+
+Yêu cầu thực hiện:
+1. Đánh giá mã nguồn hiện tại và chỉ ra các điểm cần nâng cấp:
+   - Bố cục phân tầng (Visual Hierarchy), độ tương phản màu sắc và khoảng cách padding/margin.
+   - Trải nghiệm tương tác: Skeleton Loader/Spinner khi tải dữ liệu, Trạng thái rỗng (Empty State), Toast Notification thông báo kết quả.
+   - Tính tương thích trên thiết bị di động (Responsive Mobile / Tablet / Desktop).
+   - Hiển thị phản hồi form (Validation Feedback trực tiếp dưới ô input).
+2. Đề xuất bản mô tả thiết kế mới (Design Plan) gồm bố cục các khối, bảng màu chủ đạo và hiệu ứng tương tác trước khi chỉnh sửa code.
+
+
+--- BƯỚC 2: TRIỂN KHAI THYMELEAF, CSS HIỆN ĐẠI & JAVASCRIPT TƯƠNG TÁC ---
+Dựa trên thiết kế đã thống nhất ở Bước 1, hãy viết mã nguồn hoàn thiện toàn bộ giao diện:
+
+Yêu cầu:
+1. Thymeleaf & HTML5 Semantic:
+   - Cấu trúc chuẩn SEO/Accessibility, kế thừa layout fragments (header, sidebar, footer).
+   - Tích hợp Skeleton Loader, Empty State có nút kêu gọi hành động (CTA), Modal xác nhận hành động nguy hiểm, Badge trạng thái rõ ràng.
+   - Đảm bảo toàn bộ thẻ `th:text`, `th:each`, `th:if`, `th:href` chuẩn xác.
+2. Nâng cấp CSS & Styling:
+   - Sử dụng bảng màu hiện đại, hài hòa; bo góc mượt mà (rounded cards), hiệu ứng hover và subtle shadow.
+   - Hỗ trợ Responsive chuẩn chỉnh trên Mobile (375px), Tablet (768px) và Desktop (1200px+).
+3. JavaScript / AJAX Interaction:
+   - Tương tác không cần reload trang khi gửi dữ liệu (AJAX/Fetch API).
+   - Hiển thị Toast Popup thông báo mượt mà.
+   - Client-side validation: Kiểm tra kích thước và loại file đính kèm (PDF/Ảnh < 5MB) ngay khi chọn file.
+4. Hướng dẫn các bước mở trang trên trình duyệt để kiểm tra toàn bộ giao diện và tương tác.

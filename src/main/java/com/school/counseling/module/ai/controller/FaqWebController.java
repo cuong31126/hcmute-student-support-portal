@@ -2,13 +2,11 @@ package com.school.counseling.module.ai.controller;
 
 import com.school.counseling.module.ai.entity.Faq;
 import com.school.counseling.module.ai.repository.FaqRepository;
+import com.school.counseling.module.ai.service.SmartFaqMatcherService;
 import com.school.counseling.module.auth.entity.Department;
 import com.school.counseling.module.auth.repository.DepartmentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,36 +20,35 @@ public class FaqWebController {
 
     private final FaqRepository faqRepository;
     private final DepartmentRepository departmentRepository;
+    private final SmartFaqMatcherService faqMatcherService;
 
     @GetMapping("/faqs")
     public String searchFaqs(
             @RequestParam(value = "q", required = false, defaultValue = "") String query,
             @RequestParam(value = "departmentId", required = false) Long departmentId,
-            @RequestParam(value = "page", defaultValue = "0") int page,
             Model model) {
 
-        int pageSize = 12; // 12 câu hỏi mỗi trang giúp DOM tải siêu nhanh (< 20ms)
-        Pageable pageable = PageRequest.of(Math.max(0, page), pageSize, Sort.by(Sort.Direction.DESC, "viewCount", "createdAt"));
+        boolean isSearchMode = query != null && !query.trim().isEmpty();
+        List<SmartFaqMatcherService.FaqMatchResult> searchResults = List.of();
+        List<Faq> topFaqs = List.of();
 
-        Page<Faq> faqsPage;
-        if (query != null && !query.trim().isEmpty()) {
-            List<Faq> searchResults = faqRepository.searchFaqs(query.trim());
-            int start = Math.min((int) pageable.getOffset(), searchResults.size());
-            int end = Math.min((start + pageable.getPageSize()), searchResults.size());
-            faqsPage = new org.springframework.data.domain.PageImpl<>(
-                    searchResults.subList(start, end),
-                    pageable,
-                    searchResults.size()
-            );
-        } else if (departmentId != null) {
-            faqsPage = faqRepository.findByDepartmentIdAndIsActiveTrue(departmentId, pageable);
+        if (isSearchMode) {
+            // Tìm kiếm thông minh theo từ khóa không phân biệt dấu tiếng Việt
+            searchResults = faqMatcherService.matchQuestion(query.trim(), departmentId);
         } else {
-            faqsPage = faqRepository.findByIsActiveTrue(pageable);
+            // Trạng thái ban đầu: Hiển thị Top 15 câu hỏi quy chế phổ biến nhất (thay vì dàn trải 2.672 câu)
+            if (departmentId != null) {
+                topFaqs = faqRepository.findTopByDepartmentWithDepartment(departmentId, PageRequest.of(0, 15));
+            } else {
+                topFaqs = faqRepository.findTopActiveWithDepartment(PageRequest.of(0, 15));
+            }
         }
 
         List<Department> departments = departmentRepository.findByIsActiveTrue();
 
-        model.addAttribute("faqsPage", faqsPage);
+        model.addAttribute("isSearchMode", isSearchMode);
+        model.addAttribute("searchResults", searchResults);
+        model.addAttribute("topFaqs", topFaqs);
         model.addAttribute("departments", departments);
         model.addAttribute("selectedDept", departmentId);
         model.addAttribute("query", query);

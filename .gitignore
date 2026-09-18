@@ -2,8 +2,11 @@
 # GITIGNORE FOR QAUTE PORTAL (SPRING BOOT 3 + MAVEN + STS)
 # ==============================================================================
 
-# 1. Thư mục nhạy cảm & bí mật nội bộ theo yêu cầu
+# 1. Thư mục nhạy cảm & Bí mật cấu hình
 prompt/
+.env
+.env.*
+!.env.example
 
 # 2. Maven Build Output
 target/
@@ -46,18 +49,26 @@ test-results/
 blob-report/
 playwright/.cache/
 
-# 6. Log Files & Crash Reports
+# 6. Microservice độc lập (Có repo Git riêng biệt)
+video-generator/
+
+# 7. AI Agent Local Tooling & Skills
+.agents/
+.claude/
+skills-lock.json
+
+# 8. Log Files & Crash Reports
 *.log
 *.log.*
 logs/
 hs_err_pid*
 
-# 7. OS Generated Files
+# 9. OS Generated Files
 .DS_Store
 Thumbs.db
 Desktop.ini
 
-# 8. Local Uploads & Temp Storage
+# 10. Local Uploads & Temp Storage
 uploads/
 upload/
 C:/upload/

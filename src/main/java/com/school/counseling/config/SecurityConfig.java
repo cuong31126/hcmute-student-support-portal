@@ -48,12 +48,38 @@ public class SecurityConfig {
         http
             .authenticationProvider(authenticationProvider())
             .authorizeHttpRequests(auth -> auth
-                // 1. Khu vực công khai cho Guest / Thí sinh / Tài nguyên tĩnh
+                // 1. Khu vực Cán bộ & Quản trị viên
+                .requestMatchers(
+                    "/staff/**",
+                    "/feed/official/create",
+                    "/moderation/**"
+                ).hasAnyRole("STAFF", "ADMIN")
+
+                .requestMatchers(
+                    "/admin/**",
+                    "/api/admin/**"
+                ).hasRole("ADMIN")
+
+                // 2. Khu vực Tương tác Sinh viên / Người dùng đã xác thực
+                .requestMatchers(
+                    "/student/**",
+                    "/tickets/create",
+                    "/tickets/my-tickets",
+                    "/feed/forum/create",
+                    "/feed/forum/*/comment",
+                    "/feed/forum/*/like",
+                    "/feed/forum/*/report"
+                ).authenticated()
+
+                // 3. Khu vực công khai cho Guest / Thí sinh / Tài nguyên tĩnh & Đọc tin tức
                 .requestMatchers(
                     "/",
                     "/public/**",
                     "/auth/**",
                     "/faqs/**",
+                    "/feed/official",
+                    "/feed/official/*",
+                    "/feed/forum",
                     "/image/**",
                     "/documents/**",
                     "/videos/**",
@@ -68,31 +94,6 @@ public class SecurityConfig {
                     "/api/v1/integration/**",
                     "/tickets/guest-track/**"
                 ).permitAll()
-
-                // 2. Khu vực dành cho Sinh viên (ROLE_STUDENT)
-                .requestMatchers(
-                    "/student/**",
-                    "/tickets/create",
-                    "/tickets/my-tickets",
-                    "/forum/post/create",
-                    "/forum/comment"
-                ).hasRole("STUDENT")
-
-                // 3. Khu vực dành cho Cán bộ (ROLE_STAFF)
-                .requestMatchers(
-                    "/staff/**",
-                    "/posts/official/create"
-                ).hasRole("STAFF")
-
-                // 4. Khu vực Kiểm duyệt & Báo cáo vi phạm (STAFF hoặc ADMIN)
-                .requestMatchers(
-                    "/moderation/**"
-                ).hasAnyRole("STAFF", "ADMIN")
-
-                // 5. Khu vực Quản trị viên (ROLE_ADMIN)
-                .requestMatchers(
-                    "/admin/**"
-                ).hasRole("ADMIN")
 
                 // Các request còn lại yêu cầu xác thực
                 .anyRequest().authenticated()

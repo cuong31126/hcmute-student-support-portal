@@ -1,17 +1,12 @@
 package com.school.counseling.module.ai.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.school.counseling.module.ai.entity.Faq;
 import com.school.counseling.module.ai.repository.FaqRepository;
-import com.school.counseling.module.auth.entity.Department;
-import com.school.counseling.module.auth.repository.DepartmentRepository;
 import jakarta.annotation.PostConstruct;
-import lombok.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.text.Normalizer;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -23,10 +18,8 @@ import java.util.stream.Collectors;
 public class SmartFaqMatcherService {
 
     private final FaqRepository faqRepository;
-    private final DepartmentRepository departmentRepository;
-    private final ObjectMapper objectMapper;
 
-    // Cache bộ nhớ phục vụ so khớp tức thì
+    // Bộ nhớ Cache RAM phục vụ tìm kiếm siêu tốc (< 5ms)
     private final List<FaqCacheItem> faqCache = new ArrayList<>();
 
     @PostConstruct
@@ -35,117 +28,131 @@ public class SmartFaqMatcherService {
     }
 
     /**
-     * Nạp lại toàn bộ FAQs từ Database vào RAM Cache phục vụ so khớp tốc độ cao
+     * Nạp toàn bộ FAQs từ Database vào RAM Cache
      */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public void reloadCache() {
         try {
-            List<Faq> faqs = faqRepository.findAll();
+            List<Faq> faqs = faqRepository.findAllActiveWithDepartment();
             faqCache.clear();
             for (Faq f : faqs) {
                 String deptName = (f.getDepartment() != null) ? f.getDepartment().getName() : "Phòng Đào tạo";
                 Long deptId = (f.getDepartment() != null) ? f.getDepartment().getId() : null;
+                String category = (f.getCategory() != null) ? f.getCategory() : "Học vụ";
+                String keywords = (f.getKeywords() != null) ? f.getKeywords() : "";
+
                 faqCache.add(new FaqCacheItem(
                         f.getId(),
                         f.getQuestion(),
                         f.getAnswer(),
                         deptName,
                         deptId,
-                        tokenize(f.getQuestion() + " " + (f.getKeywords() != null ? f.getKeywords() : ""))
+                        category,
+                        normalize(f.getQuestion()),
+                        normalize(keywords),
+                        normalize(f.getAnswer())
                 ));
             }
-            log.info("Khởi tạo bộ tri thức Smart FAQ Matcher thành công: {} câu hỏi trong Cache", faqCache.size());
+            log.info("Nạp bộ nhớ Cache FAQ thành công: {} câu hỏi", faqCache.size());
         } catch (Exception e) {
-            log.warn("Lỗi khi nạp bộ nhớ Cache FAQ: {}", e.getMessage());
+            log.error("Lỗi khi nạp bộ nhớ Cache FAQ: ", e);
         }
     }
 
     /**
-     * So khớp thông minh câu hỏi sinh viên với kho tri thức
-     * @param studentQuestion Câu hỏi do sinh viên gõ
+     * Tìm kiếm từ khóa chính xác trong kho câu hỏi học vụ
+     * @param query Từ khóa do người dùng nhập (hỗ trợ cả tiếng Việt có dấu và không dấu)
      * @param departmentId Đơn vị (nếu có lọc)
-     * @return Danh sách các gợi ý khớp tốt nhất kèm điểm tin cậy
+     * @return Danh sách câu hỏi phù hợp nhất sắp xếp theo độ liên quan
      */
-    public List<FaqMatchResult> matchQuestion(String studentQuestion, Long departmentId) {
-        if (studentQuestion == null || studentQuestion.trim().isEmpty()) {
+    public List<FaqMatchResult> matchQuestion(String query, Long departmentId) {
+        if (query == null || query.trim().isEmpty()) {
             return Collections.emptyList();
         }
 
-        String normQuery = normalize(studentQuestion);
-        Set<String> queryTokens = tokenize(studentQuestion);
+        String normQuery = normalize(query);
+        String[] rawTokens = normQuery.split("\\s+");
+        List<String> queryWords = new ArrayList<>();
+        for (String w : rawTokens) {
+            if (!w.trim().isEmpty() && w.length() >= 2) {
+                queryWords.add(w.trim());
+            }
+        }
+        if (queryWords.isEmpty() && normQuery.length() > 0) {
+            queryWords.add(normQuery);
+        }
 
-        List<FaqMatchResult> results = new ArrayList<>();
+        List<ScoredItem> matches = new ArrayList<>();
 
         for (FaqCacheItem item : faqCache) {
             if (departmentId != null && !Objects.equals(item.departmentId(), departmentId)) {
                 continue;
             }
 
-            double score = 0.0;
-            if (!queryTokens.isEmpty() && !item.tokens().isEmpty()) {
-                score = calculateSimilarity(queryTokens, item.tokens(), studentQuestion, item.question());
+            int matchedWordCount = 0;
+            int relevanceScore = 0;
+
+            for (String word : queryWords) {
+                boolean inQuestion = item.normQuestion().contains(word);
+                boolean inKeywords = item.normKeywords().contains(word);
+                boolean inAnswer = item.normAnswer().contains(word);
+
+                if (inQuestion) {
+                    matchedWordCount++;
+                    relevanceScore += 15; // Từ khóa nằm trong câu hỏi ưu tiên cao nhất
+                } else if (inKeywords) {
+                    matchedWordCount++;
+                    relevanceScore += 10;
+                } else if (inAnswer) {
+                    matchedWordCount++;
+                    relevanceScore += 4;
+                }
             }
 
-            // Fallback: Nếu chuỗi câu hỏi chứa từ khóa tìm kiếm
-            String normItemQuestion = normalize(item.question());
-            if (normItemQuestion.contains(normQuery) || (normQuery.length() >= 3 && normItemQuestion.matches(".*\\b" + Pattern.quote(normQuery) + ".*"))) {
-                score = Math.max(score, 0.65);
+            // Nếu không có bất kỳ từ khóa nào khớp, bỏ qua
+            if (matchedWordCount == 0) {
+                continue;
             }
 
-            if (score >= 0.25) { // Ngưỡng tương đồng linh hoạt
-                results.add(new FaqMatchResult(
-                        item.id(),
-                        item.question(),
-                        item.answer(),
-                        item.departmentName(),
-                        item.departmentId(),
-                        Math.round(score * 100.0) / 100.0
-                ));
+            // Điểm thưởng khi khớp cả cụm từ liên tiếp (Phrase match)
+            if (item.normQuestion().contains(normQuery)) {
+                relevanceScore += 50;
+            } else if (item.normKeywords().contains(normQuery)) {
+                relevanceScore += 30;
+            } else if (item.normAnswer().contains(normQuery)) {
+                relevanceScore += 15;
             }
+
+            // Điểm thưởng nếu tất cả từ khóa tìm kiếm đều có mặt
+            if (!queryWords.isEmpty() && matchedWordCount >= queryWords.size()) {
+                relevanceScore += 25;
+            }
+
+            double confidenceScore = Math.min(1.0, relevanceScore / 100.0);
+
+            matches.add(new ScoredItem(item, relevanceScore, confidenceScore));
         }
 
-        // Sắp xếp theo điểm tin cậy giảm dần và lấy tối đa 15 kết quả tốt nhất
-        return results.stream()
-                .sorted(Comparator.comparingDouble(FaqMatchResult::confidenceScore).reversed())
-                .limit(15)
+        // Sắp xếp theo điểm liên quan giảm dần và lấy tối đa 20 kết quả tốt nhất
+        return matches.stream()
+                .sorted(Comparator.comparingInt(ScoredItem::score).reversed())
+                .limit(20)
+                .map(m -> new FaqMatchResult(
+                        m.item().id(),
+                        m.item().question(),
+                        m.item().answer(),
+                        m.item().departmentName(),
+                        m.item().departmentId(),
+                        m.item().category(),
+                        m.confidenceScore()
+                ))
                 .collect(Collectors.toList());
     }
 
-    private double calculateSimilarity(Set<String> queryTokens, Set<String> targetTokens, String rawQuery, String rawTarget) {
-        if (queryTokens.isEmpty() || targetTokens.isEmpty()) return 0.0;
-
-        // Jaccard similarity trên tập từ vựng
-        Set<String> intersection = new HashSet<>(queryTokens);
-        intersection.retainAll(targetTokens);
-
-        Set<String> union = new HashSet<>(queryTokens);
-        union.addAll(targetTokens);
-
-        double jaccard = (double) intersection.size() / union.size();
-
-        // Tăng trọng số nếu chuỗi con khớp chính xác
-        String normQuery = normalize(rawQuery);
-        String normTarget = normalize(rawTarget);
-        if (normTarget.contains(normQuery)) {
-            jaccard += 0.40;
-        }
-
-        return Math.min(1.0, jaccard);
-    }
-
-    private Set<String> tokenize(String text) {
-        if (text == null) return Collections.emptySet();
-        String normalized = normalize(text);
-        String[] words = normalized.split("\\s+");
-        Set<String> tokens = new HashSet<>();
-        for (String w : words) {
-            if (!w.trim().isEmpty()) {
-                tokens.add(w.trim());
-            }
-        }
-        return tokens;
-    }
-
-    private String normalize(String input) {
+    /**
+     * Chuẩn hóa chuỗi tiếng Việt: Bỏ dấu, chuyển chữ thường, xóa ký tự đặc biệt
+     */
+    public String normalize(String input) {
         if (input == null) return "";
         String temp = Normalizer.normalize(input.toLowerCase(), Normalizer.Form.NFD);
         Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
@@ -153,14 +160,13 @@ public class SmartFaqMatcherService {
         return noAccents.replaceAll("[^a-z0-9\\s]", " ").trim();
     }
 
-
-
     public record FaqMatchResult(
             Long id,
             String question,
             String answer,
             String departmentName,
             Long departmentId,
+            String category,
             double confidenceScore
     ) {}
 
@@ -170,6 +176,15 @@ public class SmartFaqMatcherService {
             String answer,
             String departmentName,
             Long departmentId,
-            Set<String> tokens
+            String category,
+            String normQuestion,
+            String normKeywords,
+            String normAnswer
+    ) {}
+
+    private record ScoredItem(
+            FaqCacheItem item,
+            int score,
+            double confidenceScore
     ) {}
 }

@@ -2,7 +2,7 @@
 
 * **Dự án:** QAUTE Portal (Spring Boot 3 + MySQL + Thymeleaf + Bootstrap 5)
 * **Phiên bản:** 1.0.0
-* **Tài liệu tham chiếu tối cao:** [docs/brief.md](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/docs/brief.md)
+* **Tài liệu tham chiếu tối cao:** [docs/requirements/brief.md](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/docs/requirements/brief.md)
 
 ---
 

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title th:text="${post.title + ' - QAUTE Portal'}">Chi Tiết Thông Báo</title>
+</head>
+<body>
+<div th:fragment="content">
+
+    <!-- Breadcrumb & Back -->
+    <div class="mb-3">
+        <a th:href="@{/feed/official}" class="text-decoration-none text-muted small">
+            <i class="bi bi-arrow-left me-1"></i>Quay lại Bảng tin chính thức
+        </a>
+    </div>
+
+    <!-- Alert Notification -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Post Content Card -->
+    <div class="card border shadow-sm rounded-3 p-4 p-md-5 mb-4 bg-white">
+        <!-- Metadata Header -->
+        <div class="border-bottom pb-3 mb-4">
+            <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
+                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1" th:text="${post.departmentName != null ? post.departmentName : 'Ban Giám Hiệu'}">Phòng Ban</span>
+                <span th:if="${post.isPinned}" class="badge bg-danger text-white"><i class="bi bi-pin-fill me-1"></i>Thông báo ghim</span>
+            </div>
+            <h3 class="fw-bold text-dark mb-2" th:text="${post.title}">Tiêu đề bài viết</h3>
+            <div class="d-flex flex-wrap gap-3 text-muted small">
+                <span><i class="bi bi-person-fill me-1"></i>Người đăng: <strong th:text="${post.authorName != null ? post.authorName : 'Cán bộ quản lý'}">Ban Đào Tạo</strong></span>
+                <span><i class="bi bi-calendar3 me-1"></i>Ngày đăng: <span th:text="${#temporals.format(post.createdAt, 'dd/MM/yyyy HH:mm')}">01/09/2026</span></span>
+            </div>
+        </div>
+
+        <!-- Embedded Video Player if available -->
+        <div class="mb-4 text-center" th:if="${post.videoUrl != null and !post.videoUrl.blank}">
+            <div class="p-3 bg-dark rounded-3 shadow-sm d-inline-block w-100" style="max-width: 720px;">
+                <h6 class="text-white text-start mb-2"><i class="bi bi-play-btn-fill text-danger me-2"></i>Video tóm tắt nội dung (Tự động từ AI/Node.js):</h6>
+                <video controls class="w-100 rounded" style="max-height: 400px; background-color: black;">
+                    <source th:src="${post.videoUrl}" type="video/mp4">
+                    Trình duyệt của bạn không hỗ trợ phát thẻ video.
+                </video>
+            </div>
+        </div>
+
+        <!-- Post Body -->
+        <div class="article-content text-dark mb-5" style="line-height: 1.8; font-size: 15.5px; white-space: pre-line;" th:text="${post.content}">
+            Nội dung thông báo chi tiết...
+        </div>
+
+        <!-- Attachments & Documents Download Section -->
+        <div class="border-top pt-4" th:if="${post.attachments != null and !post.attachments.empty}">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-paperclip me-2"></i>Tài liệu & Tệp đính kèm chính thức:</h6>
+            <div class="row g-2">
+                <div class="col-md-6" th:each="att : ${post.attachments}">
+                    <div class="p-3 bg-light border rounded-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center overflow-hidden me-2">
+                            <i th:if="${att.fileType == 'PDF'}" class="bi bi-file-earmark-pdf-fill fs-2 text-danger me-3"></i>
+                            <i th:if="${att.fileType == 'DOCX'}" class="bi bi-file-earmark-word-fill fs-2 text-primary me-3"></i>
+                            <i th:if="${att.fileType == 'XLSX'}" class="bi bi-file-earmark-excel-fill fs-2 text-success me-3"></i>
+                            <i th:if="${att.fileType == 'MP4'}" class="bi bi-file-earmark-play-fill fs-2 text-warning me-3"></i>
+                            <i th:if="${att.fileType != 'PDF' and att.fileType != 'DOCX' and att.fileType != 'XLSX' and att.fileType != 'MP4'}" class="bi bi-file-earmark-text-fill fs-2 text-secondary me-3"></i>
+                            
+                            <div class="text-truncate">
+                                <div class="fw-semibold text-dark text-truncate" th:text="${att.fileName}">tentep.pdf</div>
+                                <small class="text-muted" th:text="${att.fileSize > 0 ? #numbers.formatDecimal(att.fileSize / 1024.0 / 1024.0, 1, 2) + ' MB' : att.fileType}">1.2 MB</small>
+                            </div>
+                        </div>
+                        <a th:href="${att.fileUrl}" target="_blank" class="btn btn-sm btn-primary px-3 text-nowrap">
+                            <i class="bi bi-download me-1"></i>Tải Về
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

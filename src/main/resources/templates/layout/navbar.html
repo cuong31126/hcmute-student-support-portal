@@ -22,6 +22,12 @@
                     <a class="nav-link" th:href="@{/}"><i class="bi bi-house-door me-1"></i>Trang Chủ</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" th:href="@{/feed/official}"><i class="bi bi-megaphone me-1"></i>Bảng Tin</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/feed/forum}"><i class="bi bi-chat-left-dots me-1"></i>Diễn Đàn</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" th:href="@{/faqs}"><i class="bi bi-search me-1"></i>Tra Cứu FAQ</a>
                 </li>
                 <li class="nav-item">
@@ -32,6 +38,9 @@
                 </li>
                 <li class="nav-item" sec:authorize="hasRole('STAFF')">
                     <a class="nav-link fw-semibold text-warning" th:href="@{/staff/tickets}"><i class="bi bi-kanban me-1"></i>Bàn Xử Lý Staff</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
+                    <a class="nav-link text-info fw-semibold" th:href="@{/moderation/posts}"><i class="bi bi-shield-check me-1"></i>Duyệt Bài</a>
                 </li>
             </ul>
 
@@ -51,8 +60,17 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
                         <li><h6 class="dropdown-header" sec:authentication="name">Tài khoản</h6></li>
+                        <li sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
+                            <a class="dropdown-item" th:href="@{/feed/official/create}"><i class="bi bi-megaphone-fill me-2 text-primary"></i>Đăng thông báo mới</a>
+                        </li>
                         <li sec:authorize="hasRole('STAFF')">
                             <a class="dropdown-item" th:href="@{/staff/tickets}"><i class="bi bi-speedometer2 me-2"></i>Dashboard Quản lý</a>
+                        </li>
+                        <li sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
+                            <a class="dropdown-item" th:href="@{/moderation/posts}"><i class="bi bi-shield-check me-2 text-success"></i>Duyệt bài diễn đàn</a>
+                        </li>
+                        <li sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
+                            <a class="dropdown-item" th:href="@{/moderation/reports}"><i class="bi bi-flag me-2 text-danger"></i>Báo cáo vi phạm</a>
                         </li>
                         <li sec:authorize="hasRole('STUDENT')">
                             <a class="dropdown-item" th:href="@{/tickets/my-tickets}"><i class="bi bi-list-check me-2"></i>Danh sách Ticket</a>

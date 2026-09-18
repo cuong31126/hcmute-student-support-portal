@@ -26,15 +26,26 @@ public class StaffTicketWebController {
     private final EmailAsyncService emailAsyncService;
 
     @GetMapping
+    @PreAuthorize("#departmentId == null or @deptSecurity.canAccessDepartment(#departmentId)")
     public String staffDashboard(
+            @RequestParam(value = "departmentId", required = false) Long departmentId,
             @RequestParam(value = "status", required = false, defaultValue = "ALL") String status,
             Model model) {
 
-        Long departmentId = SecurityUtils.getCurrentDepartmentId().orElse(1L);
-        Department dept = departmentRepository.findById(departmentId).orElse(null);
+        Long currentDeptId = departmentId;
+        if (currentDeptId == null) {
+            currentDeptId = SecurityUtils.getCurrentDepartmentId().orElse(null);
+        }
 
-        List<TicketResponseDto> allTickets = ticketService.getTicketsByDepartment(departmentId, "ALL");
-        List<TicketResponseDto> filteredTickets = ticketService.getTicketsByDepartment(departmentId, status);
+        if (currentDeptId == null) {
+            model.addAttribute("errorMessage", "Tài khoản cán bộ chưa được gán Đơn vị/Khoa quản lý.");
+            return "error/403";
+        }
+
+        Department dept = departmentRepository.findById(currentDeptId).orElse(null);
+
+        List<TicketResponseDto> allTickets = ticketService.getTicketsByDepartment(currentDeptId, "ALL");
+        List<TicketResponseDto> filteredTickets = ticketService.getTicketsByDepartment(currentDeptId, status);
 
         long countOpen = allTickets.stream().filter(t -> "OPEN".equalsIgnoreCase(t.getStatus())).count();
         long countInProgress = allTickets.stream().filter(t -> "IN_PROGRESS".equalsIgnoreCase(t.getStatus())).count();

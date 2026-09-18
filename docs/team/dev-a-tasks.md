@@ -1,7 +1,7 @@
 # DANH SÁCH NHIỆM VỤ & TIÊU CHÍ NGHIỆM THU: DEV A
 
 * **Kỹ sư đảm nhiệm:** Dev A (Backend Core, SLA Engine, Email & AI RAG)
-* **Quy chuẩn thực thi:** [docs/brief.md](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/docs/brief.md), [docs/team/engineering-rules.md](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/docs/team/engineering-rules.md)
+* **Quy chuẩn thực thi:** [docs/requirements/brief.md](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/docs/requirements/brief.md), [docs/team/engineering-rules.md](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/docs/team/engineering-rules.md)
 
 ---
 
