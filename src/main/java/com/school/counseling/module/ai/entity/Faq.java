@@ -48,6 +48,9 @@ public class Faq extends BaseEntity {
     @Column(name = "view_count")
     private Integer viewCount = 0;
 
+    @Column(name = "post_date")
+    private java.time.LocalDateTime postDate;
+
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

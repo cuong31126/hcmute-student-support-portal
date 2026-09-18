@@ -76,47 +76,105 @@
                 if (!query) return;
 
                 // 1. Render tin nhắn User
-                appendMessage('user', query);
+                appendMessage('user', escapeHtml(query));
                 chatInput.value = '';
 
                 // 2. Loading indicator
                 const loadingId = 'ai-loading-' + Date.now();
                 appendLoading(loadingId);
 
-                // 3. Gọi API đối soát tri thức /api/v1/faqs/match
-                fetch(`/api/v1/faqs/match?q=${encodeURIComponent(query)}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        removeLoading(loadingId);
-                        if (data.success && data.data && data.data.length > 0) {
-                            const topMatch = data.data[0];
-                            let answerHtml = `<strong>💡 Giải đáp theo quy chế:</strong><br>${topMatch.answer.replace(/\\n/g, '<br>')}`;
-                            answerHtml += `<br><small class="text-muted mt-2 d-block">🏢 Nguồn: ${topMatch.departmentName}</small>`;
+                // 3. Đấu nối sang REST API AI RAG thực sự
+                fetch('/api/v1/ai/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: query })
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('Network error: ' + res.status);
+                    return res.json();
+                })
+                .then(res => {
+                    removeLoading(loadingId);
+                    if (res.success && res.data) {
+                        const ragData = res.data;
+                        let rawAnswer = ragData.answer || 'Xin chào! Tôi đã tiếp nhận câu hỏi của bạn.';
+                        let answerHtml = '';
 
-                            // Nếu điểm tin cậy chưa tuyệt đối, thêm nút chuyển sang Ticket
+                        // Hiển thị Banner cảnh báo lịch sử nếu rơi vào Tầng 2
+                        if (ragData.needsHistoricalWarning) {
                             answerHtml += `
-                                <div class="mt-2 pt-2 border-top">
-                                    <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-outline-primary btn-sm w-100" style="font-size: 11px;">
-                                        <i class="bi bi-envelope-plus me-1"></i>Gửi câu hỏi này thành Ticket tới Cán bộ
-                                    </a>
+                                <div class="alert alert-warning py-1 px-2 mb-2 small d-flex align-items-center rounded" style="font-size: 11px; background-color: #fffbeb; border-color: #fde68a; color: #92400e;">
+                                    <i class="bi bi-clock-history me-2 fs-6 text-warning"></i>
+                                    <div><strong>Dữ liệu tham khảo lịch sử:</strong> Nội dung dựa trên cơ sở dữ liệu các năm trước. Vui lòng đối chiếu quy chế 2026.</div>
                                 </div>
                             `;
-                            appendMessage('ai', answerHtml);
-                        } else {
-                            // Không tìm thấy trong FAQ -> Gợi ý chuyển sang Ticket
-                            const fallbackHtml = `
-                                Dạ hiện tại câu hỏi này chưa có trong bộ câu hỏi thường gặp hoặc cần Cán bộ kiểm tra hồ sơ riêng của bạn.<br><br>
-                                <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-primary btn-sm w-100" style="background-color: #1e3a8a;">
-                                    <i class="bi bi-ticket-perforated me-1"></i>Tạo Ticket gửi Ban Tư Vấn
-                                </a>
-                            `;
-                            appendMessage('ai', fallbackHtml);
                         }
-                    })
-                    .catch(() => {
-                        removeLoading(loadingId);
-                        appendMessage('ai', 'Có sự cố kết nối tới máy chủ tri thức. Bạn có thể nhấn <a href="/tickets/create">Gửi yêu cầu trực tiếp</a> nhé!');
-                    });
+
+                        // Định dạng nội dung câu trả lời
+                        answerHtml += `<div class="ai-text-content">${formatAiResponse(rawAnswer)}</div>`;
+
+                        // Hiển thị nguồn tài liệu trích dẫn từ kho RAG
+                        if (ragData.matchedChunks && ragData.matchedChunks.length > 0) {
+                            answerHtml += `<div class="mt-2 pt-2 border-top"><small class="text-muted fw-bold d-block mb-1" style="font-size: 11px;"><i class="bi bi-journal-bookmark me-1"></i>Nguồn tài liệu quy chế đối chiếu:</small><div class="d-flex flex-wrap gap-1">`;
+                            ragData.matchedChunks.slice(0, 3).forEach(chunk => {
+                                const isReg = chunk.sourceType === 'REGULATION';
+                                const badgeClass = isReg ? 'bg-primary-subtle text-primary border-primary' : 'bg-light text-secondary border';
+                                const icon = isReg ? '📜' : '💬';
+                                const dept = chunk.departmentName ? ` [${chunk.departmentName}]` : '';
+                                answerHtml += `
+                                    <span class="badge ${badgeClass} border text-wrap text-start p-1" style="font-size: 10px; font-weight: normal; max-width: 100%;">
+                                        ${icon} ${chunk.title || 'Quy chế học vụ'} (Năm ${chunk.effectiveYear || '2026'})${dept}
+                                    </span>
+                                `;
+                            });
+                            answerHtml += `</div></div>`;
+                        }
+
+                        // Tùy chọn chuyển tiếp thành Ticket hỗ trợ
+                        answerHtml += `
+                            <div class="mt-2 pt-2 border-top">
+                                <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-outline-primary btn-sm w-100" style="font-size: 11px;">
+                                    <i class="bi bi-envelope-plus me-1"></i>Chưa thỏa đáng? Gửi câu hỏi này thành Ticket tới Cán bộ
+                                </a>
+                            </div>
+                        `;
+
+                        appendMessage('ai', answerHtml);
+                    } else {
+                        // Fallback khi không có data
+                        appendMessage('ai', `
+                            Dạ hiện tại AI chưa tìm thấy quy chế trực tiếp tương ứng trong hệ thống.<br><br>
+                            <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-primary btn-sm w-100" style="background-color: #1e3a8a;">
+                                <i class="bi bi-ticket-perforated me-1"></i>Tạo Ticket gửi Ban Tư Vấn Học Vụ
+                            </a>
+                        `);
+                    }
+                })
+                .catch(err => {
+                    removeLoading(loadingId);
+                    console.error('AI Chat Error:', err);
+                    appendMessage('ai', 'Có sự cố kết nối tới máy chủ tri thức AI. Bạn có thể nhấn <a href="/tickets/create">Gửi yêu cầu trực tiếp</a> để Cán bộ hỗ trợ nhé!');
+                });
+            }
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            }
+
+            function formatAiResponse(text) {
+                if (!text) return '';
+                // Bỏ câu cảnh báo trùng nếu Gemini đã đính kèm text tương tự ở đầu
+                let cleaned = text.replace(/⚠️\s*\*\*Lưu ý:\*\*[\s\S]*?\n\n/, '');
+                let formatted = escapeHtml(cleaned)
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n\n/g, '<br><br>')
+                    .replace(/\n/g, '<br>');
+                return formatted;
             }
 
             function appendMessage(sender, htmlContent) {

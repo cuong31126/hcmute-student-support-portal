@@ -69,3 +69,7 @@ app:
     api-secret: ${CLOUDINARY_API_SECRET:secret}
   webhook:
     nodejs-secret: ${NODEJS_WEBHOOK_SECRET:mySuperSecretWebhookKey2026}
+  gemini:
+    api-key: ${GEMINI_API_KEY:demo_key}
+    embedding-model: text-embedding-004
+    chat-model: gemini-1.5-flash

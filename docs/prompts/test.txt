@@ -1,0 +1,40 @@
+================================================================================
+CHUỖI PROMPT CHAIN: KIỂM THỬ DỰ ÁN & RÀ SOÁT RỦI RO (TESTING & SECURITY AUDIT)
+(Chuỗi tối ưu 2 bước - Đầy đủ Unit, Integration, E2E & Báo cáo rủi ro)
+================================================================================
+Hướng dẫn sử dụng:
+1. Sao chép và chạy LẦN LƯỢT Bước 1 rồi đến Bước 2.
+2. Điền phạm vi cần kiểm tra vào [YÊU CẦU CỦA BẠN] ở Bước 1.
+================================================================================
+
+--- BƯỚC 1: QUÉT TỔNG THỂ, LẬP MA TRẬN RỦI RO & THIẾT KẾ TEST PLAN ---
+Bạn là Senior QA & Security Auditor. Hãy đọc kỹ tài liệu nghiệp vụ trong thư mục `docs/` (SRS, database schema, BRULE) và các kỹ năng kiểm thử trong `.agents/skills/` (đặc biệt là `code-review`, `tdd`).
+
+Phạm vi cần kiểm tra:
+[Điền module hoặc tính năng cần test, ví dụ: Module Chat/Ticket hoặc Task DEV-B-SP3-02 trong docs/team/dev-b-tasks.md]
+
+Yêu cầu thực hiện:
+1. Phân tích rủi ro tiềm ẩn trong code hiện tại:
+   - Rủi ro nghiệp vụ (sai lệch luồng trạng thái, vi phạm BRULE).
+   - Rủi ro bảo mật & dữ liệu (phân quyền chéo giữa các Khoa, SQL Injection, IDOR, XSS, upload file).
+   - Rủi ro hiệu năng (lỗi N+1 JPA query, thiếu index, memory leak).
+   - Trường hợp biên (Edge Cases, NullPointerException, chuỗi ký tự đặc biệt/quá dài).
+2. Lập kế hoạch kiểm thử chi tiết (Test Plan) bao gồm:
+   - Danh sách Unit Test & Integration Test (Service + Controller) cần viết.
+   - Kịch bản E2E Test (Playwright) mô phỏng người dùng thực tế.
+3. CHƯA SỬA ĐỔI CODE. Hãy trình bày bảng ma trận rủi ro và khung Test Plan để tôi duyệt trước.
+
+
+--- BƯỚC 2: THỰC THI BỘ TEST TỰ ĐỘNG (UNIT, INTEGRATION, PLAYWRIGHT) & BÁO CÁO ---
+Dựa trên Test Plan đã thống nhất ở Bước 1, hãy viết mã nguồn toàn bộ các bài test và lập báo cáo rà soát:
+
+Yêu cầu:
+1. Viết Unit Test & Integration Test (JUnit 5 + Mockito + MockMvc):
+   - Test Service: Mock dependencies, kiểm tra 100% các nhánh if/else và exception.
+   - Test Controller: Kiểm tra phân quyền (Role Sinh viên, Cán bộ Khoa A vs Khoa B, Admin), Bean Validation (@Valid), mã HTTP Status và ApiResponse<T>.
+2. Viết E2E Test bằng Playwright/TypeScript trong thư mục `tests/e2e/`:
+   - Kế thừa các Page Object có sẵn trong `tests/e2e/pages/`.
+   - Mô phỏng đầy đủ: Đăng nhập -> Thao tác dữ liệu/Tải file -> Kiểm tra UI alert, badge, modal.
+3. Tổng hợp Báo cáo kiểm thử:
+   - Bảng phân loại mức độ nghiêm trọng của lỗi tìm thấy (Critical / High / Medium / Low).
+   - Đề xuất giải pháp khắc phục ngắn hạn (Hotfix) và dài hạn (Refactor) chuẩn kỹ thuật.

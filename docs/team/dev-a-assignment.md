@@ -2,7 +2,7 @@
 
 * **Kỹ sư đảm nhiệm:** Dev A (Backend Core & AI/SLA Specialist)
 * **Phạm vi trách nhiệm:** Module Auth (Session Cookie & RBAC), Module Ticket & SLA Engine (2 luồng tạo Ticket + Async Mail Guest/Student), Phân quyền Khoa/Phòng, Module AI RAG Chatbot.
-* **Tài liệu tham chiếu:** [docs/brief.md](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/docs/brief.md) và [docs/team/engineering-rules.md](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/docs/team/engineering-rules.md)
+* **Tài liệu tham chiếu:** [docs/requirements/brief.md](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/docs/requirements/brief.md) và [docs/team/engineering-rules.md](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/docs/team/engineering-rules.md)
 
 ---
 
