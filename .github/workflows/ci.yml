@@ -1,0 +1,50 @@
+name: Java Spring Boot CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Kéo mã nguồn về máy ảo CI
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Cài đặt Java 17 (Chuẩn cho Spring Boot 3.x)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 3. Build & Compile dự án một cách an toàn
+      - name: Build Project (Maven or Gradle)
+        run: |
+          # Kiểm tra nếu là dự án Gradle
+          if [ -f "gradlew" ] || [ -f "build.gradle" ] || [ -f "build.gradle.kts" ]; then
+            echo "Phát hiện dự án Gradle..."
+            if [ -f "gradlew" ]; then
+              chmod +x gradlew
+              ./gradlew assemble -x test
+            else
+              gradle assemble -x test
+            fi
+
+          # Kiểm tra nếu là dự án Maven
+          elif [ -f "mvnw" ] || [ -f "pom.xml" ]; then
+            echo "Phát hiện dự án Maven..."
+            if [ -f "mvnw" ]; then
+              chmod +x mvnw
+              ./mvnw clean compile test-compile -DskipTests
+            else
+              mvn clean compile test-compile -DskipTests
+            fi
+
+          else
+            echo "Chưa tìm thấy pom.xml hoặc build.gradle ở thư mục này. Bỏ qua bước build an toàn."
+          fi
