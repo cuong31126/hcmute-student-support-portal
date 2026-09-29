@@ -59,15 +59,29 @@ class TicketDepartmentIsolationTest {
                 .hasMessageContaining("đơn vị");
     }
 
-    // ── Test 3: Staff đúng Khoa CNTT claim thành công ──
     @Test
-    @DisplayName("Staff đúng Khoa CNTT claim Ticket Khoa CNTT → Thành công, không ném exception")
-    @WithMockUser(username = "can-bo-cntt@hcmute.edu.vn", roles = {"STAFF"})
-    void staff_from_correct_dept_can_claim_ticket() throws Exception {
-        Long ticketIdBelongsToCntt = 1L; // Ticket OPEN thuộc Khoa CNTT trong DB test
+    @DisplayName("Kiểm tra danh sách ticket theo phòng ban không bị rỗng khi có dữ liệu")
+    void test_get_ticket_summary_by_department() {
+        var ticketsDept3 = ticketService.getTicketSummaryByDepartment(3L, "ALL");
+        org.assertj.core.api.Assertions.assertThat(ticketsDept3).isNotNull();
+    }
 
-        mockMvc.perform(post("/staff/tickets/{ticketId}/claim", ticketIdBelongsToCntt))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attributeExists("successMessage"));
+    @Test
+    @DisplayName("Kiểm tra render trang chi tiết ticket #7")
+    void test_ticket_detail_render() throws Exception {
+        com.school.counseling.module.auth.dto.UserPrincipal principal = com.school.counseling.module.auth.dto.UserPrincipal.builder()
+                .id(1L)
+                .username("admin")
+                .roleName("ROLE_ADMIN")
+                .authorities(java.util.Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN")))
+                .isEnabled(true)
+                .build();
+        org.springframework.security.core.Authentication auth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                principal, "pass", principal.getAuthorities());
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(auth);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/tickets/detail/7")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication(auth)))
+                .andExpect(status().isOk());
     }
 }

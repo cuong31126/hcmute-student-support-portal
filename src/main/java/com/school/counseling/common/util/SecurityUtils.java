@@ -30,4 +30,15 @@ public final class SecurityUtils {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.isAuthenticated() && !(auth.getPrincipal() instanceof String && "anonymousUser".equals(auth.getPrincipal()));
     }
+
+    public static boolean hasAnyRole(String... roles) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return false;
+        }
+        java.util.Set<String> roleSet = java.util.Set.of(roles);
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> roleSet.contains(a.getAuthority())
+                        || roleSet.contains(a.getAuthority().replace("ROLE_", "")));
+    }
 }

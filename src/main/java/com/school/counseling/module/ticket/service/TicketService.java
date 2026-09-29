@@ -31,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -96,6 +97,10 @@ public class TicketService {
 
         ticket = ticketRepository.save(ticket);
 
+        TicketHistory initialHistory = saveHistory(ticket, creator,
+                creator != null ? creator.getFullName() : (request.getGuestName() != null ? request.getGuestName() : "Khách vãng lai"),
+                null, "OPEN", "Khởi tạo yêu cầu tư vấn mới: " + ticket.getDescription());
+
         if (files != null && !files.isEmpty()) {
             for (MultipartFile file : files) {
                 if (file != null && !file.isEmpty()) {
@@ -106,15 +111,12 @@ public class TicketService {
                             .fileType(res.fileType())
                             .fileSize(res.fileSizeBytes())
                             .ticket(ticket)
+                            .ticketHistory(initialHistory)
                             .build();
                     attachmentRepository.save(attachment);
                 }
             }
         }
-
-        saveHistory(ticket, creator,
-                creator != null ? creator.getFullName() : (request.getGuestName() != null ? request.getGuestName() : "Khách vãng lai"),
-                null, "OPEN", "Khởi tạo yêu cầu tư vấn mới");
 
         log.info("Tạo mới Ticket thành công: Code={}, DueDate={}", ticket.getTicketCode(), ticket.getDueDate());
         return mapToDetailDto(ticket);
@@ -243,6 +245,8 @@ public class TicketService {
 
         ticket = ticketRepository.save(ticket);
 
+        TicketHistory replyHistory = saveHistory(ticket, responder, responderName, fromStatus, toStatus, request.getContent());
+
         if (files != null && !files.isEmpty()) {
             for (MultipartFile file : files) {
                 if (file != null && !file.isEmpty()) {
@@ -253,13 +257,13 @@ public class TicketService {
                             .fileType(res.fileType())
                             .fileSize(res.fileSizeBytes())
                             .ticket(ticket)
+                            .ticketHistory(replyHistory)
                             .build();
                     attachmentRepository.save(attachment);
                 }
             }
         }
 
-        saveHistory(ticket, responder, responderName, fromStatus, toStatus, request.getContent());
         log.info("Phản hồi Ticket Code={}: Status={}", ticket.getTicketCode(), toStatus);
 
         return mapToDetailDto(ticket);
@@ -339,7 +343,17 @@ public class TicketService {
         return ticketRepository.findSummaryByDepartmentId(departmentId);
     }
 
+    public List<TicketSummaryDto> getAllTicketSummaries(String status) {
+        if (status != null && !status.trim().isEmpty() && !"ALL".equalsIgnoreCase(status)) {
+            return ticketRepository.findAllSummariesByStatus(status);
+        }
+        return ticketRepository.findAllSummaries();
+    }
+
     public List<TicketSummaryDto> getMyTicketSummaries(Long userId) {
+        if (userId == null) {
+            return Collections.emptyList();
+        }
         return ticketRepository.findSummaryByCreatorId(userId);
     }
 
@@ -359,7 +373,7 @@ public class TicketService {
         });
     }
 
-    private void saveHistory(Ticket ticket, User actor, String actorName,
+    private TicketHistory saveHistory(Ticket ticket, User actor, String actorName,
                              String fromStatus, String toStatus, String note) {
         TicketHistory history = TicketHistory.builder()
                 .ticket(ticket)
@@ -369,7 +383,7 @@ public class TicketService {
                 .toStatus(toStatus)
                 .actionNote(note)
                 .build();
-        ticketHistoryRepository.save(history);
+        return ticketHistoryRepository.save(history);
     }
 
     private String generateTicketCode() {
@@ -383,7 +397,9 @@ public class TicketService {
      * Yêu cầu: Ticket đã được load đầy đủ dept/creator/assignedTo qua JOIN FETCH.
      */
     private TicketResponseDto mapToDetailDto(Ticket t) {
-        List<AttachmentDto> attachments = attachmentRepository.findByTicketId(t.getId()).stream()
+        List<Attachment> allAttachments = attachmentRepository.findByTicketId(t.getId());
+
+        List<AttachmentDto> attachments = allAttachments.stream()
                 .map(a -> AttachmentDto.builder()
                         .id(a.getId())
                         .fileName(a.getFileName())
@@ -393,16 +409,62 @@ public class TicketService {
                         .build())
                 .collect(Collectors.toList());
 
-        List<TicketResponseDto.HistoryDto> histories = ticketHistoryRepository
-                .findByTicketIdOrderByCreatedAtAsc(t.getId()).stream()
-                .map(h -> TicketResponseDto.HistoryDto.builder()
-                        .id(h.getId())
-                        .actorName(h.getActorName())
-                        .fromStatus(h.getFromStatus())
-                        .toStatus(h.getToStatus())
-                        .actionNote(h.getActionNote())
-                        .createdAt(h.getCreatedAt())
-                        .build())
+        List<TicketHistory> historyEntities = ticketHistoryRepository
+                .findByTicketIdOrderByCreatedAtAsc(t.getId());
+
+        // Phân loại: Lịch sử phản hồi (replies) và sự kiện hệ thống
+        List<TicketResponseDto.HistoryDto> histories = historyEntities.stream()
+                .filter(h -> {
+                    // Loại bỏ bản ghi khởi tạo ban đầu để không bị trùng với Tin nhắn mở đầu (Message #1)
+                    if (h.getFromStatus() == null && h.getActionNote() != null 
+                            && (h.getActionNote().startsWith("Khởi tạo yêu cầu") || h.getActionNote().startsWith("Chuyển đổi từ cuộc hội thoại"))) {
+                        return false;
+                    }
+                    return true;
+                })
+                .map(h -> {
+                    List<AttachmentDto> matchedAtts = allAttachments.stream()
+                            .filter(a -> {
+                                if (a.getTicketHistory() != null) {
+                                    return a.getTicketHistory().getId().equals(h.getId());
+                                }
+                                if (a.getCreatedAt() != null && h.getCreatedAt() != null) {
+                                    long diffSeconds = Math.abs(java.time.Duration.between(a.getCreatedAt(), h.getCreatedAt()).getSeconds());
+                                    return diffSeconds <= 15;
+                                }
+                                return false;
+                            })
+                            .map(a -> AttachmentDto.builder()
+                                    .id(a.getId())
+                                    .fileName(a.getFileName())
+                                    .fileUrl(a.getFileUrl())
+                                    .fileType(a.getFileType())
+                                    .fileSize(a.getFileSize())
+                                    .build())
+                            .collect(Collectors.toList());
+
+                    return TicketResponseDto.HistoryDto.builder()
+                            .id(h.getId())
+                            .actorId(h.getActor() != null ? h.getActor().getId() : null)
+                            .actorRole(h.getActor() != null && h.getActor().getRole() != null ? h.getActor().getRole().getName() : null)
+                            .actorName(h.getActorName())
+                            .fromStatus(h.getFromStatus())
+                            .toStatus(h.getToStatus())
+                            .actionNote(h.getActionNote())
+                            .createdAt(h.getCreatedAt())
+                            .attachments(matchedAtts)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        // Tệp đính kèm ban đầu của ticket: Tất cả các file không thuộc về lượt phản hồi nào
+        java.util.Set<Long> replyAttachmentIds = histories.stream()
+                .flatMap(h -> h.getAttachments().stream())
+                .map(AttachmentDto::getId)
+                .collect(Collectors.toSet());
+
+        List<AttachmentDto> initialAttachments = attachments.stream()
+                .filter(a -> !replyAttachmentIds.contains(a.getId()))
                 .collect(Collectors.toList());
 
         boolean isOverdue = slaCalculatorService.isOverdue(t.getDueDate(), t.getStatus());
@@ -422,6 +484,10 @@ public class TicketService {
                 .guestToken(t.getGuestToken())
                 .assignedStaffId(t.getAssignedTo() != null ? t.getAssignedTo().getId() : null)
                 .assignedStaffName(t.getAssignedTo() != null ? t.getAssignedTo().getFullName() : null)
+                .assignedStaffEmail(t.getAssignedTo() != null ? t.getAssignedTo().getEmail() : null)
+                .assignedStaffPhone(t.getAssignedTo() != null ? t.getAssignedTo().getPhone() : null)
+                .assignedStaffAvatarUrl(t.getAssignedTo() != null ? t.getAssignedTo().getAvatarUrl() : null)
+                .assignedStaffRole(t.getAssignedTo() != null && t.getAssignedTo().getRole() != null ? t.getAssignedTo().getRole().getName() : null)
                 .priority(t.getPriority())
                 .status(t.getStatus())
                 .dueDate(t.getDueDate())
@@ -432,6 +498,7 @@ public class TicketService {
                 .closedAt(t.getClosedAt())
                 .rating(t.getRating())
                 .attachments(attachments)
+                .initialAttachments(initialAttachments)
                 .histories(histories)
                 .build();
     }

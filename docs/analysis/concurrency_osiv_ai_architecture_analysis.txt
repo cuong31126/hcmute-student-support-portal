@@ -179,3 +179,4 @@ so vs 1 projecr mxh dùng 1 bảng mess và 1 bảng conversation là hoàn hả
 // có trạng thái vòng đời có giới hạn thời gian 
 // vd cứ để 1 ng hỏi 1 ng tư vấn viên trả lời ok quá hợp lý nhg mà câu hỏi thứ 2 
 // là ng tư vấn nào nhắn tn đó 
+

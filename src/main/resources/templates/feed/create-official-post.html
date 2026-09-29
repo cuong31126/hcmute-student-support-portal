@@ -15,16 +15,24 @@
 
     <!-- Main Card -->
     <div class="card border shadow-sm rounded-3 p-4 p-md-5 bg-white max-w-850 mx-auto">
-        <div class="border-bottom pb-3 mb-4">
-            <h4 class="fw-bold text-dark mb-1 d-flex align-items-center">
-                <i class="bi bi-pencil-square text-primary me-2"></i>Đăng Thông Báo Chính Thức Mới
-            </h4>
-            <p class="small text-muted mb-0">Bài viết được đăng bởi Cán bộ sẽ hiển thị công khai ngay lập tức trên cổng thông tin</p>
-        </div>
-
-        <form th:action="@{/feed/official/create}" th:object="${postRequest}" method="post" enctype="multipart/form-data">
+        <form id="createPostForm" th:action="@{/feed/official/create}" th:object="${postRequest}" method="post" enctype="multipart/form-data">
             <!-- CSRF Token -->
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between border-bottom pb-3 mb-4 gap-2">
+                <div>
+                    <h4 class="fw-bold text-dark mb-1 d-flex align-items-center">
+                        <i class="bi bi-pencil-square text-primary me-2"></i>Đăng Thông Báo Chính Thức Mới
+                    </h4>
+                    <p class="small text-muted mb-0">Bài viết được đăng bởi Cán bộ sẽ hiển thị công khai ngay lập tức trên cổng thông tin</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a th:href="@{/feed/official}" class="btn btn-outline-secondary btn-sm px-3">Hủy</a>
+                    <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
+                        <i class="bi bi-send-fill me-1"></i>Đăng Thông Báo
+                    </button>
+                </div>
+            </div>
 
             <!-- Department Select -->
             <div class="mb-3">
@@ -53,23 +61,70 @@
                 <div class="text-danger small mt-1" th:if="${#fields.hasErrors('content')}" th:errors="*{content}"></div>
             </div>
 
-            <!-- Attachment File -->
+            <!-- Video Section (Hybrid Model) -->
+            <div class="card p-3 p-md-4 bg-light border-0 rounded-3 mb-4">
+                <h6 class="fw-bold text-dark mb-2 d-flex align-items-center">
+                    <i class="bi bi-play-circle-fill text-danger me-2 fs-5"></i>Video Hướng Dẫn / Thông Báo (Tùy chọn)
+                </h6>
+                <p class="small text-muted mb-3">
+                    Lựa chọn dán liên kết hoặc tải lên video thông báo để sinh viên theo dõi trực tiếp trên bài viết.
+                </p>
+
+                <!-- Video Option A: External Link -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-dark small">
+                        <i class="bi bi-youtube text-danger me-1"></i>Cách 1: Dán liên kết Video từ YouTube / Google Drive / Vimeo (Khuyên dùng - Không giới hạn dung lượng)
+                    </label>
+                    <input type="url" th:field="*{videoEmbedUrl}" class="form-control" 
+                           placeholder="Ví dụ: https://www.youtube.com/watch?v=dQw4w9WgXcQ hoặc link Google Drive...">
+                    <small class="text-muted">Hệ thống tự động nhúng khung phát chuẩn HD, không tiêu tốn bộ nhớ máy chủ.</small>
+                </div>
+
+                <div class="text-center text-muted small my-2 fw-semibold">── HOẶC ──</div>
+
+                <!-- Video Option B: Direct Upload -->
+                <div class="mb-2">
+                    <label class="form-label fw-semibold text-dark small">
+                        <i class="bi bi-upload text-primary me-1"></i>Cách 2: Tải lên tệp Video trực tiếp (.mp4, .webm)
+                    </label>
+                    <input type="file" id="videoFileInput" name="videoFile" class="form-control" accept=".mp4,.webm">
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <small class="text-muted">Định dạng hỗ trợ: <code>.mp4</code>, <code>.webm</code>. Dung lượng tối đa: <strong>50MB</strong>.</small>
+                        <span id="videoSizeBadge" class="badge bg-secondary d-none">0 MB</span>
+                    </div>
+                </div>
+
+                <!-- Video Local Preview -->
+                <div id="videoPreviewContainer" class="mt-3 d-none">
+                    <label class="form-label small fw-semibold text-dark">Xem trước video đã chọn:</label>
+                    <div class="bg-black rounded-3 overflow-hidden text-center" style="max-width: 500px;">
+                        <video id="videoPreviewPlayer" controls class="w-100" style="max-height: 280px;"></video>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Section (Multiple Files) -->
             <div class="mb-4">
-                <label class="form-label fw-semibold text-dark">Đính kèm tài liệu văn phòng / video</label>
-                <input type="file" name="attachment" class="form-control bg-light" accept=".pdf,.docx,.xlsx,.mp4,.png,.jpg">
-                <small class="text-muted">Hỗ trợ định dạng: <code>.pdf</code>, <code>.docx</code>, <code>.xlsx</code>, <code>.mp4</code>. Tối đa 100MB theo BRULE-POST-001.</small>
+                <label class="form-label fw-semibold text-dark d-flex align-items-center">
+                    <i class="bi bi-paperclip text-primary me-2"></i>Đính kèm Tài Liệu Văn Phòng (Tối đa 5 tệp)
+                </label>
+                <input type="file" id="documentFilesInput" name="documentFiles" multiple class="form-control bg-light" 
+                       accept=".pdf,.docx,.xlsx,.zip,.rar">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-muted">
+                        Hỗ trợ định dạng: <code>.pdf</code>, <code>.docx</code>, <code>.xlsx</code>, <code>.zip</code>, <code>.rar</code>. Tối đa 20MB/tệp.
+                    </small>
+                    <span id="docCountBadge" class="badge bg-secondary d-none">0 / 5 tệp</span>
+                </div>
+                <div id="fileListContainer" class="mt-2 d-flex flex-wrap gap-2"></div>
             </div>
 
             <!-- Options Row -->
             <div class="card p-3 bg-light border-0 rounded-3 mb-4">
-                <div class="form-check form-switch mb-2">
-                    <input class="form-check-input" type="checkbox" role="switch" id="isPinned" th:field="*{pinned}">
-                    <label class="form-check-label fw-semibold text-dark" for="isPinned">Ghim thông báo này lên đầu trang</label>
-                </div>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" id="isRequestVideo" th:field="*{requestVideo}">
-                    <label class="form-check-label fw-semibold text-dark" for="isRequestVideo">
-                        Kích hoạt Microservice Node.js dựng Video tóm tắt 40s (BRULE-NODE-001)
+                    <input class="form-check-input" type="checkbox" role="switch" id="isPinned" th:field="*{pinned}">
+                    <label class="form-check-label fw-semibold text-dark" for="isPinned">
+                        <i class="bi bi-pin-angle-fill text-danger me-1"></i>Ghim thông báo này lên đầu trang
                     </label>
                 </div>
             </div>
@@ -78,11 +133,78 @@
             <div class="d-flex justify-content-end gap-2">
                 <a th:href="@{/feed/official}" class="btn btn-outline-secondary px-4">Hủy</a>
                 <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
-                    <i class="bi bi-send-fill me-1"></i>Công Bố Thông Báo
+                    <i class="bi bi-send-fill me-1"></i>Đăng Thông Báo Ngay
                 </button>
             </div>
         </form>
     </div>
+
+    <!-- Client-side Script for validation and preview -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const videoInput = document.getElementById('videoFileInput');
+            const videoPreviewContainer = document.getElementById('videoPreviewContainer');
+            const videoPreviewPlayer = document.getElementById('videoPreviewPlayer');
+            const videoSizeBadge = document.getElementById('videoSizeBadge');
+
+            if (videoInput) {
+                videoInput.addEventListener('change', function () {
+                    const file = this.files[0];
+                    if (file) {
+                        const sizeMB = file.size / (1024 * 1024);
+                        videoSizeBadge.textContent = sizeMB.toFixed(1) + ' MB';
+                        videoSizeBadge.classList.remove('d-none');
+
+                        if (sizeMB > 50) {
+                            alert('⚠️ Cảnh báo: Tệp video vượt quá 50MB (' + sizeMB.toFixed(1) + ' MB).\nVui lòng dán liên kết YouTube để đảm bảo tốc độ tốt nhất và tránh quá tải hệ thống!');
+                            this.value = '';
+                            videoSizeBadge.classList.add('d-none');
+                            videoPreviewContainer.classList.add('d-none');
+                            return;
+                        }
+
+                        const fileUrl = URL.createObjectURL(file);
+                        videoPreviewPlayer.src = fileUrl;
+                        videoPreviewContainer.classList.remove('d-none');
+                    } else {
+                        videoSizeBadge.classList.add('d-none');
+                        videoPreviewContainer.classList.add('d-none');
+                    }
+                });
+            }
+
+            const docInput = document.getElementById('documentFilesInput');
+            const docBadge = document.getElementById('docCountBadge');
+            const fileListContainer = document.getElementById('fileListContainer');
+
+            if (docInput) {
+                docInput.addEventListener('change', function () {
+                    fileListContainer.innerHTML = '';
+                    if (this.files.length > 5) {
+                        alert('⚠️ Bạn chỉ được chọn tối đa 5 tệp đính kèm theo quy định BRULE-POST-001!');
+                        this.value = '';
+                        docBadge.classList.add('d-none');
+                        return;
+                    }
+
+                    if (this.files.length > 0) {
+                        docBadge.textContent = this.files.length + ' / 5 tệp đã chọn';
+                        docBadge.className = 'badge bg-primary';
+                        docBadge.classList.remove('d-none');
+
+                        Array.from(this.files).forEach(f => {
+                            const chip = document.createElement('span');
+                            chip.className = 'badge bg-white text-dark border p-2 d-inline-flex align-items-center shadow-xs';
+                            chip.innerHTML = '<i class="bi bi-file-earmark-text text-primary me-1"></i> ' + f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
+                            fileListContainer.appendChild(chip);
+                        });
+                    } else {
+                        docBadge.classList.add('d-none');
+                    }
+                });
+            }
+        });
+    </script>
 </div>
 </body>
 </html>

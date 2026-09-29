@@ -6,6 +6,16 @@
 <body>
 <div th:fragment="content">
     
+    <!-- Flash Messages -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h4 class="fw-bold text-dark mb-1">Danh Sách Yêu Cầu Tư Vấn Của Tôi</h4>
@@ -43,7 +53,7 @@
                         <td><code class="fw-bold text-primary" th:text="${t.ticketCode}">TK-XXXX</code></td>
                         <td>
                             <div class="fw-semibold text-dark" th:text="${t.title}">Tiêu đề</div>
-                            <small class="text-muted" th:text="'Gửi lúc: ' + ${#temporals.format(t.createdAt, 'HH:mm dd/MM/yyyy')}">00:00 01/01/2026</small>
+                            <small class="text-muted" th:text="${t.createdAt != null ? 'Gửi lúc: ' + #temporals.format(t.createdAt, 'HH:mm dd/MM/yyyy') : ''}">00:00 01/01/2026</small>
                         </td>
                         <td><span class="badge bg-light text-dark border" th:text="${t.departmentName}">Phòng Đào tạo</span></td>
                         <td>
@@ -54,9 +64,9 @@
                             <span th:if="${t.status == 'CLOSED'}" class="badge bg-dark">Đã đóng</span>
                         </td>
                         <td>
-                            <span th:if="${t.isOverdue}" class="badge bg-danger"><i class="bi bi-clock-history me-1"></i>Quá hạn</span>
-                            <span th:if="${t.isDueSoon and !t.isOverdue}" class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Sắp đến hạn</span>
-                            <span th:if="${!t.isOverdue and !t.isDueSoon}" class="small text-muted" th:text="${#temporals.format(t.dueDate, 'HH:mm dd/MM/yyyy')}">Hạn chót</span>
+                            <span th:if="${t.isOverdue()}" class="badge bg-danger"><i class="bi bi-clock-history me-1"></i>Quá hạn</span>
+                            <span th:if="${t.isDueSoon() and !t.isOverdue()}" class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Sắp đến hạn</span>
+                            <span th:if="${!t.isOverdue() and !t.isDueSoon()}" class="small text-muted" th:text="${t.dueDate != null ? #temporals.format(t.dueDate, 'HH:mm dd/MM/yyyy') : 'N/A'}">Hạn chót</span>
                         </td>
                         <td class="text-end">
                             <a th:href="@{'/tickets/detail/' + ${t.id}}" class="btn btn-outline-primary btn-sm btn-view-ticket">

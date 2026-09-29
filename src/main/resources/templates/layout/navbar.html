@@ -33,10 +33,10 @@
                 <li class="nav-item">
                     <a class="nav-link" th:href="@{/tickets/create}"><i class="bi bi-ticket-perforated me-1"></i>Gửi Yêu Cầu</a>
                 </li>
-                <li class="nav-item" sec:authorize="hasRole('STUDENT')">
+                <li class="nav-item" sec:authorize="isAuthenticated()">
                     <a class="nav-link" th:href="@{/tickets/my-tickets}"><i class="bi bi-journal-text me-1"></i>Ticket Của Tôi</a>
                 </li>
-                <li class="nav-item" sec:authorize="hasRole('STAFF')">
+                <li class="nav-item" sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
                     <a class="nav-link fw-semibold text-warning" th:href="@{/staff/tickets}"><i class="bi bi-kanban me-1"></i>Bàn Xử Lý Staff</a>
                 </li>
                 <li class="nav-item" sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
@@ -53,17 +53,25 @@
                 </div>
 
                 <!-- Logged In User -->
-                <div sec:authorize="isAuthenticated()" class="dropdown">
-                    <button class="btn btn-outline-light btn-sm dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle me-1 fs-6"></i>
-                        <span sec:authentication="name">User</span>
-                    </button>
+                <div sec:authorize="isAuthenticated()" class="d-flex align-items-center">
+                    <!-- Quick Create Post for Staff & Admin directly on Navbar -->
+                    <div sec:authorize="hasAnyRole('STAFF', 'ADMIN')" class="me-2 d-none d-md-block">
+                        <a class="btn btn-warning btn-sm fw-semibold text-dark shadow-xs" th:href="@{/feed/official/create}">
+                            <i class="bi bi-plus-lg me-1"></i>Đăng Tin
+                        </a>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light btn-sm dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle me-1 fs-6"></i>
+                            <span sec:authentication="name">User</span>
+                        </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
                         <li><h6 class="dropdown-header" sec:authentication="name">Tài khoản</h6></li>
                         <li sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
                             <a class="dropdown-item" th:href="@{/feed/official/create}"><i class="bi bi-megaphone-fill me-2 text-primary"></i>Đăng thông báo mới</a>
                         </li>
-                        <li sec:authorize="hasRole('STAFF')">
+                        <li sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
                             <a class="dropdown-item" th:href="@{/staff/tickets}"><i class="bi bi-speedometer2 me-2"></i>Dashboard Quản lý</a>
                         </li>
                         <li sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
@@ -72,7 +80,7 @@
                         <li sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
                             <a class="dropdown-item" th:href="@{/moderation/reports}"><i class="bi bi-flag me-2 text-danger"></i>Báo cáo vi phạm</a>
                         </li>
-                        <li sec:authorize="hasRole('STUDENT')">
+                        <li sec:authorize="isAuthenticated()">
                             <a class="dropdown-item" th:href="@{/tickets/my-tickets}"><i class="bi bi-list-check me-2"></i>Danh sách Ticket</a>
                         </li>
                         <li><hr class="dropdown-divider"></li>
@@ -82,6 +90,7 @@
                             </form>
                         </li>
                     </ul>
+                    </div>
                 </div>
             </div>
         </div>

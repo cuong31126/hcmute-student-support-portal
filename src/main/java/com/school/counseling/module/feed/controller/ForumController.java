@@ -1,9 +1,12 @@
 package com.school.counseling.module.feed.controller;
 
 import com.school.counseling.common.util.SecurityUtils;
+import com.school.counseling.module.auth.entity.Department;
 import com.school.counseling.module.auth.entity.User;
+import com.school.counseling.module.auth.repository.DepartmentRepository;
 import com.school.counseling.module.auth.repository.UserRepository;
 import com.school.counseling.module.feed.entity.Post;
+import com.school.counseling.module.feed.service.LikeService;
 import com.school.counseling.module.feed.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +19,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Controller
 @RequestMapping("/feed/forum")
 @RequiredArgsConstructor
@@ -23,21 +31,75 @@ public class ForumController {
 
     private final PostService postService;
     private final UserRepository userRepository;
+    private final LikeService likeService;
+    private final DepartmentRepository departmentRepository;
 
     /**
-     * Diễn đàn thảo luận sinh viên (hiển thị các bài viết đã duyệt)
+     * Diễn đàn thảo luận sinh viên (Hỗ trợ Bộ lọc Khoa, Tìm kiếm và Tab "Bài viết của tôi")
      */
     @GetMapping
     public String viewStudentForum(
+            @RequestParam(value = "tab", defaultValue = "all") String tab,
+            @RequestParam(value = "departmentId", required = false) Long departmentId,
+            @RequestParam(value = "q", required = false) String query,
             @RequestParam(value = "page", defaultValue = "0") int page,
             Model model) {
 
         Pageable pageable = PageRequest.of(Math.max(0, page), 10);
-        Page<Post> posts = postService.getApprovedForumPosts(pageable);
+        Long currentUserId = SecurityUtils.getCurrentUserId().orElse(null);
+
+        Page<com.school.counseling.module.feed.dto.PostResponseDto> posts;
+        if ("my_posts".equalsIgnoreCase(tab) && currentUserId != null) {
+            posts = postService.getMyPostsDto(currentUserId, pageable);
+        } else {
+            posts = postService.searchApprovedForumPostsDto(query, departmentId, currentUserId, pageable);
+            tab = "all";
+        }
+
+        List<Department> departments = departmentRepository.findByIsActiveTrue();
+
+        if (currentUserId != null) {
+            userRepository.findById(currentUserId).ifPresent(user -> {
+                model.addAttribute("currentUser", user);
+                model.addAttribute("currentUserFullName", user.getFullName());
+                model.addAttribute("currentUserAvatar", user.getAvatarUrl());
+                String role = (user.getRole() != null) ? user.getRole().getName().replace("ROLE_", "") : "STUDENT";
+                model.addAttribute("currentUserRole", role);
+            });
+        }
 
         model.addAttribute("posts", posts);
         model.addAttribute("currentPage", page);
+        model.addAttribute("currentTab", tab);
+        model.addAttribute("selectedDept", departmentId);
+        model.addAttribute("query", query);
+        model.addAttribute("departments", departments);
+        model.addAttribute("currentUserId", currentUserId);
+
         return "feed/forum";
+    }
+
+    /**
+     * Hủy / Xóa bài viết của chính tác giả hoặc Staff/Admin
+     */
+    @PostMapping("/delete/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public String handleDeletePost(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "redirectTab", defaultValue = "all") String redirectTab,
+            RedirectAttributes redirectAttributes) {
+
+        Long currentUserId = SecurityUtils.getCurrentUserId().orElseThrow();
+        boolean isStaffOrAdmin = SecurityUtils.hasAnyRole("STAFF", "ADMIN");
+
+        try {
+            postService.deletePost(id, currentUserId, isStaffOrAdmin);
+            redirectAttributes.addFlashAttribute("successMessage", "Đã xóa bài viết thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Không thể xóa bài viết: " + e.getMessage());
+        }
+
+        return "redirect:/feed/forum" + ("my_posts".equalsIgnoreCase(redirectTab) ? "?tab=my_posts" : "");
     }
 
     /**

@@ -6,7 +6,23 @@
 <body>
 <div th:fragment="content">
 
-    <!-- Header Section -->
+    <!-- Tabs Navigation Bar (Bảng Tin vs Diễn Đàn) -->
+    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+        <ul class="nav nav-pills">
+            <li class="nav-item">
+                <a class="nav-link active fw-semibold py-1 px-3" th:href="@{/feed/official}">
+                    <i class="bi bi-megaphone-fill me-1"></i>Bảng Tin Nhà Trường
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-muted fw-semibold py-1 px-3" th:href="@{/feed/forum}">
+                    <i class="bi bi-chat-square-quote me-1"></i>Diễn Đàn Sinh Viên
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Header Section with Smart Role-Based Actions -->
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 pb-2 border-bottom">
         <div>
             <h4 class="fw-bold text-dark mb-1 d-flex align-items-center">
@@ -14,10 +30,28 @@
             </h4>
             <p class="small text-muted mb-0">Các văn bản, thông tư, quy chế học vụ và thông báo chính thức từ Nhà trường & các Khoa/Phòng</p>
         </div>
-        <div class="mt-3 mt-md-0" sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
-            <a th:href="@{/feed/official/create}" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold">
-                <i class="bi bi-plus-circle me-1"></i>Đăng Thông Báo Mới
-            </a>
+
+        <div class="mt-3 mt-md-0 d-flex gap-2">
+            <!-- 1. Cán bộ / Admin: Nút Đăng Thông Báo Mới to rõ -->
+            <div sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
+                <a th:href="@{/feed/official/create}" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold">
+                    <i class="bi bi-plus-circle me-1"></i>Đăng Thông Báo Mới
+                </a>
+            </div>
+
+            <!-- 2. Sinh viên: Nút hướng dẫn sang Diễn đàn đăng bài thảo luận -->
+            <div sec:authorize="hasRole('STUDENT')">
+                <a th:href="@{/feed/forum}" class="btn btn-outline-primary btn-sm px-3 shadow-xs fw-semibold" title="Thông báo chính thức do Cán bộ ban hành. Sinh viên đăng bài tại Diễn đàn">
+                    <i class="bi bi-pencil-square me-1"></i>Đăng Bài Tại Diễn Đàn
+                </a>
+            </div>
+
+            <!-- 3. Khách vãng lai: Hướng dẫn đăng nhập -->
+            <div sec:authorize="isAnonymous()">
+                <a th:href="@{/auth/login}" class="btn btn-outline-secondary btn-sm px-3 fw-semibold">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Đăng Nhập Để Đăng Bài
+                </a>
+            </div>
         </div>
     </div>
 

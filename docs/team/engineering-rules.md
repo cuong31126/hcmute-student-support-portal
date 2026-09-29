@@ -244,3 +244,18 @@ classDiagram
   * `templates/error/403.html`: Bạn không có quyền truy cập khu vực này (Phân quyền Khoa/Phòng).
   * `templates/error/404.html`: Không tìm thấy yêu cầu hoặc bài viết này.
   * `templates/error/500.html`: Hệ thống đang xử lý, vui lòng thử lại sau.
+
+---
+
+## 7. Quy Chuẩn Auto Git Workflow & Conventional Commits
+
+Mọi lập trình viên và AI Agent khi hoàn thành bất kỳ tính năng, module, hoặc sửa lỗi nào bắt buộc thực hiện chuỗi lệnh:
+```bash
+git add .
+git commit -m "<type>(<scope>): <mô tả ngắn gọn chức năng vừa làm>"
+git push origin <tên-nhánh-hiện-tại>
+```
+
+* **Chuẩn Commit:** `feat(...)`, `fix(...)`, `refactor(...)`, `docs(...)`, `style(...)`.
+* **An toàn:** Tuyệt đối cấm cờ `--force`. Dừng lại và báo cáo ngay nếu có xung đột (conflict/rejected).
+

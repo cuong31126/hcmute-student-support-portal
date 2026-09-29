@@ -18,7 +18,7 @@ import java.util.Map;
  * Xử lý ngoại lệ toàn cục cho toàn bộ hệ thống
  */
 @Slf4j
-@RestControllerAdvice
+@RestControllerAdvice(annotations = org.springframework.web.bind.annotation.RestController.class)
 public class GlobalExceptionHandler {
 
     /**

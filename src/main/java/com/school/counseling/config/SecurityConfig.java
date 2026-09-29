@@ -68,7 +68,9 @@ public class SecurityConfig {
                     "/feed/forum/create",
                     "/feed/forum/*/comment",
                     "/feed/forum/*/like",
-                    "/feed/forum/*/report"
+                    "/feed/forum/*/report",
+                    "/feed/forum/delete/*",
+                    "/api/likes/**"
                 ).authenticated()
 
                 // 3. Khu vực công khai cho Guest / Thí sinh / Tài nguyên tĩnh & Đọc tin tức
@@ -82,6 +84,7 @@ public class SecurityConfig {
                     "/feed/forum",
                     "/image/**",
                     "/documents/**",
+                    "/files/**",
                     "/videos/**",
                     "/css/**",
                     "/js/**",
@@ -114,6 +117,9 @@ public class SecurityConfig {
             )
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/api/**", "/ws-chat/**")
+            )
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
             )
             .exceptionHandling(ex -> ex
                 .accessDeniedPage("/error/403")

@@ -61,11 +61,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             t.id, t.ticketCode, t.title,
             d.id, d.name,
             t.status, t.priority, t.dueDate, t.createdAt,
-            CASE WHEN t.creator IS NOT NULL THEN t.creator.fullName ELSE t.guestName END,
-            CASE WHEN t.assignedTo IS NOT NULL THEN t.assignedTo.fullName ELSE null END
+            COALESCE(c.fullName, t.guestName),
+            a.fullName
         )
         FROM Ticket t
         JOIN t.department d
+        LEFT JOIN t.creator c
+        LEFT JOIN t.assignedTo a
         WHERE d.id = :deptId AND t.isDeleted = false
         ORDER BY t.createdAt DESC
     """)
@@ -76,11 +78,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             t.id, t.ticketCode, t.title,
             d.id, d.name,
             t.status, t.priority, t.dueDate, t.createdAt,
-            CASE WHEN t.creator IS NOT NULL THEN t.creator.fullName ELSE t.guestName END,
-            CASE WHEN t.assignedTo IS NOT NULL THEN t.assignedTo.fullName ELSE null END
+            COALESCE(c.fullName, t.guestName),
+            a.fullName
         )
         FROM Ticket t
         JOIN t.department d
+        LEFT JOIN t.creator c
+        LEFT JOIN t.assignedTo a
         WHERE d.id = :deptId AND t.status = :status AND t.isDeleted = false
         ORDER BY t.createdAt DESC
     """)
@@ -92,16 +96,51 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             t.id, t.ticketCode, t.title,
             d.id, d.name,
             t.status, t.priority, t.dueDate, t.createdAt,
-            CASE WHEN t.creator IS NOT NULL THEN t.creator.fullName ELSE t.guestName END,
-            CASE WHEN t.assignedTo IS NOT NULL THEN t.assignedTo.fullName ELSE null END
+            COALESCE(c.fullName, t.guestName),
+            a.fullName
         )
         FROM Ticket t
         JOIN t.department d
-        JOIN t.creator c
+        LEFT JOIN t.creator c
+        LEFT JOIN t.assignedTo a
         WHERE c.id = :userId AND t.isDeleted = false
         ORDER BY t.createdAt DESC
     """)
     List<TicketSummaryDto> findSummaryByCreatorId(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT new com.school.counseling.module.ticket.dto.TicketSummaryDto(
+            t.id, t.ticketCode, t.title,
+            d.id, d.name,
+            t.status, t.priority, t.dueDate, t.createdAt,
+            COALESCE(c.fullName, t.guestName),
+            a.fullName
+        )
+        FROM Ticket t
+        JOIN t.department d
+        LEFT JOIN t.creator c
+        LEFT JOIN t.assignedTo a
+        WHERE t.isDeleted = false
+        ORDER BY t.createdAt DESC
+    """)
+    List<TicketSummaryDto> findAllSummaries();
+
+    @Query("""
+        SELECT new com.school.counseling.module.ticket.dto.TicketSummaryDto(
+            t.id, t.ticketCode, t.title,
+            d.id, d.name,
+            t.status, t.priority, t.dueDate, t.createdAt,
+            COALESCE(c.fullName, t.guestName),
+            a.fullName
+        )
+        FROM Ticket t
+        JOIN t.department d
+        LEFT JOIN t.creator c
+        LEFT JOIN t.assignedTo a
+        WHERE t.status = :status AND t.isDeleted = false
+        ORDER BY t.createdAt DESC
+    """)
+    List<TicketSummaryDto> findAllSummariesByStatus(@Param("status") String status);
 
     // ─── Atomic Update: Chống Race Condition khi nhiều Cán bộ cùng nhận Ticket ───
 

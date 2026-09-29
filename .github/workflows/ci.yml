@@ -1,50 +1,44 @@
-name: Java Spring Boot CI
+name: Java Spring Boot CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, 'feat/**', 'fix/**' ]
   pull_request:
     branches: [ main, develop ]
 
 jobs:
   build:
+    name: Build & Package Spring Boot
     runs-on: ubuntu-latest
 
     steps:
       # 1. Kéo mã nguồn về máy ảo CI
-      - name: Checkout Code
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      # 2. Cài đặt Java 17 (Chuẩn cho Spring Boot 3.x)
-      - name: Set up JDK 17
+      # 2. Cài đặt Java 17 kèm Caching Maven (.m2) tăng tốc độ build
+      - name: Set up JDK 17 with Maven Cache
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'maven'
 
-      # 3. Build & Compile dự án một cách an toàn
-      - name: Build Project (Maven or Gradle)
+      # 3. Biên dịch và Đóng gói file JAR
+      - name: Compile & Package JAR with Maven
         run: |
-          # Kiểm tra nếu là dự án Gradle
-          if [ -f "gradlew" ] || [ -f "build.gradle" ] || [ -f "build.gradle.kts" ]; then
-            echo "Phát hiện dự án Gradle..."
-            if [ -f "gradlew" ]; then
-              chmod +x gradlew
-              ./gradlew assemble -x test
-            else
-              gradle assemble -x test
-            fi
+          echo "========================================="
+          echo "Bắt đầu kiểm tra và đóng gói dự án Maven..."
+          echo "========================================="
+          mvn -B clean compile test-compile package -DskipTests
+        env:
+          MAVEN_OPTS: "-Xmx1024m"
 
-          # Kiểm tra nếu là dự án Maven
-          elif [ -f "mvnw" ] || [ -f "pom.xml" ]; then
-            echo "Phát hiện dự án Maven..."
-            if [ -f "mvnw" ]; then
-              chmod +x mvnw
-              ./mvnw clean compile test-compile -DskipTests
-            else
-              mvn clean compile test-compile -DskipTests
-            fi
-
-          else
-            echo "Chưa tìm thấy pom.xml hoặc build.gradle ở thư mục này. Bỏ qua bước build an toàn."
-          fi
+      # 4. Lưu trữ file Artifact JAR để tải về hoặc triển khai
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qaute-portal-build
+          path: target/*.jar
+          if-no-files-found: ignore
+          retention-days: 7

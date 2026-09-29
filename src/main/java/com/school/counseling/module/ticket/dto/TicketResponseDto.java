@@ -29,6 +29,10 @@ public class TicketResponseDto {
 
     private Long assignedStaffId;
     private String assignedStaffName;
+    private String assignedStaffEmail;
+    private String assignedStaffPhone;
+    private String assignedStaffAvatarUrl;
+    private String assignedStaffRole;
 
     private String priority;
     private String status;
@@ -42,6 +46,7 @@ public class TicketResponseDto {
     private Integer rating;
 
     private List<AttachmentDto> attachments;
+    private List<AttachmentDto> initialAttachments;
     private List<HistoryDto> histories;
 
     @Getter
@@ -51,10 +56,13 @@ public class TicketResponseDto {
     @Builder
     public static class HistoryDto {
         private Long id;
+        private Long actorId;
+        private String actorRole;
         private String actorName;
         private String fromStatus;
         private String toStatus;
         private String actionNote;
         private LocalDateTime createdAt;
+        private List<AttachmentDto> attachments;
     }
 }

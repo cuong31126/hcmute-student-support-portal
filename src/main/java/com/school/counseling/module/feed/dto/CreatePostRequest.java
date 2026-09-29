@@ -32,6 +32,10 @@ public class CreatePostRequest {
         return Boolean.TRUE.equals(isPinned);
     }
 
+    // Video thông báo (Link nhúng YouTube/Drive hoặc URL file nội bộ)
+    private String videoEmbedUrl;
+    private String videoUrl;
+
     // File đính kèm tài liệu (PDF, Word, TXT)
     private String fileUrl;
     private String fileName;

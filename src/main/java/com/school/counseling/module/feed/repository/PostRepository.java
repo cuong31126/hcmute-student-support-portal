@@ -53,5 +53,25 @@ public interface PostRepository extends JpaRepository<Post, Long> {
            countQuery = "SELECT count(p) FROM Post p WHERE p.status = 'PENDING_APPROVAL' AND p.isDeleted = false")
     Page<Post> findPendingModerationPosts(Pageable pageable);
 
+    @Query(value = "SELECT p FROM Post p " +
+                   "LEFT JOIN FETCH p.department " +
+                   "LEFT JOIN FETCH p.author " +
+                   "WHERE p.postType = 'STUDENT_FORUM' AND p.status = 'APPROVED' AND p.isDeleted = false AND " +
+                   "(:deptId IS NULL OR p.department.id = :deptId) AND " +
+                   "(:query IS NULL OR :query = '' OR LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+                   "ORDER BY p.createdAt DESC",
+           countQuery = "SELECT count(p) FROM Post p WHERE p.postType = 'STUDENT_FORUM' AND p.status = 'APPROVED' AND p.isDeleted = false AND " +
+                        "(:deptId IS NULL OR p.department.id = :deptId) AND " +
+                        "(:query IS NULL OR :query = '' OR LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%')))")
+    Page<Post> searchApprovedForumPosts(@Param("query") String query, @Param("deptId") Long deptId, Pageable pageable);
+
+    @Query(value = "SELECT p FROM Post p " +
+                   "LEFT JOIN FETCH p.department " +
+                   "LEFT JOIN FETCH p.author " +
+                   "WHERE p.author.id = :authorId AND p.isDeleted = false " +
+                   "ORDER BY p.createdAt DESC",
+           countQuery = "SELECT count(p) FROM Post p WHERE p.author.id = :authorId AND p.isDeleted = false")
+    Page<Post> findPostsByAuthorId(@Param("authorId") Long authorId, Pageable pageable);
+
     long countByStatusAndIsDeletedFalse(String status);
 }

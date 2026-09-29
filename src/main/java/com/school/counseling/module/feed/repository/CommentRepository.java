@@ -12,7 +12,10 @@ import java.util.List;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     @Query("SELECT c FROM Comment c " +
-           "LEFT JOIN FETCH c.author " +
+           "LEFT JOIN FETCH c.author a " +
+           "LEFT JOIN FETCH a.role " +
+           "LEFT JOIN FETCH a.department " +
+           "LEFT JOIN FETCH c.parent " +
            "WHERE c.post.id = :postId AND c.isDeleted = false " +
            "ORDER BY c.createdAt ASC")
     List<Comment> findByPostIdWithAuthor(@Param("postId") Long postId);

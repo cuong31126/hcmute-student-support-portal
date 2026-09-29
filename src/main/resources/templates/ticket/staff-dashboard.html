@@ -6,16 +6,34 @@
 <body>
 <div th:fragment="content">
     
+    <!-- Flash Messages -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
     <!-- Dashboard Header -->
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-2">
         <div>
             <span class="badge bg-warning text-dark me-2">STAFF WORKSPACE</span>
             <h4 class="fw-bold text-dark mb-0 d-inline align-middle">Bàn Tiếp Nhận & Xử Lý Ticket</h4>
-            <p class="small text-muted mb-0 mt-1" th:text="'Đơn vị quản lý: ' + ${currentDepartment.name} + ' (' + ${currentDepartment.officeLocation} + ')'">Khoa / Phòng</p>
+            <p class="small text-muted mb-0 mt-1" th:text="${currentDepartment != null ? ('Đơn vị quản lý: ' + currentDepartment.name + ' (' + currentDepartment.officeLocation + ')') : 'Phạm vi quản lý: Toàn trường (Tất cả Khoa / Phòng ban)'}">Khoa / Phòng</p>
         </div>
         
         <!-- Filter Dropdown -->
         <form th:action="@{/staff/tickets}" method="get" class="d-flex align-items-center gap-2">
+            <select th:if="${isAdmin and allDepartments != null}" 
+                    name="departmentId" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="" th:selected="${currentDepartment == null}">-- Tất cả Khoa / Phòng ban --</option>
+                <option th:each="d : ${allDepartments}" 
+                        th:value="${d.id}" 
+                        th:text="${d.name}" 
+                        th:selected="${currentDepartment != null and d.id == currentDepartment.id}"></option>
+            </select>
             <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                 <option value="ALL" th:selected="${selectedStatus == 'ALL'}">Tất cả trạng thái</option>
                 <option value="OPEN" th:selected="${selectedStatus == 'OPEN'}">Chờ tiếp nhận (OPEN)</option>
@@ -87,7 +105,7 @@
                         </td>
                         <td>
                             <a th:href="@{'/tickets/detail/' + ${t.id}}" class="fw-bold text-decoration-none text-dark d-block" th:text="${t.title}">Tiêu đề</a>
-                            <small class="text-muted" th:text="'Gửi lúc: ' + ${#temporals.format(t.createdAt, 'HH:mm dd/MM/yyyy')}">Thời gian</small>
+                            <small class="text-muted" th:text="${t.createdAt != null ? 'Gửi lúc: ' + #temporals.format(t.createdAt, 'HH:mm dd/MM/yyyy') : ''}">Thời gian</small>
                         </td>
                         <td>
                             <span th:if="${t.priority == 'URGENT'}" class="badge bg-danger">Khẩn cấp (24h)</span>
@@ -103,9 +121,9 @@
                         </td>
                         <td>
                             <div class="badge-sla-deadline">
-                                <span th:if="${t.isOverdue}" class="badge bg-danger"><i class="bi bi-exclamation-octagon me-1"></i>Quá hạn (Overdue)</span>
-                                <span th:if="${t.isDueSoon and !t.isOverdue}" class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Sắp đến hạn 24h</span>
-                                <span th:if="${!t.isOverdue and !t.isDueSoon}" class="small text-muted" th:text="${#temporals.format(t.dueDate, 'HH:mm dd/MM/yyyy')}">Hạn</span>
+                                <span th:if="${t.isOverdue()}" class="badge bg-danger"><i class="bi bi-exclamation-octagon me-1"></i>Quá hạn (Overdue)</span>
+                                <span th:if="${t.isDueSoon() and !t.isOverdue()}" class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Sắp đến hạn 24h</span>
+                                <span th:if="${!t.isOverdue() and !t.isDueSoon()}" class="small text-muted" th:text="${t.dueDate != null ? #temporals.format(t.dueDate, 'HH:mm dd/MM/yyyy') : 'N/A'}">Hạn</span>
                             </div>
                         </td>
                         <td class="text-end">

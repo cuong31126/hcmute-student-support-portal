@@ -86,14 +86,16 @@ public class OfficialFeedController {
     }
 
     /**
-     * Tiếp nhận và xử lý đăng thông báo chính thức
+     * Tiếp nhận và xử lý đăng thông báo chính thức (Hỗ trợ Video Hybrid và Đa tệp tài liệu)
      */
     @PostMapping("/create")
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
     public String handleCreatePost(
             @Valid @ModelAttribute("postRequest") CreatePostRequest request,
             BindingResult bindingResult,
-            @RequestParam(value = "attachment", required = false) MultipartFile attachment,
+            @RequestParam(value = "videoFile", required = false) MultipartFile videoFile,
+            @RequestParam(value = "documentFiles", required = false) List<MultipartFile> documentFiles,
+            @RequestParam(value = "attachment", required = false) MultipartFile legacyAttachment,
             RedirectAttributes redirectAttributes,
             Model model) {
 
@@ -105,9 +107,35 @@ public class OfficialFeedController {
         Long currentUserId = SecurityUtils.getCurrentUserId().orElseThrow();
         User author = userRepository.findById(currentUserId).orElseThrow();
 
-        PostResponseDto created = postService.createOfficialPostWithUpload(request, attachment, author);
+        // Chuẩn hóa danh sách tài liệu văn phòng
+        List<MultipartFile> docs = (documentFiles != null) ? new java.util.ArrayList<>(documentFiles) : new java.util.ArrayList<>();
+        if (legacyAttachment != null && !legacyAttachment.isEmpty()) {
+            docs.add(legacyAttachment);
+        }
+
+        PostResponseDto created = postService.createOfficialPostWithUpload(request, videoFile, docs, author);
 
         redirectAttributes.addFlashAttribute("successMessage", "Đã đăng thông báo chính thức thành công!");
         return "redirect:/feed/official/" + created.getId();
+    }
+
+    /**
+     * Cán bộ / Admin xóa thông báo chính thức
+     */
+    @PostMapping("/delete/{id}")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public String handleDeleteOfficialPost(
+            @PathVariable("id") Long id,
+            RedirectAttributes redirectAttributes) {
+
+        Long currentUserId = SecurityUtils.getCurrentUserId().orElseThrow();
+        try {
+            postService.deletePost(id, currentUserId, true);
+            redirectAttributes.addFlashAttribute("successMessage", "Đã xóa thông báo chính thức thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Không thể xóa thông báo: " + e.getMessage());
+        }
+
+        return "redirect:/feed/official";
     }
 }

@@ -35,7 +35,6 @@ public class TicketSummaryDto {
     private String creatorOrGuestName;   // Creator fullName hoặc guestName nếu không đăng nhập
     private String assignedStaffName;    // Null nếu chưa được cán bộ tiếp nhận
 
-    // Tính toán in-memory, không cần thêm cột DB
     public boolean isOverdue() {
         return dueDate != null
                 && LocalDateTime.now().isAfter(dueDate)
@@ -43,9 +42,17 @@ public class TicketSummaryDto {
                 && !"CLOSED".equals(status);
     }
 
+    public boolean getIsOverdue() {
+        return isOverdue();
+    }
+
     public boolean isDueSoon() {
         if (dueDate == null || "RESOLVED".equals(status) || "CLOSED".equals(status)) return false;
         return LocalDateTime.now().isBefore(dueDate)
                 && LocalDateTime.now().isAfter(dueDate.minusHours(24));
+    }
+
+    public boolean getIsDueSoon() {
+        return isDueSoon();
     }
 }

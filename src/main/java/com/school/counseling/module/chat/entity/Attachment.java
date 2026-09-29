@@ -48,4 +48,8 @@ public class Attachment extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ticket_id")
     private Ticket ticket;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_history_id")
+    private com.school.counseling.module.ticket.entity.TicketHistory ticketHistory;
 }

@@ -34,23 +34,41 @@ public class StaffTicketWebController {
             @RequestParam(value = "status", required = false, defaultValue = "ALL") String status,
             Model model) {
 
+        boolean isAdmin = SecurityUtils.getCurrentUserPrincipal()
+                .map(u -> "ROLE_ADMIN".equalsIgnoreCase(u.getRoleName()))
+                .orElse(false);
+
         Long currentDeptId = departmentId;
-        if (currentDeptId == null) {
+        if (currentDeptId == null && !isAdmin) {
             currentDeptId = SecurityUtils.getCurrentDepartmentId().orElse(null);
         }
 
-        if (currentDeptId == null) {
+        if (currentDeptId == null && !isAdmin) {
             model.addAttribute("errorMessage", "Tài khoản cán bộ chưa được gán Đơn vị/Khoa quản lý.");
             return "error/403";
         }
 
-        Department dept = departmentRepository.findById(currentDeptId).orElse(null);
+        List<Department> allDepartments = departmentRepository.findAll();
+        model.addAttribute("allDepartments", allDepartments);
+        model.addAttribute("isAdmin", isAdmin);
 
-        // ── Fix #8: Chỉ gọi DB 1 lần, dùng TicketSummaryDto nhẹ tránh N+1 Query ──
-        List<TicketSummaryDto> allTickets = ticketService.getTicketSummaryByDepartment(currentDeptId, "ALL");
-        List<TicketSummaryDto> filteredTickets = "ALL".equalsIgnoreCase(status)
-                ? allTickets
-                : ticketService.getTicketSummaryByDepartment(currentDeptId, status);
+        Department dept = null;
+        List<TicketSummaryDto> allTickets;
+        List<TicketSummaryDto> filteredTickets;
+
+        if (currentDeptId != null) {
+            dept = departmentRepository.findById(currentDeptId).orElse(null);
+            allTickets = ticketService.getTicketSummaryByDepartment(currentDeptId, "ALL");
+            filteredTickets = "ALL".equalsIgnoreCase(status)
+                    ? allTickets
+                    : ticketService.getTicketSummaryByDepartment(currentDeptId, status);
+        } else {
+            // Admin xem toàn bộ vé toàn trường
+            allTickets = ticketService.getAllTicketSummaries("ALL");
+            filteredTickets = "ALL".equalsIgnoreCase(status)
+                    ? allTickets
+                    : ticketService.getAllTicketSummaries(status);
+        }
 
         long countOpen       = allTickets.stream().filter(t -> "OPEN".equalsIgnoreCase(t.getStatus())).count();
         long countInProgress = allTickets.stream().filter(t -> "IN_PROGRESS".equalsIgnoreCase(t.getStatus())).count();

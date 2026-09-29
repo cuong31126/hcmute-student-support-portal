@@ -132,15 +132,9 @@ public class DepartmentAccessEvaluator {
 
         TicketAccessAuthInfo authInfo = authInfoOpt.get();
 
-        // 1. Nếu là Sinh viên -> Bắt buộc phải là người tạo Ticket (IDOR Protection)
-        if ("ROLE_STUDENT".equalsIgnoreCase(user.getRoleName())) {
-            boolean isOwner = authInfo.getCreatorId() != null
-                    && Objects.equals(authInfo.getCreatorId(), user.getId());
-            if (!isOwner) {
-                log.warn("[Security-IDOR] Sinh viên id={} cố tình truy cập trái phép ticketId={}",
-                        user.getId(), ticketId);
-            }
-            return isOwner;
+        // 1. Nếu là người tạo Ticket (dù mang vai trò gì) -> Luôn có quyền truy cập vé của mình
+        if (authInfo.getCreatorId() != null && Objects.equals(authInfo.getCreatorId(), user.getId())) {
+            return true;
         }
 
         // 2. Nếu là Staff -> Phải thuộc Khoa/Phòng đang xử lý Ticket đó

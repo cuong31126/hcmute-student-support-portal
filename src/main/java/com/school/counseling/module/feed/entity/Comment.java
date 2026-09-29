@@ -11,6 +11,9 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,6 +34,15 @@ public class Comment extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Comment parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    @OrderBy("createdAt ASC")
+    @Builder.Default
+    private List<Comment> replies = new ArrayList<>();
 
     @NotBlank(message = "Nội dung bình luận không được để trống")
     @Size(max = 1000, message = "Bình luận tối đa 1000 ký tự")

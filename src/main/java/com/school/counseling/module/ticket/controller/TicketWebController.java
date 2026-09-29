@@ -75,7 +75,7 @@ public class TicketWebController {
     }
 
     @GetMapping("/my-tickets")
-    @PreAuthorize("hasRole('STUDENT')")
+    @PreAuthorize("isAuthenticated()")
     public String myTicketsPage(Model model) {
         Long currentUserId = SecurityUtils.getCurrentUserId().orElse(null);
         // ── Dùng TicketSummaryDto (1 SQL, nhẹ) thay vì TicketResponseDto (N+1 query) ──
@@ -95,7 +95,11 @@ public class TicketWebController {
     @PreAuthorize("@deptSecurity.canAccessTicket(#ticketId)")
     public String ticketDetailPage(@PathVariable Long ticketId, Model model) {
         TicketResponseDto ticket = ticketService.getTicketById(ticketId);
+        Long currentUserId = SecurityUtils.getCurrentUserId().orElse(null);
+        boolean isStaffOrAdmin = SecurityUtils.hasAnyRole("ROLE_STAFF", "ROLE_ADMIN");
         model.addAttribute("ticket", ticket);
+        model.addAttribute("currentUserId", currentUserId);
+        model.addAttribute("isStaffOrAdmin", isStaffOrAdmin);
         return "ticket/detail";
     }
 
