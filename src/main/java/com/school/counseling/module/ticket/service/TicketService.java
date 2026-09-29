@@ -2,6 +2,7 @@ package com.school.counseling.module.ticket.service;
 
 import com.school.counseling.common.exception.AccessDeniedBusinessException;
 import com.school.counseling.common.exception.ResourceNotFoundException;
+import com.school.counseling.common.exception.TicketAlreadyClaimedException;
 import com.school.counseling.common.storage.IStorageService;
 import com.school.counseling.module.auth.entity.Department;
 import com.school.counseling.module.auth.entity.User;
@@ -16,6 +17,7 @@ import com.school.counseling.module.chat.repository.ConversationRepository;
 import com.school.counseling.module.ticket.dto.CreateTicketRequest;
 import com.school.counseling.module.ticket.dto.TicketReplyRequest;
 import com.school.counseling.module.ticket.dto.TicketResponseDto;
+import com.school.counseling.module.ticket.dto.TicketSummaryDto;
 import com.school.counseling.module.ticket.entity.Ticket;
 import com.school.counseling.module.ticket.entity.TicketHistory;
 import com.school.counseling.module.ticket.repository.TicketHistoryRepository;
@@ -34,9 +36,20 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * TicketService - Service xử lý toàn bộ vòng đời Ticket.
+ *
+ * Các cải tiến quan trọng trong phiên bản này:
+ * 1. claimTicket: Dùng Atomic Update Query (claimTicketAtomic) thay thế findById+save để
+ *    loại bỏ hoàn toàn Race Condition khi nhiều Cán bộ cùng nhận vé.
+ * 2. getTicketsByDepartment: Trả về TicketSummaryDto thay vì TicketResponseDto để
+ *    tránh N+1 Query (chỉ 1 SQL thay vì N*3 SQL).
+ * 3. getTicketById: Dùng findByIdWithRelations (JOIN FETCH) để tương thích OSIV=false.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)  // Mặc định readOnly=true; các phương thức ghi override lại
 public class TicketService {
 
     private final TicketRepository ticketRepository;
@@ -47,6 +60,8 @@ public class TicketService {
     private final AttachmentRepository attachmentRepository;
     private final SlaCalculatorService slaCalculatorService;
     private final IStorageService storageService;
+
+    // ─── NHÓM TẠO / CHUYỂN ĐỔI TICKET ───────────────────────────────────────────────────
 
     @Transactional
     public TicketResponseDto createTicket(CreateTicketRequest request, Long creatorId, List<MultipartFile> files) {
@@ -81,7 +96,6 @@ public class TicketService {
 
         ticket = ticketRepository.save(ticket);
 
-        // Lưu các file đính kèm nếu có
         if (files != null && !files.isEmpty()) {
             for (MultipartFile file : files) {
                 if (file != null && !file.isEmpty()) {
@@ -98,12 +112,12 @@ public class TicketService {
             }
         }
 
-        // Ghi nhật ký khởi tạo
-        saveHistory(ticket, creator, creator != null ? creator.getFullName() : (request.getGuestName() != null ? request.getGuestName() : "Khách vãng lai"),
+        saveHistory(ticket, creator,
+                creator != null ? creator.getFullName() : (request.getGuestName() != null ? request.getGuestName() : "Khách vãng lai"),
                 null, "OPEN", "Khởi tạo yêu cầu tư vấn mới");
 
         log.info("Tạo mới Ticket thành công: Code={}, DueDate={}", ticket.getTicketCode(), ticket.getDueDate());
-        return mapToDto(ticket);
+        return mapToDetailDto(ticket);
     }
 
     @Transactional
@@ -122,7 +136,6 @@ public class TicketService {
         LocalDateTime dueDate = slaCalculatorService.calculateDueDate(priority);
         String ticketCode = generateTicketCode();
 
-        // Ghép nội dung tóm tắt từ các tin nhắn nếu description không nhập
         String desc = request.getDescription();
         if (desc == null || desc.trim().isEmpty()) {
             StringBuilder sb = new StringBuilder();
@@ -148,7 +161,6 @@ public class TicketService {
 
         ticket = ticketRepository.save(ticket);
 
-        // Kế thừa toàn bộ file đính kèm từ phiên chat sang Ticket
         for (Message msg : conversation.getMessages()) {
             for (Attachment att : msg.getAttachments()) {
                 Attachment ticketAtt = Attachment.builder()
@@ -162,46 +174,56 @@ public class TicketService {
             }
         }
 
-        // Cập nhật trạng thái cuộc hội thoại
         conversation.setStatus("CONVERTED_TO_TICKET");
         conversationRepository.save(conversation);
 
-        // Ghi lịch sử
         saveHistory(ticket, creator, creator != null ? creator.getFullName() : "Hệ thống / Sinh viên",
                 null, "OPEN", "Chuyển đổi từ cuộc hội thoại Chat ID: " + conversationId);
 
         log.info("Chuyển đổi Conversation ID={} thành Ticket Code={}", conversationId, ticket.getTicketCode());
-        return mapToDto(ticket);
+        return mapToDetailDto(ticket);
     }
 
+    // ─── NHÓM THAO TÁC TRẠNG THÁI TICKET ────────────────────────────────────────────────
+
+    /**
+     * Nhận xử lý Ticket (Claim Ticket) bằng Atomic Update Query.
+     *
+     * Cơ chế chống Race Condition:
+     * - MySQL InnoDB thực thi Exclusive Row-Level Lock (X-Lock) trên dòng ticket được UPDATE.
+     * - Điều kiện WHERE chặt chẽ: status='OPEN' AND assignedTo IS NULL
+     * - Nếu Cán bộ A nhận trước → Cán bộ B nhận sau sẽ thấy status='IN_PROGRESS' → WHERE không khớp → trả về 0
+     * - Tuyệt đối KHÔNG dùng findById + save (non-atomic) cho thao tác này.
+     */
     @Transactional
     public TicketResponseDto claimTicket(Long ticketId, Long staffId) {
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
-
+        // Bước 1: Tải thông tin Staff (ngoài transaction tranh chấp)
         User staff = userRepository.findById(staffId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cán bộ", "id", staffId));
 
-        // Kiểm tra phân quyền Khoa/Phòng
-        if (!"ROLE_ADMIN".equalsIgnoreCase(staff.getRole().getName()) &&
-                !Objects.equals(staff.getDepartment().getId(), ticket.getDepartment().getId())) {
-            throw new AccessDeniedBusinessException("Cán bộ chỉ được tiếp nhận Ticket thuộc đơn vị của mình");
+        // Bước 2: Kiểm tra phân quyền Khoa/Phòng trước khi cố nhận vé
+        TicketAccessAuthCheck(ticketId, staff);
+
+        // Bước 3: Atomic Update — kết quả = 1: thành công, = 0: đã có người nhận trước
+        int updatedRows = ticketRepository.claimTicketAtomic(ticketId, staff);
+        if (updatedRows == 0) {
+            throw new TicketAlreadyClaimedException(
+                    "Yêu cầu hỗ trợ này đã được Cán bộ khác tiếp nhận xử lý rồi. Vui lòng làm mới trang Dashboard.");
         }
 
-        String fromStatus = ticket.getStatus();
-        ticket.setAssignedTo(staff);
-        ticket.setStatus("IN_PROGRESS");
-        ticket = ticketRepository.save(ticket);
+        // Bước 4: Tải lại entity với JOIN FETCH sau khi atomic update thành công
+        Ticket ticket = ticketRepository.findByIdWithRelations(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
 
-        saveHistory(ticket, staff, staff.getFullName(), fromStatus, "IN_PROGRESS", "Cán bộ tiếp nhận xử lý yêu cầu");
-        log.info("Cán bộ ID={} đã tiếp nhận Ticket Code={}", staffId, ticket.getTicketCode());
+        saveHistory(ticket, staff, staff.getFullName(), "OPEN", "IN_PROGRESS", "Cán bộ tiếp nhận xử lý yêu cầu");
+        log.info("Cán bộ ID={} đã tiếp nhận thành công Ticket Code={}", staffId, ticket.getTicketCode());
 
-        return mapToDto(ticket);
+        return mapToDetailDto(ticket);
     }
 
     @Transactional
     public TicketResponseDto replyTicket(Long ticketId, TicketReplyRequest request, Long responderId, List<MultipartFile> files) {
-        Ticket ticket = ticketRepository.findById(ticketId)
+        Ticket ticket = ticketRepository.findByIdWithRelations(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
 
         User responder = responderId != null ? userRepository.findById(responderId).orElse(null) : null;
@@ -221,7 +243,6 @@ public class TicketService {
 
         ticket = ticketRepository.save(ticket);
 
-        // Lưu file đính kèm mới nếu có
         if (files != null && !files.isEmpty()) {
             for (MultipartFile file : files) {
                 if (file != null && !file.isEmpty()) {
@@ -241,12 +262,12 @@ public class TicketService {
         saveHistory(ticket, responder, responderName, fromStatus, toStatus, request.getContent());
         log.info("Phản hồi Ticket Code={}: Status={}", ticket.getTicketCode(), toStatus);
 
-        return mapToDto(ticket);
+        return mapToDetailDto(ticket);
     }
 
     @Transactional
     public TicketResponseDto resolveTicket(Long ticketId, Long staffId, String resolutionNote) {
-        Ticket ticket = ticketRepository.findById(ticketId)
+        Ticket ticket = ticketRepository.findByIdWithRelations(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
 
         User staff = userRepository.findById(staffId).orElse(null);
@@ -259,12 +280,12 @@ public class TicketService {
         saveHistory(ticket, staff, staff != null ? staff.getFullName() : "Cán bộ",
                 fromStatus, "RESOLVED", resolutionNote != null ? resolutionNote : "Đã hoàn tất giải đáp yêu cầu");
 
-        return mapToDto(ticket);
+        return mapToDetailDto(ticket);
     }
 
     @Transactional
     public TicketResponseDto closeTicket(Long ticketId, Long userId, Integer rating) {
-        Ticket ticket = ticketRepository.findById(ticketId)
+        Ticket ticket = ticketRepository.findByIdWithRelations(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
 
         User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
@@ -280,48 +301,66 @@ public class TicketService {
         saveHistory(ticket, user, user != null ? user.getFullName() : "Sinh viên",
                 fromStatus, "CLOSED", "Đóng yêu cầu (Đánh giá: " + (rating != null ? rating + " sao" : "Không") + ")");
 
-        return mapToDto(ticket);
+        return mapToDetailDto(ticket);
     }
 
-    @Transactional(readOnly = true)
+    // ─── NHÓM TRUY VẤN / ĐỌC DỮ LIỆU ───────────────────────────────────────────────────
+
+    /**
+     * Trả về TicketResponseDto đầy đủ (bao gồm history + attachments) cho trang chi tiết.
+     * Dùng findByIdWithRelations (JOIN FETCH) để tương thích OSIV=false.
+     */
     public TicketResponseDto getTicketById(Long ticketId) {
-        Ticket ticket = ticketRepository.findById(ticketId)
+        Ticket ticket = ticketRepository.findByIdWithRelations(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
-        return mapToDto(ticket);
+        return mapToDetailDto(ticket);
     }
 
-    @Transactional(readOnly = true)
     public TicketResponseDto getTicketByCode(String ticketCode) {
-        Ticket ticket = ticketRepository.findByTicketCode(ticketCode)
+        Ticket ticket = ticketRepository.findByTicketCodeWithRelations(ticketCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "code", ticketCode));
-        return mapToDto(ticket);
+        return mapToDetailDto(ticket);
     }
 
-    @Transactional(readOnly = true)
     public TicketResponseDto getTicketByGuestToken(String token) {
-        Ticket ticket = ticketRepository.findByGuestToken(token)
+        Ticket ticket = ticketRepository.findByGuestTokenWithRelations(token)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "token", token));
-        return mapToDto(ticket);
+        return mapToDetailDto(ticket);
     }
 
-    @Transactional(readOnly = true)
-    public List<TicketResponseDto> getTicketsByDepartment(Long departmentId, String status) {
-        List<Ticket> list;
+    /**
+     * Trả về TicketSummaryDto (nhẹ) cho Dashboard Cán bộ.
+     * 1 SQL duy nhất thay vì N*3 SQL nhờ JPQL Constructor Expression.
+     */
+    public List<TicketSummaryDto> getTicketSummaryByDepartment(Long departmentId, String status) {
         if (status != null && !status.trim().isEmpty() && !"ALL".equalsIgnoreCase(status)) {
-            list = ticketRepository.findByDepartmentIdAndStatusOrderByCreatedAtDesc(departmentId, status);
-        } else {
-            list = ticketRepository.findByDepartmentIdOrderByCreatedAtDesc(departmentId);
+            return ticketRepository.findSummaryByDepartmentIdAndStatus(departmentId, status);
         }
-        return list.stream().map(this::mapToDto).collect(Collectors.toList());
+        return ticketRepository.findSummaryByDepartmentId(departmentId);
     }
 
-    @Transactional(readOnly = true)
-    public List<TicketResponseDto> getMyTickets(Long userId) {
-        return ticketRepository.findByCreatorIdOrderByCreatedAtDesc(userId)
-                .stream().map(this::mapToDto).collect(Collectors.toList());
+    public List<TicketSummaryDto> getMyTicketSummaries(Long userId) {
+        return ticketRepository.findSummaryByCreatorId(userId);
     }
 
-    private void saveHistory(Ticket ticket, User actor, String actorName, String fromStatus, String toStatus, String note) {
+    // ─── PRIVATE HELPERS ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Kiểm tra phân quyền Khoa/Phòng: Cán bộ chỉ được thao tác trên Ticket thuộc đơn vị của mình.
+     * Tải thông tin sở hữu tối thiểu (chỉ 3 trường) để tránh load toàn bộ Entity.
+     */
+    private void TicketAccessAuthCheck(Long ticketId, User staff) {
+        if ("ROLE_ADMIN".equalsIgnoreCase(staff.getRole().getName())) return; // Admin bỏ qua
+        ticketRepository.findAccessAuthInfoById(ticketId).ifPresent(authInfo -> {
+            if (!Objects.equals(authInfo.getDepartmentId(), staff.getDepartment().getId())) {
+                throw new AccessDeniedBusinessException(
+                        "Cán bộ chỉ được tiếp nhận Ticket thuộc đơn vị của mình!");
+            }
+        });
+    }
+
+    private void saveHistory(Ticket ticket, User actor, String actorName,
+                             String fromStatus, String toStatus, String note) {
         TicketHistory history = TicketHistory.builder()
                 .ticket(ticket)
                 .actor(actor)
@@ -339,7 +378,11 @@ public class TicketService {
         return "TK-" + dateStr + "-" + randomSuffix;
     }
 
-    private TicketResponseDto mapToDto(Ticket t) {
+    /**
+     * mapToDetailDto: Chỉ dùng cho trang Chi tiết Ticket.
+     * Yêu cầu: Ticket đã được load đầy đủ dept/creator/assignedTo qua JOIN FETCH.
+     */
+    private TicketResponseDto mapToDetailDto(Ticket t) {
         List<AttachmentDto> attachments = attachmentRepository.findByTicketId(t.getId()).stream()
                 .map(a -> AttachmentDto.builder()
                         .id(a.getId())
@@ -350,7 +393,8 @@ public class TicketService {
                         .build())
                 .collect(Collectors.toList());
 
-        List<TicketResponseDto.HistoryDto> histories = ticketHistoryRepository.findByTicketIdOrderByCreatedAtAsc(t.getId()).stream()
+        List<TicketResponseDto.HistoryDto> histories = ticketHistoryRepository
+                .findByTicketIdOrderByCreatedAtAsc(t.getId()).stream()
                 .map(h -> TicketResponseDto.HistoryDto.builder()
                         .id(h.getId())
                         .actorName(h.getActorName())

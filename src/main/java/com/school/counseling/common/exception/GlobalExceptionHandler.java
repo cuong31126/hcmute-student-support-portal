@@ -59,6 +59,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Bắt lỗi Race Condition: Cán bộ bấm nhận Ticket đã được cán bộ khác nhận trước (409 Conflict)
+     */
+    @ExceptionHandler(TicketAlreadyClaimedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTicketAlreadyClaimedException(TicketAlreadyClaimedException ex) {
+        log.warn("Race Condition Claim Ticket: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    /**
      * Bắt lỗi tệp tin tải lên (400 Bad Request)
      */
     @ExceptionHandler(InvalidFileException.class)

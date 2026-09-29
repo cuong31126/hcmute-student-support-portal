@@ -3,6 +3,7 @@ package com.school.counseling.module.ticket.controller;
 import com.school.counseling.common.dto.ApiResponse;
 import com.school.counseling.common.util.SecurityUtils;
 import com.school.counseling.module.ticket.dto.TicketResponseDto;
+import com.school.counseling.module.ticket.dto.TicketSummaryDto;
 import com.school.counseling.module.ticket.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ public class StaffTicketController {
 
     @GetMapping
     @PreAuthorize("#departmentId == null or @deptSecurity.canAccessDepartment(#departmentId)")
-    public ResponseEntity<ApiResponse<List<TicketResponseDto>>> getStaffTickets(
+    public ResponseEntity<ApiResponse<List<TicketSummaryDto>>> getStaffTickets(
             @RequestParam(value = "departmentId", required = false) Long departmentId,
             @RequestParam(value = "status", required = false, defaultValue = "ALL") String status) {
 
@@ -31,7 +32,7 @@ public class StaffTicketController {
                     .orElseThrow(() -> new IllegalArgumentException("Cán bộ chưa được gán Đơn vị/Khoa quản lý"));
         }
 
-        List<TicketResponseDto> tickets = ticketService.getTicketsByDepartment(currentDeptId, status);
+        List<TicketSummaryDto> tickets = ticketService.getTicketSummaryByDepartment(currentDeptId, status);
         return ResponseEntity.ok(ApiResponse.success(tickets));
     }
 

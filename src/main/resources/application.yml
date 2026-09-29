@@ -10,9 +10,13 @@ server:
         secure: false # Set true khi chạy HTTPS
 
 spring:
+  config:
+    # Tự động đọc file .env tại thư mục gốc project khi khởi động
+    # optional: → không báo lỗi nếu file .env chưa tồn tại (ví dụ môi trường CI/CD dùng biến hệ thống)
+    import: optional:file:.env[.properties]
   application:
     name: qaute-portal
-  
+
   # Cấu hình Multipart Upload (Hỗ trợ file văn bản & Video tới 100MB)
   servlet:
     multipart:
@@ -26,8 +30,21 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:your_password}
     driver-class-name: ${DB_DRIVER:com.mysql.cj.jdbc.Driver}
+    # ── HikariCP: Cấu hình Connection Pool tối ưu cho tải 1.000 users ──
+    hikari:
+      pool-name: QauteHikariPool
+      maximum-pool-size: 30          # Điểm tối ưu cho máy chủ 8 CPU cores (tránh context switching)
+      minimum-idle: 15               # Giữ sẵn 15 connections ấm, sẵn sàng phục vụ spike load
+      idle-timeout: 300000           # 5 phút: giải phóng connection nhàn rỗi về pool
+      max-lifetime: 1800000          # 30 phút: tái tạo connection để tránh MySQL "wait_timeout" leak
+      connection-timeout: 20000      # 20 giây: tối đa chờ connection trước khi ném exception
+      connection-test-query: SELECT 1
 
   jpa:
+    # ── BẮT BUỘC: Tắt Open-In-View để giải phóng connection ngay sau @Transactional ──
+    # Nếu để true: connection bị giữ xuyên suốt render Thymeleaf → cạn HikariCP tức thì
+    # Hệ quả khi tắt: Mọi dữ liệu ra View phải là DTO hoàn chỉnh hoặc Entity đã JOIN FETCH đủ
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: false
@@ -42,7 +59,7 @@ spring:
     mode: HTML
     encoding: UTF-8
 
-  # Cấu hình Async Mail Task Executor
+  # Cấu hình Mail SMTP
   mail:
     host: smtp.gmail.com
     port: 587

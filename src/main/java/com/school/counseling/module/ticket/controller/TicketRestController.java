@@ -5,6 +5,7 @@ import com.school.counseling.common.util.SecurityUtils;
 import com.school.counseling.module.ticket.dto.CreateTicketRequest;
 import com.school.counseling.module.ticket.dto.TicketReplyRequest;
 import com.school.counseling.module.ticket.dto.TicketResponseDto;
+import com.school.counseling.module.ticket.dto.TicketSummaryDto;
 import com.school.counseling.module.ticket.service.TicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,10 +44,10 @@ public class TicketRestController {
     }
 
     @GetMapping("/my-tickets")
-    public ResponseEntity<ApiResponse<List<TicketResponseDto>>> getMyTickets() {
+    public ResponseEntity<ApiResponse<List<TicketSummaryDto>>> getMyTickets() {
         Long currentUserId = SecurityUtils.getCurrentUserId()
                 .orElseThrow(() -> new IllegalArgumentException("Người dùng chưa đăng nhập"));
-        List<TicketResponseDto> tickets = ticketService.getMyTickets(currentUserId);
+        List<TicketSummaryDto> tickets = ticketService.getMyTicketSummaries(currentUserId);
         return ResponseEntity.ok(ApiResponse.success(tickets));
     }
 

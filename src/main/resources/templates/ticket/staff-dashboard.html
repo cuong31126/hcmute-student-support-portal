@@ -78,8 +78,12 @@
                     <tr th:each="t : ${tickets}">
                         <td><code class="fw-bold text-primary" th:text="${t.ticketCode}">TK-XXXX</code></td>
                         <td>
-                            <div class="fw-semibold text-dark" th:text="${t.creatorName != null ? t.creatorName : t.guestName}">Nguyễn Văn A</div>
-                            <small class="text-muted" th:text="${t.guestEmail != null ? t.guestEmail : 'Sinh viên'}">sv@hcmute.edu.vn</small>
+                            <!-- TicketSummaryDto: creatorOrGuestName = creator.fullName ?? guestName -->
+                            <div class="fw-semibold text-dark" th:text="${t.creatorOrGuestName}">Nguyễn Văn A</div>
+                            <small class="text-muted"
+                                   th:text="${t.assignedStaffName != null ? 'CB: ' + t.assignedStaffName : 'Chưa tiếp nhận'}">
+                                Chưa tiếp nhận
+                            </small>
                         </td>
                         <td>
                             <a th:href="@{'/tickets/detail/' + ${t.id}}" class="fw-bold text-decoration-none text-dark d-block" th:text="${t.title}">Tiêu đề</a>

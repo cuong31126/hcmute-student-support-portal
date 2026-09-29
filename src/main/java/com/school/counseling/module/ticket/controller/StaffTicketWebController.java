@@ -1,10 +1,12 @@
 package com.school.counseling.module.ticket.controller;
 
+import com.school.counseling.common.exception.TicketAlreadyClaimedException;
 import com.school.counseling.common.util.SecurityUtils;
 import com.school.counseling.module.auth.entity.Department;
 import com.school.counseling.module.auth.repository.DepartmentRepository;
 import com.school.counseling.module.notification.service.EmailAsyncService;
 import com.school.counseling.module.ticket.dto.TicketResponseDto;
+import com.school.counseling.module.ticket.dto.TicketSummaryDto;
 import com.school.counseling.module.ticket.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -44,13 +46,16 @@ public class StaffTicketWebController {
 
         Department dept = departmentRepository.findById(currentDeptId).orElse(null);
 
-        List<TicketResponseDto> allTickets = ticketService.getTicketsByDepartment(currentDeptId, "ALL");
-        List<TicketResponseDto> filteredTickets = ticketService.getTicketsByDepartment(currentDeptId, status);
+        // ── Fix #8: Chỉ gọi DB 1 lần, dùng TicketSummaryDto nhẹ tránh N+1 Query ──
+        List<TicketSummaryDto> allTickets = ticketService.getTicketSummaryByDepartment(currentDeptId, "ALL");
+        List<TicketSummaryDto> filteredTickets = "ALL".equalsIgnoreCase(status)
+                ? allTickets
+                : ticketService.getTicketSummaryByDepartment(currentDeptId, status);
 
-        long countOpen = allTickets.stream().filter(t -> "OPEN".equalsIgnoreCase(t.getStatus())).count();
+        long countOpen       = allTickets.stream().filter(t -> "OPEN".equalsIgnoreCase(t.getStatus())).count();
         long countInProgress = allTickets.stream().filter(t -> "IN_PROGRESS".equalsIgnoreCase(t.getStatus())).count();
-        long countOverdue = allTickets.stream().filter(TicketResponseDto::isOverdue).count();
-        long countResolved = allTickets.stream().filter(t -> "RESOLVED".equalsIgnoreCase(t.getStatus()) || "CLOSED".equalsIgnoreCase(t.getStatus())).count();
+        long countOverdue    = allTickets.stream().filter(TicketSummaryDto::isOverdue).count();
+        long countResolved   = allTickets.stream().filter(t -> "RESOLVED".equalsIgnoreCase(t.getStatus()) || "CLOSED".equalsIgnoreCase(t.getStatus())).count();
 
         model.addAttribute("currentDepartment", dept);
         model.addAttribute("tickets", filteredTickets);
@@ -67,22 +72,31 @@ public class StaffTicketWebController {
     @PreAuthorize("@deptSecurity.canAccessTicket(#ticketId)")
     public String handleClaimTicket(@PathVariable Long ticketId, RedirectAttributes redirectAttributes) {
         Long staffId = SecurityUtils.getCurrentUserId().orElse(null);
-        TicketResponseDto ticket = ticketService.claimTicket(ticketId, staffId);
+        try {
+            TicketResponseDto ticket = ticketService.claimTicket(ticketId, staffId);
 
-        // Gửi email thông báo cán bộ đã tiếp nhận
-        String recipientEmail = ticket.getGuestEmail();
-        String recipientName = ticket.getGuestName() != null ? ticket.getGuestName() : ticket.getCreatorName();
-        String staffName = SecurityUtils.getCurrentUserPrincipal().map(u -> u.getFullName()).orElse("Cán bộ tư vấn");
-        String trackingUrl = (ticket.getGuestToken() != null)
-                ? "http://localhost:8080/tickets/guest-track?token=" + ticket.getGuestToken()
-                : "http://localhost:8080/tickets/detail/" + ticket.getId();
+            String recipientEmail = ticket.getGuestEmail();
+            String recipientName = ticket.getGuestName() != null ? ticket.getGuestName() : ticket.getCreatorName();
+            String staffName = SecurityUtils.getCurrentUserPrincipal().map(u -> u.getFullName()).orElse("Cán bộ tư vấn");
+            String trackingUrl = (ticket.getGuestToken() != null)
+                    ? "http://localhost:8080/tickets/guest-track?token=" + ticket.getGuestToken()
+                    : "http://localhost:8080/tickets/detail/" + ticket.getId();
 
-        if (recipientEmail != null) {
-            emailAsyncService.sendTicketClaimedEmail(recipientEmail, recipientName, ticket.getTicketCode(), staffName, ticket.getDepartmentName(), trackingUrl);
+            if (recipientEmail != null) {
+                emailAsyncService.sendTicketClaimedEmail(
+                        recipientEmail, recipientName, ticket.getTicketCode(), staffName,
+                        ticket.getDepartmentName(), trackingUrl);
+            }
+
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Bạn đã tiếp nhận xử lý yêu cầu #" + ticket.getTicketCode());
+            return "redirect:/tickets/detail/" + ticketId;
+
+        } catch (TicketAlreadyClaimedException e) {
+            // ── Race Condition Guard: Cán bộ khác đã nhận vé trước trong cùng 1 tích tắc ──
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/staff/tickets";
         }
-
-        redirectAttributes.addFlashAttribute("successMessage", "Bạn đã tiếp nhận xử lý yêu cầu #" + ticket.getTicketCode());
-        return "redirect:/tickets/detail/" + ticketId;
     }
 
     @PostMapping("/{ticketId}/resolve")

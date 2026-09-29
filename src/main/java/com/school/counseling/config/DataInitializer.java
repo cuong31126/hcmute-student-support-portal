@@ -81,6 +81,11 @@ public class DataInitializer implements CommandLineRunner {
             initUser("student01", defaultPassword, "Trương Lê Trung Hiếu (SV)", "student01@student.hcmute.edu.vn", roleStudent, null);
             initUser("student02", defaultPassword, "Nguyễn Ngọc Hương Thanh (SV)", "student02@student.hcmute.edu.vn", roleStudent, null);
 
+            // ── Tài khoản thực tế của nhóm phát triển (mk: 123456) ──
+            initUser("lecuong", "123456", "Lê Quốc Cường (SV)", "lecuong@gmail.com", roleStudent, null);
+            initUser("admin_main", "123456", "Admin Hệ Thống (Main)", "admin@gmail.com", roleAdmin, null);
+            initUser("lecuong2", "123456", "Lê Cường (Tư Vấn Viên)", "lecuong2@gmail.com", roleStaff, deptDaoTao);
+
             log.info("Khởi tạo dữ liệu người dùng mẫu hoàn tất!");
 
             // 4. Khởi tạo / Đồng bộ Kho Tri Thức 300 FAQs tinh tuyển từ docs/dataset/faq_dataset_curated.json

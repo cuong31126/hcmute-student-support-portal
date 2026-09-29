@@ -78,11 +78,11 @@ com.school.counseling
         │     ├── dto/              # VideoRenderWebhookPayloadDto
         │     └── service/          # WebhookSecurityService, VideoAttachmentService
         │
-        ├── ai/                     # [Module Trợ lý AI RAG & Semantic Search]
-        │     ├── controller/       # AiChatController, DocumentKnowledgeController
-        │     ├── dto/              # AiQueryDto, AiResponseDto
-        │     ├── entity/           # KnowledgeDocument, FaqSeed
-        │     └── service/          # RagService, VectorEmbeddingService
+        ├── ai/                     # [Module Trợ lý AI RAG & Smart FAQ 24/7 -> Gợi ý Ticket SLA]
+        │     ├── controller/       # RagChatRestController, AdminKnowledgeController
+        │     ├── dto/              # RagQueryRequest, RagQueryResponse
+        │     ├── entity/           # KnowledgeDocument, KnowledgeChunk, Faq
+        │     └── service/          # RagChatbotService, GeminiApiClient, VectorEmbeddingService
         │
         └── notification/           # [Module Thông báo & Email Bất đồng bộ]
               ├── entity/           # NotificationLog
@@ -128,12 +128,37 @@ com.school.counseling
 ### 3.4. Lớp Entity & Database Mapping
 * **BaseEntity chung:** Mọi Entity đều kế thừa `BaseEntity` chứa các trường: `id`, `created_at`, `updated_at`, `is_deleted`.
 * **Quy tắc FetchType:** **100% quan hệ `@ManyToOne` và `@OneToMany` BẮT BUỘC đặt `fetch = FetchType.LAZY`**. Tuyệt đối không để `EAGER` mặc định gây lỗi N+1 Query.
-* **Soft Delete:** Triển khai cơ chế xóa mềm:
+* **Soft Delete (Chuẩn Hibernate 6 / Spring Boot 3):** Triển khai cơ chế xóa mềm:
   ```java
   @SQLDelete(sql = "UPDATE posts SET is_deleted = true WHERE id = ?")
-  @Where(clause = "is_deleted = false")
+  @SQLRestriction("is_deleted = false")
   ```
+  *(Tuyệt đối CẤM sử dụng `@Where(clause = ...)` vì đã bị deprecated trong Hibernate 6 và gây lỗi runtime).*
 * **Lombok:** Dùng `@Getter`, `@Setter`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Builder`. Không dùng `@Data` trên Entity để tránh vòng lặp đệ quy trong `toString()` và `equals()`.
+
+### 3.5. Cấu Hình Hạ Tầng Kết Nối & Tắt Open-In-View (OSIV = false)
+* **Tắt Bắt Buộc OSIV:** Trong `application.yml`, bắt buộc cấu hình `spring.jpa.open-in-view: false` để giải phóng kết nối MySQL ngay khi Service kết thúc giao dịch `@Transactional`.
+* **Kỷ Luật DTO / View Model (Bảo Vệ Đồ Án 10 Điểm):**
+  * Do OSIV bị tắt, việc gọi thuộc tính Lazy ngoài Service sẽ ném ngoại lệ `LazyInitializationException` 500.
+  * **Quy tắc:** 100% dữ liệu truyền sang View Thymeleaf bắt buộc phải là DTO/Record được ánh xạ trong Service, hoặc Entity đã được nạp đủ dữ liệu qua `JOIN FETCH` / `@EntityGraph`.
+* **HikariCP Tuning:** Đặt `maximum-pool-size: 30`, `minimum-idle: 15`, `connection-timeout: 20000` (chịu tải an toàn 1.000 users mà không gây Context Switching quá mức).
+
+### 3.6. Quy Chuẩn Xử Lý Bất Đồng Bộ Cho Module AI (Chống Nghẽn Tomcat)
+* Mọi API tiếp nhận tương tác thời gian thực với LLM/Gemini trong `RagChatRestController` bắt buộc phải trả về kiểu **Bất đồng bộ**:
+  `CompletableFuture<ResponseEntity<ApiResponse<RagQueryResponse>>>`.
+* **ThreadPoolTaskExecutor Độc Lập:** Bắt buộc cấu hình Bean `aiTaskExecutor` riêng biệt (Core: 10, Max: 30, Queue: 200), không dùng chung `mailTaskExecutor`.
+* **Client Timeout & Fallback:** Cấu hình Hard Timeout tối đa 8 giây cho lời gọi Gemini. Nếu quá 8s hoặc hệ thống quá tải, tự động trả về Fallback Response thân thiện, hướng dẫn tra cứu FAQ hoặc tạo Ticket.
+
+### 3.7. Cơ Chế Chống Race Condition Khi Cán Bộ Nhận Ticket (Atomic Update)
+* Khi nhiều Cán bộ cùng trực Dashboard và bấm "Tiếp nhận xử lý" (Claim Ticket) tại cùng một tích tắc, nghiêm cấm logic `findById` rồi `save` (non-atomic).
+* **Bắt buộc dùng Atomic Update Query tại Repository:**
+  ```java
+  @Modifying(clearAutomatically = true)
+  @Query("UPDATE Ticket t SET t.assignedTo = :staff, t.status = 'IN_PROGRESS' " +
+         "WHERE t.id = :ticketId AND t.status = 'OPEN' AND t.assignedTo IS NULL")
+  int claimTicketAtomic(@Param("ticketId") Long ticketId, @Param("staff") User staff);
+  ```
+* **Xử lý tại Service:** Kiểm tra giá trị trả về của hàm trên. Nếu kết quả = `0`, lập tức ném `TicketAlreadyClaimedException("Yêu cầu này đã được cán bộ khác tiếp nhận xử lý!")` để hiển thị Flash Message cảnh báo ngay cho Cán bộ đến sau.
 
 ---
 

@@ -17,4 +17,6 @@ public class RagQueryResponse {
     private double confidenceScore;
     private long executionTimeMs;
     private List<KnowledgeChunkMatchDto> matchedChunks;
+    /** true → Chatbot gợi ý sinh viên bấm nút "Tạo Ticket" vì AI không có đủ thông tin */
+    private boolean suggestCreateTicket;
 }

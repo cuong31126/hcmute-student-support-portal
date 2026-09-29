@@ -6,6 +6,7 @@ import com.school.counseling.module.notification.service.EmailAsyncService;
 import com.school.counseling.module.ticket.dto.CreateTicketRequest;
 import com.school.counseling.module.ticket.dto.TicketReplyRequest;
 import com.school.counseling.module.ticket.dto.TicketResponseDto;
+import com.school.counseling.module.ticket.dto.TicketSummaryDto;
 import com.school.counseling.module.ticket.service.TicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -77,7 +78,8 @@ public class TicketWebController {
     @PreAuthorize("hasRole('STUDENT')")
     public String myTicketsPage(Model model) {
         Long currentUserId = SecurityUtils.getCurrentUserId().orElse(null);
-        List<TicketResponseDto> tickets = ticketService.getMyTickets(currentUserId);
+        // ── Dùng TicketSummaryDto (1 SQL, nhẹ) thay vì TicketResponseDto (N+1 query) ──
+        List<TicketSummaryDto> tickets = ticketService.getMyTicketSummaries(currentUserId);
         model.addAttribute("tickets", tickets);
         return "ticket/my-tickets";
     }
