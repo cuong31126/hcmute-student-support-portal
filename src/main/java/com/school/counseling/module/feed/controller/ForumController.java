@@ -59,7 +59,7 @@ public class ForumController {
         List<Department> departments = departmentRepository.findByIsActiveTrue();
 
         if (currentUserId != null) {
-            userRepository.findById(currentUserId).ifPresent(user -> {
+            userRepository.findByIdWithRoleAndDepartment(currentUserId).ifPresent(user -> {
                 model.addAttribute("currentUser", user);
                 model.addAttribute("currentUserFullName", user.getFullName());
                 model.addAttribute("currentUserAvatar", user.getAvatarUrl());

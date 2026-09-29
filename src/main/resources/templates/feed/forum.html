@@ -7,8 +7,8 @@
 <div th:fragment="content">
 
     <!-- CSRF Metadata for Secure AJAX Requests -->
-    <input type="hidden" id="csrfToken" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-    <input type="hidden" id="csrfHeader" th:value="${_csrf.headerName}" />
+    <input type="hidden" id="csrfToken" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}" th:value="${_csrf != null ? _csrf.token : ''}" />
+    <input type="hidden" id="csrfHeader" th:value="${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}" />
 
     <!-- Top-Right Toast Container (Single Execution, Auto-Dismiss 3s) -->
     <div id="feedToastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1150;"></div>
@@ -196,8 +196,8 @@
         <div sec:authorize="isAuthenticated()" class="feed-card p-3 mb-3">
             <div class="d-flex align-items-center gap-2">
                 <div class="author-avatar bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center">
-                    <img th:if="${currentUserAvatar != null and !currentUserAvatar.blank}" th:src="${currentUserAvatar}" class="author-avatar" alt="Avatar">
-                    <span th:unless="${currentUserAvatar != null and !currentUserAvatar.blank}">
+                    <img th:if="${currentUserAvatar != null and currentUserAvatar != ''}" th:src="${currentUserAvatar}" class="author-avatar" alt="Avatar">
+                    <span th:unless="${currentUserAvatar != null and currentUserAvatar != ''}">
                         <i class="bi bi-person-fill fs-5"></i>
                     </span>
                 </div>
@@ -237,8 +237,8 @@
                 <div class="p-3 pb-2 d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center gap-2">
                         <div class="author-avatar bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center">
-                            <img th:if="${post.authorAvatar != null and !post.authorAvatar.blank}" th:src="${post.authorAvatar}" class="author-avatar" alt="Avatar">
-                            <span th:unless="${post.authorAvatar != null and !post.authorAvatar.blank}">
+                            <img th:if="${post.authorAvatar != null and post.authorAvatar != ''}" th:src="${post.authorAvatar}" class="author-avatar" alt="Avatar">
+                            <span th:unless="${post.authorAvatar != null and post.authorAvatar != ''}">
                                 <i class="bi bi-person fs-5"></i>
                             </span>
                         </div>
@@ -253,7 +253,7 @@
                             <div class="text-muted" style="font-size: 11.5px;">
                                 <span th:if="${post.departmentName != null}" class="badge bg-light text-secondary border me-1" th:text="${post.departmentName}">Khoa CNTT</span>
                                 <i class="bi bi-clock me-1"></i>
-                                <span class="relative-time" th:data-time="${post.createdAt}" th:text="${#temporals.format(post.createdAt, 'dd/MM/yyyy HH:mm')}">01/09/2026</span>
+                                <span class="relative-time" th:data-time="${post.createdAt}" th:text="${post.createdAt != null ? #temporals.format(post.createdAt, 'dd/MM/yyyy HH:mm') : ''}">01/09/2026</span>
                                 <i class="bi bi-globe-americas ms-1 text-muted" title="Công khai"></i>
                             </div>
                         </div>
@@ -363,8 +363,8 @@
                     <!-- Write Comment Input Box -->
                     <div sec:authorize="isAuthenticated()" class="d-flex gap-2 mb-3">
                         <div class="author-avatar-sm bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center">
-                            <img th:if="${currentUserAvatar != null and !currentUserAvatar.blank}" th:src="${currentUserAvatar}" class="author-avatar-sm" alt="Avatar">
-                            <span th:unless="${currentUserAvatar != null and !currentUserAvatar.blank}"><i class="bi bi-person"></i></span>
+                            <img th:if="${currentUserAvatar != null and currentUserAvatar != ''}" th:src="${currentUserAvatar}" class="author-avatar-sm" alt="Avatar">
+                            <span th:unless="${currentUserAvatar != null and currentUserAvatar != ''}"><i class="bi bi-person"></i></span>
                         </div>
                         <div class="flex-grow-1 position-relative">
                             <input type="text" class="form-control rounded-pill pe-5 bg-light form-control-sm comment-input" 
@@ -391,7 +391,7 @@
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content border-0 shadow">
                             <form th:action="@{/feed/forum/{id}/report(id=${post.id})}" method="post">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <input type="hidden" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}" th:value="${_csrf != null ? _csrf.token : ''}" />
                                 <div class="modal-header">
                                     <h6 class="modal-title fw-bold text-danger"><i class="bi bi-flag-fill me-2"></i>Báo Cáo Bài Viết Vi Phạm</h6>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -458,8 +458,8 @@
                     <!-- User Info Header -->
                     <div class="d-flex align-items-center gap-2 mb-3">
                         <div class="author-avatar bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center">
-                            <img th:if="${currentUserAvatar != null and !currentUserAvatar.blank}" th:src="${currentUserAvatar}" class="author-avatar" alt="Avatar">
-                            <span th:unless="${currentUserAvatar != null and !currentUserAvatar.blank}"><i class="bi bi-person-fill fs-5"></i></span>
+                            <img th:if="${currentUserAvatar != null and currentUserAvatar != ''}" th:src="${currentUserAvatar}" class="author-avatar" alt="Avatar">
+                            <span th:unless="${currentUserAvatar != null and currentUserAvatar != ''}"><i class="bi bi-person-fill fs-5"></i></span>
                         </div>
                         <div>
                             <div class="fw-bold text-dark small" th:text="${currentUserFullName != null ? currentUserFullName : 'Bạn'}">Sinh viên</div>

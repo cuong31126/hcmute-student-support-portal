@@ -14,4 +14,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     List<User> findByDepartmentId(Long departmentId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u LEFT JOIN FETCH u.role LEFT JOIN FETCH u.department WHERE u.id = :id")
+    Optional<User> findByIdWithRoleAndDepartment(@org.springframework.data.repository.query.Param("id") Long id);
 }

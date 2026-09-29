@@ -80,7 +80,7 @@
                             <span th:if="${rep.reason == 'INAPPROPRIATE_LANGUAGE'}" class="badge bg-danger">NGÔN TỪ XÚC PHẠM</span>
                             <span th:if="${rep.reason == 'WRONG_ACADEMIC_INFO'}" class="badge bg-info text-dark">THÔNG TIN SAI LỆCH</span>
                             <span th:if="${rep.reason == 'OTHER'}" class="badge bg-secondary">LÝ DO KHÁC</span>
-                            <div class="small text-muted mt-1" th:if="${rep.details != null and !rep.details.blank}" th:text="'Chi tiết: ' + ${rep.details}">Chi tiết</div>
+                            <div class="small text-muted mt-1" th:if="${rep.details != null and rep.details != ''}" th:text="'Chi tiết: ' + ${rep.details}">Chi tiết</div>
                         </td>
                         <td>
                             <span th:if="${rep.status == 'PENDING'}" class="badge bg-danger bg-opacity-10 text-danger border border-danger">Chờ xử lý</span>
