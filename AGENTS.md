@@ -21,6 +21,21 @@ git push origin <tên-nhánh-hiện-tại>
 - `docs(<module>)`: Cập nhật tài liệu (ví dụ: `docs(analysis): add beginner guide for java core`)
 - `style(<module>)`: Điều chỉnh CSS / Giao diện
 
+### Quy định Nhánh Làm Việc (Feature Branch Workflow):
+- **Đối với chức năng mới hoặc cải tổ lớn (Major Overhaul / Feature):**
+  1. AI **BẮT BUỘC** phải rẽ ra một nhánh feature riêng biệt từ `main`:
+     ```bash
+     git checkout -b feature/<tên-chức-năng>
+     ```
+  2. Toàn bộ quá trình code, chỉnh sửa và xác minh được thực hiện và commit trên nhánh feature này.
+  3. Chỉ khi kiểm thử xác nhận chạy OK (ví dụ: `mvn test` đạt 100% BUILD SUCCESS), AI mới tiến hành checkout về `main`, merge nhánh feature vào và push lên origin:
+     ```bash
+     git checkout main
+     git merge feature/<tên-chức-năng>
+     git push origin main
+     git push origin feature/<tên-chức-năng>
+     ```
+
 ### Ràng buộc an toàn Git:
 - **Tuyệt đối KHÔNG dùng cờ `--force`** khi push.
 - Nếu gặp lỗi push (conflict hoặc non-fast-forward rejected), AI phải **dừng lại ngay lập tức và báo cáo lỗi cho người dùng**, không tự ý reset hay ghi đè lịch sử git.

@@ -178,11 +178,18 @@ graph TD
 ## 7. CAM KẾT GIT WORKFLOW & AN TOÀN MÃ NGUỒN
 
 Tuân thủ nghiêm ngặt quy định tại `AGENTS.md`:
-1. Sau khi hoàn thành và xác minh từng giai đoạn trong chiến dịch, tự động chạy lệnh terminal:
+1. **Rẽ nhánh Feature riêng biệt:**
+   Tạo nhánh riêng cho chiến dịch cải tổ UI:
    ```bash
-   git add .
-   git commit -m "feat(ui): overhaul hcmute portal branding with hero slider and logo"
-   git push origin <tên-nhánh>
+   git checkout -b feature/ui-overhaul-crimson-branding
    ```
-2. Tuyệt đối không dùng cờ `--force`.
-3. Giữ gìn sự an toàn của toàn bộ logic nghiệp vụ (Security, SLA Engine, AI RAG, Ticket Engine) đã hoàn thành ở các Sprint trước.
+2. Thực hiện toàn bộ mã nguồn, kiểm thử `mvn test` trên nhánh `feature/ui-overhaul-crimson-branding` đạt 100% BUILD SUCCESS.
+3. Khi đã chạy trơn tru, merge code vào `main` và push lên GitHub:
+   ```bash
+   git checkout main
+   git merge feature/ui-overhaul-crimson-branding
+   git push origin main
+   git push origin feature/ui-overhaul-crimson-branding
+   ```
+4. Tuyệt đối không dùng cờ `--force`.
+5. Bảo toàn 100% logic nghiệp vụ (Security, SLA Engine, AI RAG, Ticket Engine) đã hoàn thiện ở các Sprint trước.
