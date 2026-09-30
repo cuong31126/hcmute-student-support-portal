@@ -20,30 +20,45 @@
             overflow: hidden;
         }
 
-        /* Cột Trái: Toàn cảnh khuôn viên trường HCMUTE (hero2.jpg) */
+        /* Cột Trái: Slideshow Cảnh Quan Trường HCMUTE (hero2.webp & hero1.webp) */
         .auth-visual-col {
             flex: 1 1 54%;
             position: relative;
-            background-image: url('/images/hero2.jpg');
-            background-size: cover;
-            background-position: center center;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             padding: 3.5rem;
             color: #ffffff;
+            overflow: hidden;
         }
 
+        .auth-slide {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center center;
+            opacity: 0;
+            transform: scale(1.06);
+            transition: opacity 2s cubic-bezier(0.4, 0, 0.2, 1), transform 8s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 1;
+        }
+
+        .auth-slide.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Lớp phủ tự nhiên điện ảnh trong suốt, KHÔNG dùng gradient đỏ đen */
         .auth-visual-overlay {
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.78) 0%, rgba(165, 28, 48, 0.65) 100%);
-            z-index: 1;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.12) 45%, rgba(15, 23, 42, 0.75) 100%);
+            z-index: 2;
         }
 
         .auth-visual-content {
             position: relative;
-            z-index: 2;
+            z-index: 3;
         }
 
         /* Cột Phải: Biểu mẫu Đăng Ký */
@@ -54,7 +69,7 @@
             justify-content: center;
             padding: 3rem 2.5rem;
             background-color: #ffffff;
-            z-index: 2;
+            z-index: 3;
         }
 
         .auth-form-box {
@@ -70,27 +85,31 @@
 
         .auth-input-group .form-control {
             border-radius: 8px;
-            padding: 0.65rem 0.9rem;
+            padding: 0.7rem 0.95rem;
             font-size: 0.95rem;
             border: 1px solid #d1d5db;
+            background-color: #f8fafc;
             transition: all 0.2s ease;
+            color: #111827;
         }
 
         .auth-input-group .form-control:focus {
-            border-color: var(--crimson);
-            box-shadow: 0 0 0 3px rgba(165, 28, 48, 0.12);
+            background-color: #ffffff;
+            border-color: #0f172a;
+            box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
         }
 
         .auth-input-group .input-group-text {
             border-radius: 8px 0 0 8px;
-            background-color: #f9fafb;
+            background-color: #f1f5f9;
             border: 1px solid #d1d5db;
-            color: #6b7280;
+            color: #64748b;
         }
 
+        /* Nút Submit Đăng Ký Tone Đen / Dark Slate Sang Trọng */
         .btn-auth-submit {
-            background-color: var(--crimson);
-            border-color: var(--crimson);
+            background-color: #111827;
+            border-color: #111827;
             color: #ffffff;
             font-weight: 600;
             padding: 0.75rem 1rem;
@@ -99,11 +118,11 @@
         }
 
         .btn-auth-submit:hover {
-            background-color: var(--dark-crimson);
-            border-color: var(--dark-crimson);
+            background-color: #1f2937;
+            border-color: #1f2937;
             color: #ffffff;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(165, 28, 48, 0.25);
+            box-shadow: 0 4px 12px rgba(17, 24, 39, 0.25);
         }
 
         /* Responsive Mobile: Ẩn cột visual, hiển thị form 100% */
@@ -126,21 +145,31 @@
     </style>
 
     <div class="auth-split-wrapper">
-        <!-- Cột Trái: Visual cảnh quan trường HCMUTE & Giới thiệu cộng đồng -->
+        <!-- Cột Trái: Visual cảnh quan trường HCMUTE chuyển cảnh mượt mà -->
         <div class="auth-visual-col">
+            <!-- Slide 1: hero2.webp -->
+            <div class="auth-slide active" id="auth-slide-0" style="background-image: url('/images/hero2.webp');"></div>
+            <!-- Slide 2: hero1.webp -->
+            <div class="auth-slide" id="auth-slide-1" style="background-image: url('/images/hero1.webp');"></div>
+
+            <!-- Overlay Tự Nhiên (Không Đỏ Đen) -->
             <div class="auth-visual-overlay"></div>
             
             <div class="auth-visual-content">
-                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-20 text-white backdrop-blur mb-3">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-20 text-white backdrop-blur mb-3 shadow-xs">
                     <i class="bi bi-mortarboard-fill"></i>
                     <span class="small fw-semibold letter-spacing-1 text-uppercase" style="font-size: 0.78rem;">Đại Học Sư Phạm Kỹ Thuật TP.HCM</span>
                 </div>
-                <h2 class="display-6 fw-bold font-serif mb-2" style="line-height: 1.25;">GIA NHẬP CỘNG ĐỒNG QAUTE</h2>
-                <p class="text-white-50 small mb-0" style="max-width: 480px;">Tạo tài khoản để gửi Ticket thắc mắc học vụ, tương tác trên diễn đàn và tiếp cận kho kiến thức hỏi đáp chính thức.</p>
+                <h2 class="display-6 fw-bold font-serif mb-2 text-white" style="line-height: 1.25; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+                    GIA NHẬP CỘNG ĐỒNG QAUTE
+                </h2>
+                <p class="text-white-50 small mb-0" style="max-width: 480px; text-shadow: 0 1px 4px rgba(0,0,0,0.4);">
+                    Tạo tài khoản để gửi Ticket thắc mắc học vụ, tương tác trên diễn đàn và tiếp cận kho kiến thức hỏi đáp chính thức.
+                </p>
             </div>
 
             <div class="auth-visual-content">
-                <blockquote class="border-start border-3 border-danger ps-3 mb-3 text-white-50 small fst-italic" style="border-left-color: var(--crimson) !important;">
+                <blockquote class="border-start border-3 border-light ps-3 mb-3 text-white-50 small fst-italic">
                     "Giải pháp số hóa toàn diện quy trình hỗ trợ sinh viên với cam kết thời hạn giải quyết SLA."
                 </blockquote>
                 <div class="small text-white-50">&copy; 2026 HCMUTE - Phòng Đào Tạo & CTSV</div>
@@ -152,7 +181,7 @@
             <div class="auth-form-box">
                 <!-- Brand & Header -->
                 <div class="text-center mb-4">
-                    <img th:src="@{/images/logo.png}" alt="HCMUTE" height="64" class="mb-3">
+                    <img th:src="@{/images/logo.png}" alt="HCMUTE" height="66" class="mb-3">
                     <h4 class="fw-bold text-dark font-serif mb-1">Đăng Ký Tài Khoản</h4>
                     <p class="small text-muted mb-0">Dành riêng cho Sinh viên trường HCMUTE</p>
                 </div>
@@ -198,11 +227,26 @@
                 </form>
 
                 <div class="text-center small border-top pt-3 text-muted">
-                    Đã có tài khoản sinh viên? <a th:href="@{/auth/login}" class="fw-bold text-crimson text-decoration-none">Đăng nhập ngay</a>
+                    Đã có tài khoản sinh viên? <a th:href="@{/auth/login}" class="fw-bold text-dark text-decoration-none hover-underline">Đăng nhập ngay</a>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Script điều khiển Slideshow tự động chuyển cảnh -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let authSlideIndex = 0;
+            const authSlides = document.querySelectorAll('.auth-slide');
+            if (authSlides.length > 1) {
+                setInterval(function() {
+                    authSlides[authSlideIndex].classList.remove('active');
+                    authSlideIndex = (authSlideIndex + 1) % authSlides.length;
+                    authSlides[authSlideIndex].classList.add('active');
+                }, 6000);
+            }
+        });
+    </script>
 </div>
 </body>
 </html>

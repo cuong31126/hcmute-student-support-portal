@@ -15,19 +15,21 @@ Hệ thống được xây dựng theo nhận diện đại học tinh hoa (Acad
 
 | Token CSS | Mã Màu HEX | Ứng Dụng |
 |---|---|---|
-| `--crimson` | `#A51C30` | Màu chủ đạo (Primary): Button chính, active link, border nhấn, icon chính. |
+| `--crimson` | `#A51C30` | Màu thương hiệu HCMUTE: Active link, border gạch chân, icon chính. |
 | `--dark-crimson` | `#8A1525` | Trạng thái hover/focus của nút Crimson, điểm nhấn chiều sâu. |
 | `--light-crimson`| `#FDF2F4` | Nền icon, badge nhẹ, thông báo highlight trong suốt. |
-| `--dark-surface` | `#111827` | Nền Header/Navbar, Dark Card, Footer nền tối. |
+| `--dark-slate`   | `#111827` | Nút Đăng Nhập/Hành động chính, Header/Navbar, Dark Card, Footer. |
+| `--navy-accent`  | `#1E3A8A` | Điểm nhấn học thuật dịu mát, liên kết phụ hoặc icon học vụ. |
 | `--body-bg`     | `#F8F9FA` | Nền tổng thể toàn trang (xám học đường thanh lịch). |
 | `--card-bg`     | `#FFFFFF` | Nền thẻ bài viết, form, card nội dung. |
 | `--text-main`   | `#111827` | Chữ nội dung thông thường, tiêu đề phụ. |
 | `--text-muted`  | `#6B7280` | Chữ thời gian, mô tả phụ, hướng dẫn nhỏ. |
 
-### ⛔ CÁC MÀU BỊ CẤM TUYỆT ĐỐI (STRICTLY FORBIDDEN):
+### ⛔ CÁC MÀU & HIỆU ỨNG BỊ CẤM TUYỆT ĐỐI (STRICTLY FORBIDDEN):
 - **CẤM màu vàng chói lóa (`#FFC107`, `#FFD700`, v.v.):** Gây cảm giác đập vào mắt người dùng, rẻ tiền và mất chất học thuật.
-- **CẤM gradient màu đỏ-đen dày đặc (opacity > 0.7):** Làm biến hình ảnh đẹp của trường thành một cục màu đen đúa, tù túng.
+- **CẤM gradient màu đỏ-đen dày đặc (opacity > 0.6 hoặc màu đỏ gắt):** Làm biến hình ảnh đẹp của trường thành một cục màu đen đỏ tù túng, mất hoàn toàn ánh sáng và màu sắc tự nhiên của cổng trường.
 - **CẤM gradient tím hồng, tím xanh lộn xộn:** Tránh phong cách gamer/crypto, chỉ dùng phong cách Enterprise Academic.
+- **BẮT BUỘC dùng định dạng ảnh hiện đại `.webp` (`hero1.webp`, `hero2.webp`):** Tối ưu tốc độ tải và giữ độ sắc nét chân thực. Cột visual trang Auth và Hero Banner phải có hiệu ứng slideshow tự động chuyển cảnh mềm mại (crossfade).
 
 ---
 
