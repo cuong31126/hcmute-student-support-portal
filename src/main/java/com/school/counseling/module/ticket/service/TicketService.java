@@ -392,9 +392,10 @@ public class TicketService {
      * Tải thông tin sở hữu tối thiểu (chỉ 3 trường) để tránh load toàn bộ Entity.
      */
     private void TicketAccessAuthCheck(Long ticketId, User staff) {
-        if ("ROLE_ADMIN".equalsIgnoreCase(staff.getRole().getName())) return; // Admin bỏ qua
+        if (staff.getRole() != null && "ROLE_ADMIN".equalsIgnoreCase(staff.getRole().getName())) return; // Admin bỏ qua
         ticketRepository.findAccessAuthInfoById(ticketId).ifPresent(authInfo -> {
-            if (!Objects.equals(authInfo.getDepartmentId(), staff.getDepartment().getId())) {
+            Long staffDeptId = staff.getDepartment() != null ? staff.getDepartment().getId() : null;
+            if (!Objects.equals(authInfo.getDepartmentId(), staffDeptId)) {
                 throw new AccessDeniedBusinessException(
                         "Cán bộ chỉ được tiếp nhận Ticket thuộc đơn vị của mình!");
             }

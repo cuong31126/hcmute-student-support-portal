@@ -95,12 +95,15 @@ public class PostService {
             department = author.getDepartment();
         }
 
+        boolean isRequestVideo = request.isRequestVideo();
+        String videoStatus = isRequestVideo ? "PROCESSING" : (request.getVideoUrl() != null ? "COMPLETED" : "NONE");
+
         Post post = Post.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
                 .postType("OFFICIAL_ANNOUNCEMENT")
                 .status("APPROVED") // BRULE-POST-001: Thông báo chính thức của Staff được duyệt ngay
-                .videoStatus(request.getVideoUrl() != null ? "COMPLETED" : "NONE")
+                .videoStatus(videoStatus)
                 .videoUrl(request.getVideoUrl())
                 .author(author)
                 .department(department)
@@ -108,6 +111,25 @@ public class PostService {
                 .build();
 
         Post savedPost = postRepository.save(post);
+
+        // Kích hoạt Microservice Node.js dựng Video nếu được yêu cầu
+        if (isRequestVideo) {
+            videoIntegrationService.requestVideoGeneration(savedPost);
+        }
+
+        // Hỗ trợ đính kèm file URL đơn (tương thích API test/legacy)
+        if (request.getFileUrl() != null && !request.getFileUrl().trim().isEmpty()) {
+            PostAttachment docAttachment = PostAttachment.builder()
+                    .post(savedPost)
+                    .fileName(request.getFileName() != null ? request.getFileName() : "attachment")
+                    .fileUrl(request.getFileUrl())
+                    .fileType(request.getFileType() != null ? request.getFileType().toUpperCase() : "DOCX")
+                    .fileSize(request.getFileSize() != null ? request.getFileSize() : 0L)
+                    .sourceType("DIRECT_UPLOAD")
+                    .build();
+            attachmentRepository.save(docAttachment);
+            savedPost.addAttachment(docAttachment);
+        }
 
         // 2. Xử lý Đa tệp Văn bản Đính kèm (Tối đa 5 tệp theo BRULE-POST-001)
         if (documentFiles != null && !documentFiles.isEmpty()) {
