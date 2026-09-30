@@ -3,44 +3,84 @@
 <head></head>
 <body>
 <div th:fragment="chat-widget">
-    <!-- Floating Button -->
-    <button id="btn-open-ai-chat" class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
-            style="position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; z-index: 1050; background-color: #1e3a8a; border: none;"
-            title="Mở Trợ lý AI Tư Vấn">
-        <i class="bi bi-chat-dots-fill fs-4 text-white"></i>
+    <style>
+        .ai-pulse-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--crimson, #A51C30);
+            color: #ffffff;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 20px rgba(165, 28, 48, 0.45);
+            cursor: pointer;
+            z-index: 1050;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .ai-pulse-btn:hover {
+            transform: scale(1.08) translateY(-3px);
+            background-color: var(--dark-crimson, #8a1525);
+            box-shadow: 0 10px 25px rgba(165, 28, 48, 0.6);
+        }
+        .ai-pulse-btn::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            z-index: -1;
+            animation: ai-pulse 2s infinite;
+        }
+        @keyframes ai-pulse {
+            0% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(165, 28, 48, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 14px rgba(165, 28, 48, 0); }
+            100% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(165, 28, 48, 0); }
+        }
+    </style>
+
+    <!-- Floating Pulse Button -->
+    <button id="btn-open-ai-chat" class="ai-pulse-btn shadow-lg" title="Mở Trợ Lý AI Học Vụ 24/7">
+        <i class="bi bi-robot fs-3 text-white"></i>
     </button>
 
     <!-- Chat Box Container (Floating Window) -->
     <div id="ai-chat-box" class="card shadow-lg border-0 d-none"
-         style="position: fixed; bottom: 95px; right: 25px; width: 380px; height: 500px; z-index: 1050; border-radius: 12px; overflow: hidden;">
+         style="position: fixed; bottom: 95px; right: 25px; width: 385px; max-width: calc(100vw - 40px); height: 520px; z-index: 1050; border-radius: 14px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.2) !important;">
         
         <!-- Header -->
-        <div class="card-header text-white d-flex align-items-center justify-content-between py-2 px-3" style="background-color: #1e3a8a;">
-            <div class="d-flex align-items-center">
-                <i class="bi bi-robot me-2 fs-5"></i>
+        <div class="card-header text-white d-flex align-items-center justify-content-between py-3 px-3" style="background: linear-gradient(135deg, #8a1525 0%, #A51C30 100%);">
+            <div class="d-flex align-items-center gap-2">
+                <div class="bg-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                    <i class="bi bi-robot text-crimson fs-6"></i>
+                </div>
                 <div>
-                    <h6 class="mb-0 fw-bold">Trợ Lý AI Học Vụ 24/7</h6>
-                    <small class="text-white-50" style="font-size: 11px;">Tra cứu tri thức & Hỗ trợ tạo Ticket</small>
+                    <h6 class="mb-0 fw-bold font-serif" style="font-size: 0.95rem;">Trợ Lý AI Học Vụ HCMUTE</h6>
+                    <small class="text-white-50" style="font-size: 11px;"><i class="bi bi-circle-fill text-success me-1" style="font-size: 8px;"></i>Trực tuyến 24/7 &bull; Trích xuất quy chế</small>
                 </div>
             </div>
-            <button type="button" id="btn-close-ai-chat" class="btn-close btn-close-white" aria-label="Close"></button>
+            <button type="button" id="btn-close-ai-chat" class="btn-close btn-close-white shadow-none" aria-label="Close"></button>
         </div>
 
         <!-- Chat Messages Container -->
-        <div id="ai-chat-messages" class="card-body p-3 overflow-auto" style="background-color: #f8f9fa; height: 375px;">
+        <div id="ai-chat-messages" class="card-body p-3 overflow-auto" style="background-color: #f8f9fa; height: 385px;">
             <div class="d-flex mb-3">
-                <div class="rounded p-2 text-dark bg-white border shadow-sm small" style="max-width: 85%;">
-                    👋 Xin chào! Tôi là Trợ lý AI của trường. Bạn có câu hỏi nào về <strong>Quy chế học vụ, Nộp chứng chỉ tiếng Anh, Điểm thi, Học phí hay Đăng ký môn học</strong> không?
+                <div class="rounded-3 p-3 text-dark bg-white border shadow-sm small" style="max-width: 88%; line-height: 1.5;">
+                    👋 Xin chào! Tôi là <strong>Trợ lý AI Học Vụ HCMUTE</strong>. Bạn có thắc mắc nào về <strong>Quy chế học vụ, Nộp chứng chỉ tiếng Anh, Điểm thi, Học phí hay Đăng ký môn học</strong> không?
                 </div>
             </div>
         </div>
 
         <!-- Chat Input Footer -->
         <div class="card-footer bg-white p-2 border-top">
-            <div class="input-group input-group-sm">
-                <input type="text" id="ai-chat-input" class="form-control" placeholder="Nhập câu hỏi của bạn..." autocomplete="off">
-                <button class="btn btn-primary px-3" id="btn-send-ai-message" type="button" style="background-color: #1e3a8a;">
-                    <i class="bi bi-send-fill"></i>
+            <div class="input-group">
+                <input type="text" id="ai-chat-input" class="form-control form-control-sm border-end-0 shadow-none ps-3" placeholder="Nhập câu hỏi học vụ của bạn..." autocomplete="off">
+                <button class="btn btn-primary btn-sm px-3 fw-semibold" id="btn-send-ai-message" type="button" style="background-color: var(--crimson); border-color: var(--crimson);">
+                    <i class="bi bi-send-fill me-1"></i>Gửi
                 </button>
             </div>
         </div>
