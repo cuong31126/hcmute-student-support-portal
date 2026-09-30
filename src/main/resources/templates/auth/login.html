@@ -6,84 +6,198 @@
 <body>
 <div th:fragment="content">
     <style>
-        .login-hero-bg {
-            background-image: linear-gradient(135deg, rgba(138, 21, 37, 0.88) 0%, rgba(20, 24, 33, 0.88) 100%), url('/images/hero1.jpg');
+        /* Auth Fullscreen Split-Screen Breakout Layout */
+        .auth-split-wrapper {
+            position: relative;
+            width: 100vw;
+            margin-left: calc(-50vw + 50%);
+            margin-right: calc(-50vw + 50%);
+            margin-top: -1.5rem;
+            margin-bottom: -1.5rem;
+            min-height: calc(100vh - 60px);
+            display: flex;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+
+        /* Cột Trái: Toàn cảnh khuôn viên trường HCMUTE */
+        .auth-visual-col {
+            flex: 1 1 58%;
+            position: relative;
+            background-image: url('/images/hero1.jpg');
             background-size: cover;
-            background-position: center;
-            border-radius: 16px;
-            padding: 3rem 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background-position: center center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 3.5rem;
+            color: #ffffff;
         }
-        .login-card {
-            background: #ffffff;
-            border-radius: 14px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            animation: loginCardFade 0.6s ease-out;
+
+        .auth-visual-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(165, 28, 48, 0.65) 100%);
+            z-index: 1;
         }
-        @keyframes loginCardFade {
-            from { opacity: 0; transform: translateY(15px); }
+
+        .auth-visual-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Cột Phải: Biểu mẫu Đăng Nhập Trang Nhã */
+        .auth-form-col {
+            flex: 1 1 42%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 2.5rem;
+            background-color: #ffffff;
+            z-index: 2;
+        }
+
+        .auth-form-box {
+            width: 100%;
+            max-width: 420px;
+            animation: authFadeIn 0.5s ease-out;
+        }
+
+        @keyframes authFadeIn {
+            from { opacity: 0; transform: translateY(16px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .form-control:focus {
+
+        .auth-input-group .form-control {
+            border-radius: 8px;
+            padding: 0.65rem 0.9rem;
+            font-size: 0.95rem;
+            border: 1px solid #d1d5db;
+            transition: all 0.2s ease;
+        }
+
+        .auth-input-group .form-control:focus {
             border-color: var(--crimson);
-            box-shadow: 0 0 0 0.25rem rgba(165, 28, 48, 0.15);
+            box-shadow: 0 0 0 3px rgba(165, 28, 48, 0.12);
+        }
+
+        .auth-input-group .input-group-text {
+            border-radius: 8px 0 0 8px;
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            color: #6b7280;
+        }
+
+        .btn-auth-submit {
+            background-color: var(--crimson);
+            border-color: var(--crimson);
+            color: #ffffff;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            transition: all 0.25s ease;
+        }
+
+        .btn-auth-submit:hover {
+            background-color: var(--dark-crimson);
+            border-color: var(--dark-crimson);
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(165, 28, 48, 0.25);
+        }
+
+        /* Responsive Mobile: Ẩn cột visual, hiển thị form 100% */
+        @media (max-width: 991.98px) {
+            .auth-visual-col {
+                display: none;
+            }
+            .auth-form-col {
+                flex: 1 1 100%;
+                padding: 3rem 1.5rem;
+                background-color: #f8f9fa;
+            }
+            .auth-form-box {
+                background: #ffffff;
+                padding: 2.5rem 2rem;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            }
         }
     </style>
 
-    <div class="login-hero-bg">
-        <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-5 col-xl-4">
-                <div class="login-card p-4 p-md-5">
-                    <!-- Brand & Logo -->
-                    <div class="text-center mb-4">
-                        <img th:src="@{/images/logo.png}" alt="HCMUTE" height="60" class="mb-2">
-                        <h4 class="fw-bold text-dark font-serif mb-1">HCMUTE PORTAL</h4>
-                        <div class="badge bg-danger bg-opacity-10 text-crimson px-3 py-1 rounded-pill fw-semibold small mb-2">
-                            Cổng Tư Vấn Sinh Viên QAUTE
+    <div class="auth-split-wrapper">
+        <!-- Cột Trái: Visual cảnh quan trường HCMUTE & Định vị thương hiệu -->
+        <div class="auth-visual-col">
+            <div class="auth-visual-overlay"></div>
+            
+            <div class="auth-visual-content">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-20 text-white backdrop-blur mb-3">
+                    <i class="bi bi-mortarboard-fill"></i>
+                    <span class="small fw-semibold letter-spacing-1 text-uppercase" style="font-size: 0.78rem;">Đại Học Sư Phạm Kỹ Thuật TP.HCM</span>
+                </div>
+                <h2 class="display-6 fw-bold font-serif mb-2" style="line-height: 1.25;">CỔNG TƯ VẤN SINH VIÊN QAUTE</h2>
+                <p class="text-white-50 small mb-0" style="max-width: 480px;">Nền tảng hỗ trợ học vụ, tiếp nhận Ticket đa kênh và giải đáp quy chế đào tạo tích hợp trí tuệ nhân tạo.</p>
+            </div>
+
+            <div class="auth-visual-content">
+                <blockquote class="border-start border-3 border-danger ps-3 mb-3 text-white-50 small fst-italic" style="border-left-color: var(--crimson) !important;">
+                    "Đồng hành cùng người học trên mọi chặng đường phát triển tri thức và kỹ năng nghề nghiệp."
+                </blockquote>
+                <div class="small text-white-50">&copy; 2026 HCMUTE - Phòng Đào Tạo & CTSV</div>
+            </div>
+        </div>
+
+        <!-- Cột Phải: Biểu mẫu Đăng Nhập -->
+        <div class="auth-form-col">
+            <div class="auth-form-box">
+                <!-- Brand & Header -->
+                <div class="text-center mb-4">
+                    <img th:src="@{/images/logo.png}" alt="HCMUTE" height="64" class="mb-3">
+                    <h4 class="fw-bold text-dark font-serif mb-1">Đăng Nhập Hệ Thống</h4>
+                    <p class="small text-muted mb-0">Sử dụng tài khoản Sinh viên hoặc Cán bộ được cấp</p>
+                </div>
+
+                <!-- Thông báo lỗi đăng nhập -->
+                <div th:if="${param.error}" class="alert alert-danger small py-2 px-3 d-flex align-items-center mb-3 rounded-2">
+                    <i class="bi bi-exclamation-circle-fill me-2 fs-6"></i>
+                    <span>Tên đăng nhập hoặc mật khẩu không chính xác!</span>
+                </div>
+
+                <!-- Thông báo đăng xuất -->
+                <div th:if="${param.logout}" class="alert alert-info small py-2 px-3 d-flex align-items-center mb-3 rounded-2">
+                    <i class="bi bi-check-circle-fill me-2 fs-6"></i>
+                    <span>Đã đăng xuất an toàn khỏi hệ thống.</span>
+                </div>
+
+                <!-- Form Login -->
+                <form th:action="@{/auth/login}" method="post">
+                    <div class="mb-3">
+                        <label for="username" class="form-label small fw-bold text-dark">Tên đăng nhập / Email</label>
+                        <div class="input-group auth-input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input type="text" id="username" name="username" class="form-control" placeholder="VD: 21110001 hoặc email..." required autofocus>
                         </div>
-                        <p class="small text-muted mb-0">Đăng nhập tài khoản Sinh viên hoặc Cán bộ</p>
                     </div>
 
-                    <!-- Alerts -->
-                    <div th:if="${param.error}" class="alert alert-danger small py-2 d-flex align-items-center mb-3">
-                        <i class="bi bi-exclamation-triangle-fill me-2 fs-6"></i>
-                        <span>Tên đăng nhập hoặc mật khẩu không chính xác!</span>
-                    </div>
-                    <div th:if="${param.logout}" class="alert alert-info small py-2 d-flex align-items-center mb-3">
-                        <i class="bi bi-check-circle-fill me-2 fs-6"></i>
-                        <span>Đã đăng xuất thành công khỏi hệ thống.</span>
-                    </div>
-
-                    <!-- Login Form -->
-                    <form th:action="@{/auth/login}" method="post">
-                        <div class="mb-3">
-                            <label for="username" class="form-label small fw-bold text-secondary">Tên đăng nhập / Email</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
-                                <input type="text" id="username" name="username" class="form-control border-start-0 ps-0" placeholder="VD: 21110001 hoặc email..." required autofocus>
-                            </div>
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="password" class="form-label small fw-bold text-dark mb-0">Mật khẩu</label>
                         </div>
-
-                        <div class="mb-4">
-                            <label for="password" class="form-label small fw-bold text-secondary">Mật khẩu</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
-                                <input type="password" id="password" name="password" class="form-control border-start-0 ps-0" placeholder="••••••••" required>
-                            </div>
+                        <div class="input-group auth-input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
                         </div>
-
-                        <div class="d-grid mb-3">
-                            <button type="submit" class="btn btn-primary fw-bold py-2 shadow-xs" style="background-color: var(--crimson); border-color: var(--crimson);">
-                                <i class="bi bi-box-arrow-in-right me-1"></i>Đăng Nhập
-                            </button>
-                        </div>
-                    </form>
-
-                    <div class="text-center small border-top pt-3 text-muted">
-                        Chưa có tài khoản sinh viên? <a th:href="@{/auth/register}" class="fw-bold text-crimson text-decoration-none">Đăng ký ngay</a>
                     </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-auth-submit">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Đăng Nhập
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center small border-top pt-3 text-muted">
+                    Chưa có tài khoản sinh viên? <a th:href="@{/auth/register}" class="fw-bold text-crimson text-decoration-none">Đăng ký ngay</a>
                 </div>
             </div>
         </div>

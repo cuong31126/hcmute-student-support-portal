@@ -48,4 +48,8 @@ git push origin <tên-nhánh-hiện-tại>
    `docs/requirements/brief.md` > `docs/team/engineering-rules.md` > task files.
 2. **Kỷ luật DTO (OSIV = false):** Do cấu hình `spring.jpa.open-in-view: false`, 100% dữ liệu truyền sang View Thymeleaf bắt buộc phải là DTO/Record được ánh xạ trong Service, tránh ném lỗi `LazyInitializationException`.
 3. **Hibernate Collection Safety:** Tuyệt đối không gọi `entity.setList(newList)` trên quan hệ `@OneToMany(orphanRemoval = true)` của Entity đang được quản lý (managed).
-4. **Giao diện chuẩn Học đường / Doanh nghiệp:** Tối giản, trang nhã, không màu mè sặc sỡ, ưu tiên tương tác mượt mà qua AJAX / Fetch API (Zero Full-Page Refresh) và thông báo Toast góc phải.
+4. **Giao diện chuẩn Học đường / Doanh nghiệp:** BẮT BUỘC tuân thủ tài liệu `.agents/skills/academic-ui-ux/SKILL.md`. Tối giản, trang nhã, không màu mè sặc sỡ, ưu tiên tương tác mượt mà qua AJAX / Fetch API (Zero Full-Page Refresh) và thông báo Toast góc phải.
+5. **Ràng Buộc Thiết Kế UI Bắt Buộc (Strict UI Rules):**
+   - **Anti-Boxed Layout:** Tuyệt đối không đóng khung lơ lửng hình ảnh nền hoặc khối visual (Hero, Login, Register) vào một thẻ bo góc lọt thỏm giữa trang. Hero và Auth bắt buộc dùng layout tràn viền Fullscreen / Split-Screen (`100vw`).
+   - **Bảng Màu Cấm:** Cấm tuyệt đối màu vàng chói lóa (`#FFC107`, `#FFD700`, v.v.), cấm gradient đỏ đen dày đặc che khuất ảnh trường học. Chỉ sử dụng bộ màu chuẩn: Harvard Crimson (`#A51C30`), Deep Slate (`#111827`), Light Gray (`#F8F9FA`), và White (`#FFFFFF`).
+   - **Form & Typography:** Sử dụng font `Inter` cho nội dung thông thường, `Playfair Display` cho tiêu đề trang trọng, độ tương phản chữ phải đạt chuẩn WCAG AA.
