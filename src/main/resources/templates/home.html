@@ -134,7 +134,7 @@
         <!-- Hero Content -->
         <div class="hero-content">
             <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-15 text-white mb-3 backdrop-blur shadow-xs">
-                <i class="bi bi-mortarboard-fill text-warning"></i>
+                <i class="bi bi-mortarboard-fill text-white-50"></i>
                 <span class="small fw-semibold letter-spacing-1 text-uppercase" style="font-size: 0.78rem;">Trường Đại Học Sư Phạm Kỹ Thuật TP.HCM</span>
             </div>
 
@@ -161,13 +161,13 @@
                 </div>
             </div>
 
-            <!-- Quick Action Buttons on Hero -->
+            <!-- Quick Action Buttons on Hero (Không dùng màu vàng chói) -->
             <div class="d-flex flex-wrap justify-content-center gap-3">
-                <a th:href="@{/tickets/create}" class="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark shadow-sm">
+                <a th:href="@{/tickets/create}" class="btn btn-danger rounded-pill px-4 py-2 fw-semibold text-white shadow-sm" style="background-color: var(--crimson); border-color: var(--crimson);">
                     <i class="bi bi-ticket-perforated-fill me-1"></i>Gửi Ticket Hỗ Trợ
                 </a>
                 <button type="button" onclick="document.getElementById('btn-open-ai-chat')?.click()" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold">
-                    <i class="bi bi-robot me-1 text-warning"></i>Hỏi Trợ Lý AI 24/7
+                    <i class="bi bi-robot me-1"></i>Hỏi Trợ Lý AI 24/7
                 </button>
             </div>
         </div>
@@ -179,7 +179,7 @@
         </div>
     </div>
 
-    <!-- 2. The 3 Core Pillars (3 Trụ Cột Hỗ Trợ Sinh Viên) -->
+    <!-- 2. The 3 Core Pillars (3 Trụ Cột Hỗ Trợ Sinh Viên - Chuẩn mực, không màu mè chói mắt) -->
     <div class="row g-4 mb-5">
         <!-- Pillar 1: AI Assistant -->
         <div class="col-md-4">
@@ -202,18 +202,18 @@
 
         <!-- Pillar 2: Ticket Desk -->
         <div class="col-md-4">
-            <div class="card h-100 p-4 text-center feature-card shadow-sm border-top border-4 border-warning">
-                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 mx-auto shadow-xs bg-warning bg-opacity-15 text-dark" style="width: 58px; height: 58px;">
-                    <i class="bi bi-ticket-detailed-fill fs-3 text-warning"></i>
+            <div class="card h-100 p-4 text-center feature-card shadow-sm border-top border-4 border-primary">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 mx-auto shadow-xs bg-primary bg-opacity-10 text-primary" style="width: 58px; height: 58px;">
+                    <i class="bi bi-ticket-detailed-fill fs-3"></i>
                 </div>
-                <div class="badge bg-warning bg-opacity-15 text-dark mb-2 mx-auto px-3 py-1 rounded-pill fw-semibold small">
+                <div class="badge bg-primary bg-opacity-10 text-primary mb-2 mx-auto px-3 py-1 rounded-pill fw-semibold small">
                     <i class="bi bi-clock-history me-1"></i>Cam kết SLA 24h - 72h
                 </div>
                 <h5 class="fw-bold mb-2 font-serif text-dark">Gửi Ticket Tư Vấn</h5>
                 <p class="small text-muted mb-4" style="line-height: 1.6;">
                     Tiếp nhận và điều phối yêu cầu trực tiếp đến Phòng Đào tạo, Phòng Tuyển sinh, Ban Cố vấn học tập với mã tra cứu tiện lợi.
                 </p>
-                <a th:href="@{/tickets/create}" class="btn btn-warning btn-sm rounded-pill mt-auto fw-bold text-dark py-2 shadow-xs">
+                <a th:href="@{/tickets/create}" class="btn btn-outline-primary btn-sm rounded-pill mt-auto fw-semibold py-2">
                     <i class="bi bi-plus-circle-fill me-1"></i>Tạo Ticket Ngay
                 </a>
             </div>
@@ -226,7 +226,7 @@
                     <i class="bi bi-journal-bookmark-fill fs-3 text-secondary"></i>
                 </div>
                 <div class="badge bg-secondary bg-opacity-10 text-dark mb-2 mx-auto px-3 py-1 rounded-pill fw-semibold small">
-                    <i class="bi bi-patch-check-fill me-1 text-primary"></i>Kiểm duyệt chính thức
+                    <i class="bi bi-patch-check-fill me-1 text-secondary"></i>Kiểm duyệt chính thức
                 </div>
                 <h5 class="fw-bold mb-2 font-serif text-dark">Kho Tri Thức FAQ</h5>
                 <p class="small text-muted mb-4" style="line-height: 1.6;">

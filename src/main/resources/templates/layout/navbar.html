@@ -2,11 +2,65 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head></head>
 <body>
-<nav th:fragment="navbar" class="navbar navbar-expand-lg navbar-dark shadow-sm sticky-top" style="background: linear-gradient(135deg, #8a1525 0%, #A51C30 100%); border-bottom: 2px solid #6b101c;">
+<nav th:fragment="navbar" class="navbar navbar-expand-lg navbar-dark shadow-sm sticky-top" style="background-color: #0f1115; border-bottom: 1px solid #232730;">
+    <style>
+        /* Modern Header Nav Link with Red Underline Animation */
+        .header-nav-link {
+            color: #d1d5db !important;
+            font-weight: 500;
+            font-size: 0.93rem;
+            position: relative;
+            padding: 0.5rem 0.85rem !important;
+            transition: color 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .header-nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2.5px;
+            background-color: #e11d48; /* Red Underline */
+            border-radius: 2px;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .header-nav-link:hover,
+        .header-nav-link:focus,
+        .header-nav-link.active {
+            color: #f43f5e !important; /* Red text on hover/active */
+        }
+
+        .header-nav-link:hover::after,
+        .header-nav-link:focus::after,
+        .header-nav-link.active::after {
+            width: 80%;
+        }
+
+        /* Staff Desk Button */
+        .btn-staff-desk {
+            background-color: #1c2028;
+            color: #e5e7eb !important;
+            border: 1px solid #333a46;
+            transition: all 0.25s ease;
+        }
+        .btn-staff-desk:hover {
+            background-color: #272c38;
+            border-color: #e11d48;
+            color: #ffffff !important;
+        }
+    </style>
+
     <div class="container">
         <!-- Logo & Brand Name (Top-Left) -->
         <a class="navbar-brand d-flex align-items-center gap-2 py-1 text-decoration-none" th:href="@{/}">
-            <img th:src="@{/images/logo.png}" alt="HCMUTE Logo" height="48" class="d-inline-block align-text-top rounded-1 bg-white p-1 shadow-xs" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
+            <div class="bg-white rounded-2 p-1 d-flex align-items-center justify-content-center shadow-xs" style="width: 44px; height: 44px;">
+                <img th:src="@{/images/logo.png}" alt="HCMUTE Logo" height="36" class="d-inline-block">
+            </div>
             <div class="d-flex flex-column text-start">
                 <span class="fw-bold text-white tracking-wide font-serif" style="font-size: 1.15rem; letter-spacing: 0.5px; line-height: 1.15;">HCMUTE</span>
                 <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.8px;">Cổng Tư Vấn Sinh Viên QAUTE</span>
@@ -14,7 +68,7 @@
         </a>
 
         <!-- Mobile Toggler -->
-        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler border-0 shadow-none text-white-50" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
 
@@ -22,36 +76,36 @@
         <div class="collapse navbar-collapse" id="navbarMain">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
                 <li class="nav-item">
-                    <a class="nav-link px-2 px-xl-3" th:href="@{/}"><i class="bi bi-house-door me-1"></i>Trang Chủ</a>
+                    <a class="nav-link header-nav-link" th:href="@{/}"><i class="bi bi-house-door me-1"></i>Trang Chủ</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link px-2 px-xl-3" th:href="@{/feed/official}"><i class="bi bi-megaphone me-1"></i>Bảng Tin</a>
+                    <a class="nav-link header-nav-link" th:href="@{/feed/official}"><i class="bi bi-megaphone me-1"></i>Bảng Tin</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link px-2 px-xl-3" th:href="@{/feed/forum}"><i class="bi bi-chat-left-dots me-1"></i>Diễn Đàn</a>
+                    <a class="nav-link header-nav-link" th:href="@{/feed/forum}"><i class="bi bi-chat-left-dots me-1"></i>Diễn Đàn</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link px-2 px-xl-3" th:href="@{/faqs}"><i class="bi bi-search me-1"></i>Tra Cứu FAQ</a>
+                    <a class="nav-link header-nav-link" th:href="@{/faqs}"><i class="bi bi-search me-1"></i>Tra Cứu FAQ</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link px-2 px-xl-3 fw-semibold text-warning" th:href="@{/tickets/create}">
+                    <a class="nav-link header-nav-link" th:href="@{/tickets/create}">
                         <i class="bi bi-ticket-perforated me-1"></i>Gửi Ticket
                     </a>
                 </li>
                 <li class="nav-item" sec:authorize="isAuthenticated()">
-                    <a class="nav-link px-2 px-xl-3" th:href="@{/tickets/my-tickets}"><i class="bi bi-journal-text me-1"></i>Ticket Của Tôi</a>
+                    <a class="nav-link header-nav-link" th:href="@{/tickets/my-tickets}"><i class="bi bi-journal-text me-1"></i>Ticket Của Tôi</a>
                 </li>
 
-                <!-- Unified Staff / Admin Desk Dropdown (Tinh gọn, không làm rối người dùng) -->
+                <!-- Unified Staff / Admin Desk Dropdown -->
                 <li class="nav-item dropdown" sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
-                    <a class="nav-link dropdown-toggle fw-bold text-white px-2 px-xl-3 bg-black bg-opacity-25 rounded-pill px-3 ms-lg-2" href="#" id="staffDeskDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-shield-shaded me-1 text-warning"></i>Bàn Cán Bộ
+                    <a class="nav-link dropdown-toggle rounded-pill px-3 py-1 btn-staff-desk ms-lg-2 small fw-semibold" href="#" id="staffDeskDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-shield-shaded me-1 text-danger"></i>Bàn Cán Bộ
                     </a>
                     <ul class="dropdown-menu shadow border-0 mt-2" aria-labelledby="staffDeskDropdown">
                         <li><h6 class="dropdown-header text-uppercase text-secondary fw-bold" style="font-size: 0.75rem;">Nghiệp Vụ Cán Bộ (Staff)</h6></li>
                         <li>
                             <a class="dropdown-item py-2" th:href="@{/staff/tickets}">
-                                <i class="bi bi-kanban me-2 text-warning"></i>Bàn Xử Lý Ticket
+                                <i class="bi bi-kanban me-2 text-danger"></i>Bàn Xử Lý Ticket
                             </a>
                         </li>
                         <li>
@@ -87,16 +141,16 @@
 
             <!-- Right Controls: Quick AI Button & Auth -->
             <div class="d-flex align-items-center gap-2">
-                <!-- Quick AI Assist Button -->
-                <button type="button" onclick="document.getElementById('btn-open-ai-chat')?.click()" class="btn btn-sm btn-outline-light rounded-pill px-3 d-none d-md-inline-flex align-items-center gap-1 shadow-xs border-opacity-50">
-                    <i class="bi bi-robot text-warning"></i>
-                    <span class="small fw-semibold">Hỏi AI 24/7</span>
+                <!-- Quick AI Assist Button (Tối giản thanh lịch, không vàng) -->
+                <button type="button" onclick="document.getElementById('btn-open-ai-chat')?.click()" class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-none d-md-inline-flex align-items-center gap-1 text-white-50 border-secondary border-opacity-50">
+                    <i class="bi bi-robot text-danger"></i>
+                    <span class="small fw-semibold text-white">Hỏi AI 24/7</span>
                 </button>
 
                 <!-- Guest / Not Logged In -->
                 <div sec:authorize="isAnonymous()" class="d-flex gap-2">
                     <a class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold" th:href="@{/auth/login}">Đăng Nhập</a>
-                    <a class="btn btn-warning btn-sm rounded-pill px-3 fw-semibold text-dark shadow-xs" th:href="@{/auth/register}">Đăng Ký</a>
+                    <a class="btn btn-danger btn-sm rounded-pill px-3 fw-semibold shadow-xs" style="background-color: var(--crimson); border-color: var(--crimson);" th:href="@{/auth/register}">Đăng Ký</a>
                 </div>
 
                 <!-- Logged In User Profile -->
@@ -117,7 +171,7 @@
                         </li>
                         <li sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
                             <a class="dropdown-item py-2" th:href="@{/staff/tickets}">
-                                <i class="bi bi-kanban me-2 text-warning"></i>Bàn Xử Lý Cán Bộ
+                                <i class="bi bi-kanban me-2 text-danger"></i>Bàn Xử Lý Cán Bộ
                             </a>
                         </li>
                         <li><hr class="dropdown-divider"></li>
