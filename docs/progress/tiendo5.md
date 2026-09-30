@@ -93,21 +93,27 @@ graph TD
 
 ## 4. KẾ HOẠCH TÁC CHIẾN 5 GIAI ĐOẠN (IMPLEMENTATION PHASES)
 
-### 🚀 Giai đoạn 1: Chuẩn hóa Static Assets & Cấu hình Tài nguyên
+### 🚀 Giai đoạn 1: Chuẩn hóa Static Assets & Cấu hình Tài nguyên [✅ ĐÃ HOÀN THÀNH]
 - **Mục tiêu:** Đồng bộ toàn bộ tài nguyên vào `src/main/resources/static/` để Spring Boot phục vụ chính xác qua các URL `/images/*` và `/css/*`.
-- **Nội dung thực hiện:**
-  1. Tạo cấu trúc thư mục `src/main/resources/static/images/` và `src/main/resources/static/css/`.
-  2. Đồng bộ các file: `logo.png`, `hero1.jpg`, `hero1.webp`, `hero2.jpg`, `hero2.webp`, `portal.css`, `style.css`.
-  3. Cấu hình Spring Resource Handler (nếu cần cache-busting hoặc static mapping).
+- **Kết quả thực hiện:**
+  1. Đã dọn dẹp cấu trúc thư mục sạch sẽ: `src/main/resources/static/images/` và `src/main/resources/static/css/`.
+  2. Đồng bộ đầy đủ: `logo.png`, `hero1.jpg`, `hero1.webp`, `hero2.jpg`, `hero2.webp`, `portal.css`, `style.css`.
+  3. Đã xác nhận `SecurityConfig.java` cho phép truy cập public không bị chặn đối với `/css/**`, `/images/**`, `/js/**`.
 
-### 🚀 Giai đoạn 2: Tái cấu trúc Header/Navbar & Đặt Logo HCMUTE
+### 🚀 Giai đoạn 2: Tái cấu trúc Header/Navbar & Đặt Logo HCMUTE [✅ ĐÃ HOÀN THÀNH]
 - **Mục tiêu:** Đặt Logo HCMUTE sắc nét ở góc trên bên trái; tinh gọn thanh điều hướng để sinh viên thao tác nhanh nhất.
-- **Nội dung thực hiện:**
-  1. Chỉnh sửa `layout/navbar.html`:
-     - Góc trên cùng bên trái: Thêm thẻ `<img>` trỏ đến `@{/images/logo.png}` với chiều cao cân đối (48px - 52px), đi kèm nhãn thương hiệu *"TRƯỜNG ĐH SƯ PHẠM KỸ THUẬT TP.HCM - QAUTE PORTAL"*.
-     - Tối giản Menu công khai cho Sinh viên: Chỉ giữ lại **Trang Chủ**, **Bảng Tin**, **Hỏi Đáp FAQ**, **Gửi Ticket**.
-     - Gom các chức năng Cán bộ/Admin vào một nút duy nhất: **"Bàn Làm Việc Cán Bộ"** (Staff Desk) hoặc Dropdown có biểu tượng khiên bảo mật.
-  2. Bổ sung liên kết nhanh đến **Trợ Lý AI** trực tiếp trên Header.
+- **Kết quả thực hiện:**
+  1. `layout/navbar.html`:
+     - Góc trên cùng bên trái: Đặt `<img>` trỏ đến `@{/images/logo.png}` với nền bo tròn sang trọng, hiệu ứng hover phóng to nhẹ, đi kèm tên thương hiệu *"HCMUTE - Cổng Tư Vấn Sinh Viên QAUTE"*.
+     - Tối giản Menu công khai: Tập trung 4 nút cốt lõi cho Sinh viên (*Trang Chủ*, *Bảng Tin*, *Diễn Đàn*, *Tra Cứu FAQ*, *Gửi Ticket*).
+     - Gom toàn bộ chức năng Cán bộ và Admin vào 1 mục duy nhất: **"Bàn Cán Bộ"** (Staff Desk Dropdown) gọn gàng, có phân mục rõ ràng giữa Staff và Admin, không làm ngợp giao diện sinh viên.
+     - Thêm nút gọi nhanh **"Hỏi AI 24/7"** trực tiếp trên Header.
+  2. `layout/main.html`:
+     - Nhúng Favicon Logo HCMUTE chính thức.
+     - Nhúng bộ phông chữ học thuật `Playfair Display` kết hợp `Inter`.
+     - Chuyển màu chủ đạo toàn hệ thống sang màu đỏ đô Crimson (`#A51C30` & `#8a1525`).
+  3. `layout/footer.html`: Tái thiết kế giao diện Footer trang nghiêm đẳng cấp trường đại học quốc tế, có Logo trường, địa chỉ, hotline và chỉ số SLA Engine Active.
+  4. `ai/chat-widget.html`: Nâng cấp nút mở tròn nổi với hiệu ứng sóng xung điện (`pulse-ring`) góc dưới bên phải và giao diện hội thoại Crimson.
 
 ### 🚀 Giai đoạn 3: Cải tổ Trang Chủ (Home) với Hero Slider & 3 Trụ Cột
 - **Mục tiêu:** Thay đổi hoàn toàn diện mạo trang chủ thành Cổng Thông Tin Hiện Đại với animation chuyển ảnh nền tự động.
