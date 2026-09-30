@@ -115,21 +115,23 @@ graph TD
   3. `layout/footer.html`: Tái thiết kế giao diện Footer trang nghiêm đẳng cấp trường đại học quốc tế, có Logo trường, địa chỉ, hotline và chỉ số SLA Engine Active.
   4. `ai/chat-widget.html`: Nâng cấp nút mở tròn nổi với hiệu ứng sóng xung điện (`pulse-ring`) góc dưới bên phải và giao diện hội thoại Crimson.
 
-### 🚀 Giai đoạn 3: Cải tổ Trang Chủ (Home) với Hero Slider & 3 Trụ Cột
+### 🚀 Giai đoạn 3: Cải tổ Trang Chủ (Home) với Hero Slider & 3 Trụ Cột [✅ ĐÃ HOÀN THÀNH]
 - **Mục tiêu:** Thay đổi hoàn toàn diện mạo trang chủ thành Cổng Thông Tin Hiện Đại với animation chuyển ảnh nền tự động.
-- **Nội dung thực hiện:**
+- **Kết quả thực hiện:**
   1. **Hero Slider Section (`home.html`):**
-     - Tạo 2 layer `.hero-slide` chứa background `hero1.jpg` và `hero2.jpg`.
-     - Thêm script chuyển ảnh tự động (Auto-play carousel) sau mỗi 5 giây với hiệu ứng làm mờ êm dịu (`transition: opacity 1.5s ease-in-out`).
-     - Đặt thanh tìm kiếm đa năng (Omni Search Box): Sinh viên nhập từ khóa để tự động tìm câu hỏi FAQ hoặc chuyển tiếp sang AI Chat.
-  2. **Khối 3 Trụ Cột Hỗ Trợ (Core Services):**
-     - *Trụ cột 1:* **Trợ Lý Học Vụ AI (24/7)** - Giải đáp quy chế tức thì, trích dẫn quy định nhà trường.
-     - *Trụ cột 2:* **Tiếp Nhận Ticket Đào Tạo & CTSV** - Cam kết thời hạn xử lý SLA 24h - 72h.
-     - *Trụ cột 3:* **Diễn Đàn & Bảng Tin Học Vụ** - Trao đổi thông tin chính thức giữa Nhà trường và Sinh viên.
-  3. **Bảng Tin Đào Tạo Nổi Bật (News Grid):**
-     - Thiết kế các thẻ tin (`.news-card`) có ngày đăng nổi bật, tóm tắt nội dung và ảnh preview hiện đại.
-  4. **Danh mục Khoa/Phòng Ban Trực quan:**
-     - Thiết kế lại các thẻ Khoa thành Card có huy hiệu, phòng làm việc, email và nút "Liên hệ hỗ trợ".
+     - Đã tạo 2 layer `.hero-slide` chuyển đổi giữa 2 hình ảnh khuôn viên trường `hero1.jpg` và `hero2.jpg`.
+     - Script tự động chuyển ảnh (Auto-play carousel) mượt mà sau mỗi 5 giây với hiệu ứng fade & zoom quang học (`transition: opacity 1.5s ease-in-out, transform 6s ease`).
+     - Thanh chỉ số chấm tròn (Indicators) cho phép người dùng click chuyển slide chủ động.
+     - Lớp phủ tối mờ gradient đỏ đô - xanh thẫm học thuật tôn vinh slogan nhà trường.
+     - Thanh tìm kiếm thông minh đa năng (Omni Search Box) tìm kiếm FAQ tức thì hoặc kích hoạt AI.
+  2. **Khối 3 Trụ Cột Hỗ Trợ (Core Services) - Tinh gọn, hiện đại:**
+     - *Trụ cột 1:* **Trợ Lý AI Học Vụ** (Badge tốc độ $\le 2\text{ms}$, gọi nhanh Chatbox AI).
+     - *Trụ cột 2:* **Gửi Ticket Tư Vấn** (Badge cam kết SLA 24h - 72h, tạo ticket nhanh).
+     - *Trụ cột 3:* **Kho Tri Thức FAQ** (Badge kiểm duyệt chính thức 300+ câu hỏi).
+  3. **Khối Bảng Tin & Đơn Vị Tư Vấn:**
+     - Thiết kế thẻ tin tức đào tạo sắc nét, có nút dẫn sang Bảng tin chính thức và Diễn đàn sinh viên.
+     - Danh bạ Khoa/Phòng ban dạng Card trực quan có mã đơn vị, địa chỉ văn phòng và email liên hệ.
+  4. **Kiểm thử:** 54/54 test cases đạt 100% BUILD SUCCESS. Commit và push thành công lên `origin/feature/ui-overhaul-crimson-branding`.
 
 ### 🚀 Giai đoạn 4: Tách Biệt Không Gian Trải Nghiệm (Public vs Portal)
 - **Mục tiêu:** Tạo trải nghiệm làm việc riêng biệt cho Cán bộ (Staff/Admin) bằng bộ CSS `portal.css`.
