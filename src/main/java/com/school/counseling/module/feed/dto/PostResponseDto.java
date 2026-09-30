@@ -27,9 +27,23 @@ public class PostResponseDto {
 
     private Long authorId;
     private String authorName;
+    private String authorEmail;
     private String authorUsername;
     private String authorRole;
     private String authorAvatar;
+
+    public record AuthorSummary(Long id, String fullName, String email, String username) {}
+
+    public AuthorSummary getAuthor() {
+        if (authorId == null && authorName == null) {
+            return null;
+        }
+        return new AuthorSummary(authorId, authorName != null ? authorName : "Sinh viên", authorEmail, authorUsername);
+    }
+
+    public String getAuthorFullName() {
+        return authorName != null ? authorName : "Sinh viên";
+    }
 
     private Integer likeCount;
     private Integer commentCount;

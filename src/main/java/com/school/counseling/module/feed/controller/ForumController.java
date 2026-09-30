@@ -121,10 +121,15 @@ public class ForumController {
         Long currentUserId = SecurityUtils.getCurrentUserId().orElseThrow();
         User author = userRepository.findById(currentUserId).orElseThrow();
 
-        postService.createForumPost(title, content, image, author);
+        Post post = postService.createForumPost(title, content, image, author);
 
-        redirectAttributes.addFlashAttribute("successMessage",
-                "Bài thảo luận đã được gửi thành công! Theo quy định, bài viết sẽ hiển thị công khai sau khi được Cán bộ phê duyệt.");
+        if ("APPROVED".equalsIgnoreCase(post.getStatus())) {
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Bài viết của bạn đã được xuất bản công khai trên Diễn đàn!");
+        } else {
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Bài thảo luận đã được gửi thành công! Theo quy định, bài viết sẽ hiển thị công khai sau khi được Cán bộ phê duyệt.");
+        }
         return "redirect:/feed/forum";
     }
 

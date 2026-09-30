@@ -3,6 +3,8 @@ package com.school.counseling.module.feed.controller;
 import com.school.counseling.common.util.SecurityUtils;
 import com.school.counseling.module.auth.entity.User;
 import com.school.counseling.module.auth.repository.UserRepository;
+import com.school.counseling.module.feed.dto.PostReportResponseDto;
+import com.school.counseling.module.feed.dto.PostResponseDto;
 import com.school.counseling.module.feed.entity.Post;
 import com.school.counseling.module.feed.entity.PostReport;
 import com.school.counseling.module.feed.service.PostService;
@@ -34,7 +36,7 @@ public class ModerationController {
             Model model) {
 
         Pageable pageable = PageRequest.of(Math.max(0, page), 10);
-        Page<Post> pendingPosts = postService.getPendingPosts(pageable);
+        Page<PostResponseDto> pendingPosts = postService.getPendingPostsDto(pageable);
 
         model.addAttribute("posts", pendingPosts);
         model.addAttribute("pendingCount", postService.countPendingPosts());
@@ -82,7 +84,7 @@ public class ModerationController {
             Model model) {
 
         Pageable pageable = PageRequest.of(Math.max(0, page), 10);
-        Page<PostReport> reports = postService.getReports(status, pageable);
+        Page<PostReportResponseDto> reports = postService.getReportsDto(status, pageable);
 
         model.addAttribute("reports", reports);
         model.addAttribute("currentStatus", status);

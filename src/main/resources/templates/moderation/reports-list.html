@@ -67,13 +67,13 @@
                     <tr th:each="rep : ${reports.content}">
                         <td class="fw-bold" th:text="'#' + ${rep.id}">#1</td>
                         <td style="max-width: 280px;">
-                            <div class="fw-bold text-dark text-truncate" th:text="${rep.post.title}">Tiêu đề bài viết</div>
-                            <small class="text-muted text-truncate d-block" th:text="${rep.post.content}">Nội dung bài viết...</small>
-                            <small class="text-muted">Tác giả: <strong th:text="${rep.post.author != null ? rep.post.author.fullName : 'N/A'}">Sinh viên A</strong></small>
+                            <div class="fw-bold text-dark text-truncate" th:text="${rep.post != null ? rep.post.title : 'Bài viết đã bị xóa'}">Tiêu đề bài viết</div>
+                            <small class="text-muted text-truncate d-block" th:text="${rep.post != null ? rep.post.content : ''}">Nội dung bài viết...</small>
+                            <small class="text-muted">Tác giả: <strong th:text="${rep.post != null and rep.post.author != null ? rep.post.author.fullName : 'N/A'}">Sinh viên A</strong></small>
                         </td>
                         <td>
                             <div class="fw-semibold text-dark" th:text="${rep.reporter != null ? rep.reporter.fullName : 'Ẩn danh'}">Sinh viên B</div>
-                            <small class="text-muted" th:if="${rep.reporter != null}" th:text="${rep.reporter.email}">email</small>
+                            <small class="text-muted" th:if="${rep.reporter != null and rep.reporter.email != null}" th:text="${rep.reporter.email}">email</small>
                         </td>
                         <td>
                             <span th:if="${rep.reason == 'SPAM'}" class="badge bg-warning text-dark">SPAM / QUẢNG CÁO</span>

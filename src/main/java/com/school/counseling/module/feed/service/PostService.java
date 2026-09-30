@@ -9,6 +9,7 @@ import com.school.counseling.module.auth.repository.UserRepository;
 import com.school.counseling.module.feed.dto.CommentDto;
 import com.school.counseling.module.feed.dto.CreatePostRequest;
 import com.school.counseling.module.feed.dto.PostAttachmentDto;
+import com.school.counseling.module.feed.dto.PostReportResponseDto;
 import com.school.counseling.module.feed.dto.PostResponseDto;
 import com.school.counseling.module.feed.entity.Comment;
 import com.school.counseling.module.feed.entity.Post;
@@ -162,16 +163,23 @@ public class PostService {
      */
     @Transactional
     public Post createForumPost(String title, String content, MultipartFile image, User author) {
-        Post post = Post.builder()
+        boolean isStaffOrAdmin = author != null && author.getRole() != null &&
+                ("ROLE_STAFF".equalsIgnoreCase(author.getRole().getName()) || "ROLE_ADMIN".equalsIgnoreCase(author.getRole().getName()));
+        String initialStatus = isStaffOrAdmin ? "APPROVED" : "PENDING_APPROVAL";
+
+        Post.PostBuilder postBuilder = Post.builder()
                 .title(title)
                 .content(content)
                 .postType("STUDENT_FORUM")
-                .status("PENDING_APPROVAL") // BRULE-POST-002: Bài thảo luận SV bắt buộc qua hàng đợi duyệt
+                .status(initialStatus)
                 .author(author)
-                .department(author != null ? author.getDepartment() : null)
-                .build();
+                .department(author != null ? author.getDepartment() : null);
 
-        Post savedPost = postRepository.save(post);
+        if (isStaffOrAdmin) {
+            postBuilder.approvedBy(author).approvedAt(LocalDateTime.now());
+        }
+
+        Post savedPost = postRepository.save(postBuilder.build());
 
         if (image != null && !image.isEmpty()) {
             IStorageService.StorageResult uploadResult = storageService.uploadFile(image, "images");
@@ -537,7 +545,15 @@ public class PostService {
     }
 
     /**
-     * Lấy danh sách bài viết đang chờ kiểm duyệt
+     * Lấy danh sách bài viết đang chờ kiểm duyệt (Trả về DTO tuân thủ OSIV = false)
+     */
+    @Transactional(readOnly = true)
+    public Page<PostResponseDto> getPendingPostsDto(Pageable pageable) {
+        return postRepository.findPendingModerationPosts(pageable).map(this::mapToDto);
+    }
+
+    /**
+     * Lấy danh sách bài viết đang chờ kiểm duyệt (Entity nội bộ)
      */
     @Transactional(readOnly = true)
     public Page<Post> getPendingPosts(Pageable pageable) {
@@ -545,11 +561,60 @@ public class PostService {
     }
 
     /**
-     * Lấy danh sách báo cáo vi phạm
+     * Lấy danh sách báo cáo vi phạm (Trả về DTO tuân thủ OSIV = false)
+     */
+    @Transactional(readOnly = true)
+    public Page<PostReportResponseDto> getReportsDto(String status, Pageable pageable) {
+        return postReportRepository.findReportsByStatus(status, pageable).map(this::mapReportToDto);
+    }
+
+    /**
+     * Lấy danh sách báo cáo vi phạm (Entity nội bộ)
      */
     @Transactional(readOnly = true)
     public Page<PostReport> getReports(String status, Pageable pageable) {
         return postReportRepository.findReportsByStatus(status, pageable);
+    }
+
+    private PostReportResponseDto mapReportToDto(PostReport report) {
+        PostReportResponseDto.PostSummary postSummary = null;
+        if (report.getPost() != null) {
+            Post p = report.getPost();
+            PostReportResponseDto.AuthorSummary authorSummary = null;
+            if (p.getAuthor() != null) {
+                authorSummary = new PostReportResponseDto.AuthorSummary(
+                        p.getAuthor().getId(),
+                        p.getAuthor().getFullName(),
+                        p.getAuthor().getEmail()
+                );
+            }
+            postSummary = new PostReportResponseDto.PostSummary(
+                    p.getId(),
+                    p.getTitle(),
+                    p.getContent(),
+                    authorSummary
+            );
+        }
+
+        PostReportResponseDto.ReporterSummary reporterSummary = null;
+        if (report.getReporter() != null) {
+            reporterSummary = new PostReportResponseDto.ReporterSummary(
+                    report.getReporter().getId(),
+                    report.getReporter().getFullName(),
+                    report.getReporter().getEmail()
+            );
+        }
+
+        return PostReportResponseDto.builder()
+                .id(report.getId())
+                .post(postSummary)
+                .reporter(reporterSummary)
+                .reason(report.getReason())
+                .details(report.getDetails())
+                .status(report.getStatus())
+                .createdAt(report.getCreatedAt())
+                .resolvedAt(report.getResolvedAt())
+                .build();
     }
 
     public long countPendingPosts() {
@@ -584,9 +649,11 @@ public class PostService {
         String authorRole = "STUDENT";
         String authorAvatar = null;
         String authorUsername = null;
+        String authorEmail = null;
         if (post.getAuthor() != null) {
             authorUsername = post.getAuthor().getUsername();
             authorAvatar = post.getAuthor().getAvatarUrl();
+            authorEmail = post.getAuthor().getEmail();
             if (post.getAuthor().getRole() != null) {
                 authorRole = post.getAuthor().getRole().getName().replace("ROLE_", "");
             }
@@ -611,6 +678,7 @@ public class PostService {
                 .departmentName(post.getDepartment() != null ? post.getDepartment().getName() : null)
                 .authorId(post.getAuthor() != null ? post.getAuthor().getId() : null)
                 .authorName(post.getAuthor() != null ? post.getAuthor().getFullName() : null)
+                .authorEmail(authorEmail)
                 .authorUsername(authorUsername)
                 .authorRole(authorRole)
                 .authorAvatar(authorAvatar)

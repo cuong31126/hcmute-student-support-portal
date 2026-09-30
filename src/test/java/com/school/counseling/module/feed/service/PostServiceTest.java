@@ -2,6 +2,7 @@ package com.school.counseling.module.feed.service;
 
 import com.school.counseling.common.exception.ResourceNotFoundException;
 import com.school.counseling.common.storage.IStorageService;
+import com.school.counseling.module.auth.entity.Role;
 import com.school.counseling.module.auth.entity.User;
 import com.school.counseling.module.auth.repository.DepartmentRepository;
 import com.school.counseling.module.auth.repository.UserRepository;
@@ -67,15 +68,19 @@ class PostServiceTest {
 
     @BeforeEach
     void setUp() {
+        Role staffRole = Role.builder().name("ROLE_STAFF").build();
         mockStaff = new User();
         mockStaff.setId(1L);
         mockStaff.setUsername("staff_tuyensinh");
         mockStaff.setFullName("Cán bộ Tuyển sinh");
+        mockStaff.setRole(staffRole);
 
+        Role studentRole = Role.builder().name("ROLE_STUDENT").build();
         mockStudent = new User();
         mockStudent.setId(2L);
         mockStudent.setUsername("student01");
         mockStudent.setFullName("Trương Lê Trung Hiếu");
+        mockStudent.setRole(studentRole);
     }
 
     @Test
@@ -194,6 +199,33 @@ class PostServiceTest {
         assertEquals("PENDING_APPROVAL", saved.getStatus());
         assertEquals("STUDENT_FORUM", saved.getPostType());
         assertEquals(mockStudent, saved.getAuthor());
+        verify(postRepository, times(1)).save(any(Post.class));
+    }
+
+    @Test
+    @DisplayName("TDD-04B [RBAC]: Cán bộ đăng bài diễn đàn -> Trạng thái APPROVED ngay lập tức không cần duyệt")
+    void shouldCreateForumPostWithApprovedStatusWhenAuthorIsStaff() {
+        // Arrange
+        String title = "Cán bộ chia sẻ kinh nghiệm học tập";
+        String content = "Chào các em sinh viên...";
+
+        when(postRepository.save(any(Post.class))).thenAnswer(invocation -> {
+            Post p = invocation.getArgument(0);
+            p.setId(201L);
+            return p;
+        });
+
+        // Act
+        Post saved = postService.createForumPost(title, content, null, mockStaff);
+
+        // Assert
+        assertNotNull(saved);
+        assertEquals(201L, saved.getId());
+        assertEquals("APPROVED", saved.getStatus());
+        assertEquals("STUDENT_FORUM", saved.getPostType());
+        assertEquals(mockStaff, saved.getAuthor());
+        assertEquals(mockStaff, saved.getApprovedBy());
+        assertNotNull(saved.getApprovedAt());
         verify(postRepository, times(1)).save(any(Post.class));
     }
 
