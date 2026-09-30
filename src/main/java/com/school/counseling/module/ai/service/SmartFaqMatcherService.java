@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SmartFaqMatcherService {
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final FaqRepository faqRepository;
 
@@ -40,6 +44,8 @@ public class SmartFaqMatcherService {
                 Long deptId = (f.getDepartment() != null) ? f.getDepartment().getId() : null;
                 String category = (f.getCategory() != null) ? f.getCategory() : "Học vụ";
                 String keywords = (f.getKeywords() != null) ? f.getKeywords() : "";
+                LocalDateTime postDate = f.getPostDate() != null ? f.getPostDate() : f.getCreatedAt();
+                String formattedDate = postDate != null ? postDate.format(DATE_FORMATTER) : "";
 
                 faqCache.add(new FaqCacheItem(
                         f.getId(),
@@ -50,7 +56,9 @@ public class SmartFaqMatcherService {
                         category,
                         normalize(f.getQuestion()),
                         normalize(keywords),
-                        normalize(f.getAnswer())
+                        normalize(f.getAnswer()),
+                        postDate,
+                        formattedDate
                 ));
             }
             log.info("Nạp bộ nhớ Cache FAQ thành công: {} câu hỏi", faqCache.size());
@@ -63,7 +71,7 @@ public class SmartFaqMatcherService {
      * Tìm kiếm từ khóa chính xác trong kho câu hỏi học vụ
      * @param query Từ khóa do người dùng nhập (hỗ trợ cả tiếng Việt có dấu và không dấu)
      * @param departmentId Đơn vị (nếu có lọc)
-     * @return Danh sách câu hỏi phù hợp nhất sắp xếp theo độ liên quan
+     * @return Danh sách câu hỏi phù hợp nhất sắp xếp theo thời gian mới nhất (post_date DESC)
      */
     public List<FaqMatchResult> matchQuestion(String query, Long departmentId) {
         if (query == null || query.trim().isEmpty()) {
@@ -133,9 +141,13 @@ public class SmartFaqMatcherService {
             matches.add(new ScoredItem(item, relevanceScore, confidenceScore));
         }
 
-        // Sắp xếp theo điểm liên quan giảm dần và lấy tối đa 20 kết quả tốt nhất
+        // Sắp xếp ưu tiên thời gian gần đây nhất lên đầu (postDate DESC), sau đó đến điểm liên quan (score DESC)
+        Comparator<ScoredItem> sorter = Comparator
+                .comparing((ScoredItem s) -> s.item().postDate(), Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(Comparator.comparingInt(ScoredItem::score).reversed());
+
         return matches.stream()
-                .sorted(Comparator.comparingInt(ScoredItem::score).reversed())
+                .sorted(sorter)
                 .limit(20)
                 .map(m -> new FaqMatchResult(
                         m.item().id(),
@@ -144,7 +156,9 @@ public class SmartFaqMatcherService {
                         m.item().departmentName(),
                         m.item().departmentId(),
                         m.item().category(),
-                        m.confidenceScore()
+                        m.confidenceScore(),
+                        m.item().postDate(),
+                        m.item().formattedDate()
                 ))
                 .collect(Collectors.toList());
     }
@@ -167,7 +181,9 @@ public class SmartFaqMatcherService {
             String departmentName,
             Long departmentId,
             String category,
-            double confidenceScore
+            double confidenceScore,
+            LocalDateTime postDate,
+            String formattedDate
     ) {}
 
     private record FaqCacheItem(
@@ -179,7 +195,9 @@ public class SmartFaqMatcherService {
             String category,
             String normQuestion,
             String normKeywords,
-            String normAnswer
+            String normAnswer,
+            LocalDateTime postDate,
+            String formattedDate
     ) {}
 
     private record ScoredItem(

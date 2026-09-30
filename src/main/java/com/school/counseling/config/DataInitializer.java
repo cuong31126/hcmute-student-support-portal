@@ -95,9 +95,18 @@ public class DataInitializer implements CommandLineRunner {
             long existingFaqCount = faqRepository.count();
             boolean missingPostDate = (existingFaqCount > 0) && faqRepository.findAll().stream().anyMatch(f -> f.getPostDate() == null);
 
-            if (existingFaqCount != 300 || missingPostDate) {
-                log.info("Phát hiện kho FAQ chưa chuẩn hóa (hiện có {} câu, missingPostDate={}). Tiến hành dọn sạch và nạp 300 câu tinh tuyển...",
-                        existingFaqCount, missingPostDate);
+            File datasetFile = new File("docs/dataset/faq_dataset_curated.json");
+            long expectedFaqCount = 349;
+            if (datasetFile.exists()) {
+                try {
+                    List<?> recs = objectMapper.readValue(datasetFile, List.class);
+                    expectedFaqCount = recs.size();
+                } catch (Exception ignored) {}
+            }
+
+            if (existingFaqCount != expectedFaqCount || missingPostDate) {
+                log.info("Phát hiện kho FAQ chưa chuẩn hóa (hiện có {} câu, kỳ vọng {} câu, missingPostDate={}). Tiến hành dọn sạch và nạp kho tri thức tinh tuyển...",
+                        existingFaqCount, expectedFaqCount, missingPostDate);
                 faqRepository.hardDeleteAllFaqs();
                 faqRepository.resetAutoIncrement();
                 seedFaqsFromDataset(deptDoan, deptTuyenSinh, deptDaoTao, deptCntt, deptNn);

@@ -27,11 +27,11 @@ public interface FaqRepository extends JpaRepository<Faq, Long> {
     @Query("SELECT f FROM Faq f LEFT JOIN FETCH f.department WHERE f.isActive = true")
     List<Faq> findAllActiveWithDepartment();
 
-    // Lấy Top FAQs tiêu biểu kèm Department
-    @Query("SELECT f FROM Faq f LEFT JOIN FETCH f.department WHERE f.isActive = true ORDER BY f.viewCount DESC, f.createdAt DESC")
+    // Lấy Top FAQs tiêu biểu kèm Department (ưu tiên câu hỏi cập nhật mới nhất)
+    @Query("SELECT f FROM Faq f LEFT JOIN FETCH f.department WHERE f.isActive = true ORDER BY COALESCE(f.postDate, f.createdAt) DESC, f.viewCount DESC")
     List<Faq> findTopActiveWithDepartment(Pageable pageable);
 
-    @Query("SELECT f FROM Faq f LEFT JOIN FETCH f.department WHERE f.department.id = :deptId AND f.isActive = true ORDER BY f.viewCount DESC, f.createdAt DESC")
+    @Query("SELECT f FROM Faq f LEFT JOIN FETCH f.department WHERE f.department.id = :deptId AND f.isActive = true ORDER BY COALESCE(f.postDate, f.createdAt) DESC, f.viewCount DESC")
     List<Faq> findTopByDepartmentWithDepartment(@Param("deptId") Long deptId, Pageable pageable);
 
     // Tìm kiếm khớp từ khóa trong câu hỏi, từ khóa hoặc câu trả lời

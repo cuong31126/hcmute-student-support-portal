@@ -124,4 +124,39 @@ class SmartFaqMatcherServiceTest {
         assertTrue(faqMatcherService.matchQuestion("   ", null).isEmpty());
         assertTrue(faqMatcherService.matchQuestion("từkhóakhônghềtồntại123456", null).isEmpty());
     }
+
+    @Test
+    @DisplayName("TC-07: Sắp xếp kết quả tìm kiếm theo thời gian gần đây nhất (postDate DESC)")
+    void testMatchQuestion_SortByNewestDateFirst() {
+        Faq olderFaq = Faq.builder()
+                .id(101L)
+                .question("Quy định xét học bổng khuyến khích năm 2024")
+                .answer("Học bổng theo kỳ 2024")
+                .category("Học bổng")
+                .keywords("học bổng, chính sách")
+                .department(deptDaoTao)
+                .postDate(java.time.LocalDateTime.of(2024, 1, 15, 8, 30))
+                .isActive(true)
+                .build();
+
+        Faq newerFaq = Faq.builder()
+                .id(102L)
+                .question("Thông báo nộp hồ sơ xét học bổng mới nhất tháng 9 năm 2026")
+                .answer("Học bổng mới nhất 2026")
+                .category("Học bổng")
+                .keywords("học bổng, mới nhất")
+                .department(deptDaoTao)
+                .postDate(java.time.LocalDateTime.of(2026, 9, 21, 10, 0))
+                .isActive(true)
+                .build();
+
+        when(faqRepository.findAllActiveWithDepartment()).thenReturn(List.of(olderFaq, newerFaq));
+        faqMatcherService.reloadCache();
+
+        List<SmartFaqMatcherService.FaqMatchResult> results = faqMatcherService.matchQuestion("học bổng", null);
+        assertEquals(2, results.size());
+        assertEquals(102L, results.get(0).id(), "Câu hỏi mới nhất (2026) phải xếp trước câu hỏi cũ (2024)");
+        assertEquals("21/09/2026 10:00", results.get(0).formattedDate());
+        assertEquals(101L, results.get(1).id());
+    }
 }
