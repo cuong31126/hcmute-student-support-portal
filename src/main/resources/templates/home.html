@@ -7,18 +7,21 @@
 <div th:fragment="content">
 
     <style>
-        /* Hero Carousel Slider Styles */
-        .hero-container {
+        /* Hero Fullscreen Edge-to-Edge Slideshow */
+        .hero-fullscreen {
             position: relative;
-            min-height: 480px;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            width: 100vw;
+            margin-left: calc(-50vw + 50%);
+            margin-right: calc(-50vw + 50%);
+            margin-top: -1.5rem;
+            min-height: 85vh;
+            height: 85vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
             color: #ffffff;
-            margin-bottom: 2.5rem;
+            margin-bottom: 4rem;
         }
 
         .hero-slide {
@@ -28,10 +31,11 @@
             width: 100%;
             height: 100%;
             background-size: cover;
-            background-position: center;
+            background-position: center center;
+            background-repeat: no-repeat;
             opacity: 0;
-            transform: scale(1.04);
-            transition: opacity 1.5s ease-in-out, transform 6s ease;
+            transform: scale(1.08);
+            transition: opacity 1.8s cubic-bezier(0.4, 0, 0.2, 1), transform 8s cubic-bezier(0.25, 1, 0.5, 1);
             z-index: 1;
         }
 
@@ -40,39 +44,92 @@
             transform: scale(1);
         }
 
+        /* Lớp phủ điện ảnh trong suốt nhẹ nhàng, làm lộ rõ cảnh quan trường HCMUTE */
         .hero-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, rgba(138, 21, 37, 0.88) 0%, rgba(20, 24, 33, 0.88) 100%);
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.35) 0%, rgba(15, 23, 42, 0.62) 100%);
             z-index: 2;
         }
 
         .hero-content {
             position: relative;
             z-index: 3;
-            max-width: 860px;
+            max-width: 900px;
             padding: 3rem 1.5rem;
             text-align: center;
             animation: heroFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         @keyframes heroFadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(24px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Hero Navigation Arrows */
+        .hero-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 5;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+        }
+
+        .hero-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            color: #ffffff;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .hero-nav-prev {
+            left: 2rem;
+        }
+
+        .hero-nav-next {
+            right: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero-nav-btn {
+                display: none;
+            }
+            .hero-fullscreen {
+                min-height: 75vh;
+                height: 75vh;
+            }
         }
 
         /* Slide Indicators */
         .hero-indicators {
             position: absolute;
-            bottom: 20px;
+            bottom: 2rem;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 10px;
-            z-index: 4;
+            align-items: center;
+            gap: 12px;
+            z-index: 5;
+            padding: 6px 16px;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(8px);
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .hero-dot {
@@ -80,16 +137,15 @@
             height: 12px;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0.4);
-            border: 2px solid rgba(255, 255, 255, 0.8);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.4s ease;
         }
 
         .hero-dot.active {
             width: 32px;
             border-radius: 6px;
             background-color: #ffffff;
-            border-color: #ffffff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
         }
 
         /* Feature Cards */
@@ -121,28 +177,36 @@
         }
     </style>
 
-    <!-- 1. Hero Banner with Image Animation Slideshow -->
-    <div class="hero-container">
+    <!-- 1. Hero Fullscreen Edge-to-Edge with Image Animation Slideshow -->
+    <div class="hero-fullscreen">
         <!-- Slide 1: hero1.jpg -->
         <div class="hero-slide active" id="hero-slide-0" style="background-image: url('/images/hero1.jpg');"></div>
         <!-- Slide 2: hero2.jpg -->
         <div class="hero-slide" id="hero-slide-1" style="background-image: url('/images/hero2.jpg');"></div>
 
-        <!-- Dark Crimson Overlay -->
+        <!-- Translucent Cinematic Dark Overlay (Không màu mè đỏ đen, nhìn rõ ảnh trường) -->
         <div class="hero-overlay"></div>
+
+        <!-- Navigation Arrows for Manual Transition -->
+        <button type="button" class="hero-nav-btn hero-nav-prev" onclick="prevHeroSlide()" aria-label="Slide trước">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+        <button type="button" class="hero-nav-btn hero-nav-next" onclick="nextHeroSlideManual()" aria-label="Slide sau">
+            <i class="bi bi-chevron-right"></i>
+        </button>
 
         <!-- Hero Content -->
         <div class="hero-content">
-            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-15 text-white mb-3 backdrop-blur shadow-xs">
-                <i class="bi bi-mortarboard-fill text-white-50"></i>
-                <span class="small fw-semibold letter-spacing-1 text-uppercase" style="font-size: 0.78rem;">Trường Đại Học Sư Phạm Kỹ Thuật TP.HCM</span>
+            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-20 text-white mb-3 backdrop-blur shadow-sm">
+                <i class="bi bi-mortarboard-fill text-white"></i>
+                <span class="small fw-semibold letter-spacing-1 text-uppercase" style="font-size: 0.8rem;">Trường Đại Học Sư Phạm Kỹ Thuật TP.HCM</span>
             </div>
 
-            <h1 class="display-6 fw-bold mb-3 text-white font-serif" style="letter-spacing: 0.5px; line-height: 1.25;">
+            <h1 class="display-5 fw-bold mb-3 text-white font-serif" style="letter-spacing: 0.5px; line-height: 1.25; text-shadow: 0 2px 10px rgba(0,0,0,0.4);">
                 CỔNG TƯ VẤN & HỖ TRỢ HỌC VỤ SINH VIÊN
             </h1>
 
-            <p class="lead mb-4 text-white-50 fs-6 max-w-700 mx-auto" style="line-height: 1.6;">
+            <p class="lead mb-4 text-white-50 fs-6 max-w-700 mx-auto" style="line-height: 1.6; text-shadow: 0 1px 6px rgba(0,0,0,0.3);">
                 Hệ thống giải đáp quy chế đào tạo, đăng ký môn học, điểm thi, chứng chỉ ngoại ngữ và tiếp nhận xử lý Ticket đa kênh theo cam kết chất lượng dịch vụ SLA.
             </p>
 
@@ -153,7 +217,7 @@
                         <span class="d-flex align-items-center ps-3 text-muted">
                             <i class="bi bi-search fs-5 text-crimson"></i>
                         </span>
-                        <input type="text" name="q" class="form-control border-0 rounded-pill ps-2 shadow-none" placeholder="Tìm câu hỏi: nộp chứng chỉ tiếng Anh, hoãn thi, học phí..." style="font-size: 0.95rem;">
+                        <input type="text" name="q" class="form-control border-0 rounded-pill ps-2 shadow-none text-dark" placeholder="Tìm câu hỏi: nộp chứng chỉ tiếng Anh, hoãn thi, học phí..." style="font-size: 0.95rem;">
                         <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold text-white shadow-xs" style="background-color: var(--crimson); border-color: var(--crimson);">
                             Tìm Kiếm
                         </button>
@@ -161,12 +225,12 @@
                 </div>
             </div>
 
-            <!-- Quick Action Buttons on Hero (Không dùng màu vàng chói) -->
+            <!-- Quick Action Buttons on Hero -->
             <div class="d-flex flex-wrap justify-content-center gap-3">
-                <a th:href="@{/tickets/create}" class="btn btn-danger rounded-pill px-4 py-2 fw-semibold text-white shadow-sm" style="background-color: var(--crimson); border-color: var(--crimson);">
+                <a th:href="@{/tickets/create}" class="btn btn-danger rounded-pill px-4 py-2 fw-semibold text-white shadow" style="background-color: var(--crimson); border-color: var(--crimson);">
                     <i class="bi bi-ticket-perforated-fill me-1"></i>Gửi Ticket Hỗ Trợ
                 </a>
-                <button type="button" onclick="document.getElementById('btn-open-ai-chat')?.click()" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold">
+                <button type="button" onclick="document.getElementById('btn-open-ai-chat')?.click()" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold shadow-sm">
                     <i class="bi bi-robot me-1"></i>Hỏi Trợ Lý AI 24/7
                 </button>
             </div>
@@ -174,8 +238,8 @@
 
         <!-- Slideshow Indicators -->
         <div class="hero-indicators">
-            <span class="hero-dot active" onclick="switchHeroSlide(0)"></span>
-            <span class="hero-dot" onclick="switchHeroSlide(1)"></span>
+            <span class="hero-dot active" onclick="switchHeroSlide(0)" title="Ảnh 1"></span>
+            <span class="hero-dot" onclick="switchHeroSlide(1)" title="Ảnh 2"></span>
         </div>
     </div>
 
@@ -319,7 +383,7 @@
     <script>
         let currentSlide = 0;
         const totalSlides = 2;
-        let slideTimer;
+        let slideTimer = null;
 
         function showSlide(index) {
             const slides = document.querySelectorAll('.hero-slide');
@@ -356,12 +420,33 @@
             showSlide(nextIndex);
         }
 
+        function nextHeroSlideManual() {
+            clearInterval(slideTimer);
+            nextHeroSlide();
+            startSlideShow();
+        }
+
+        function prevHeroSlide() {
+            clearInterval(slideTimer);
+            let prevIndex = (currentSlide - 1 + totalSlides) % totalSlides;
+            showSlide(prevIndex);
+            startSlideShow();
+        }
+
         function startSlideShow() {
-            slideTimer = setInterval(nextHeroSlide, 5000);
+            if (slideTimer) clearInterval(slideTimer);
+            slideTimer = setInterval(nextHeroSlide, 5500);
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             startSlideShow();
+            
+            // Tạm dừng khi rê chuột vào khu vực Hero để xem ảnh, tự chạy lại khi rời chuột
+            const hero = document.querySelector('.hero-fullscreen');
+            if (hero) {
+                hero.addEventListener('mouseenter', () => clearInterval(slideTimer));
+                hero.addEventListener('mouseleave', () => startSlideShow());
+            }
         });
     </script>
 
