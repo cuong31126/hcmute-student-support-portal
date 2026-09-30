@@ -42,6 +42,16 @@
                 <li class="nav-item" sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
                     <a class="nav-link text-info fw-semibold" th:href="@{/moderation/posts}"><i class="bi bi-shield-check me-1"></i>Duyệt Bài</a>
                 </li>
+                <li class="nav-item dropdown" sec:authorize="hasRole('ADMIN')">
+                    <a class="nav-link dropdown-toggle text-danger fw-semibold" href="#" id="adminNavDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-shield-lock-fill me-1"></i>Quản Trị
+                    </a>
+                    <ul class="dropdown-menu shadow-sm" aria-labelledby="adminNavDropdown">
+                        <li><a class="dropdown-item" th:href="@{/admin/dashboard}"><i class="bi bi-speedometer2 me-2 text-primary"></i>SLA Dashboard Toàn Trường</a></li>
+                        <li><a class="dropdown-item" th:href="@{/admin/users}"><i class="bi bi-people me-2 text-success"></i>Quản Trị Người Dùng</a></li>
+                        <li><a class="dropdown-item" th:href="@{/admin/departments}"><i class="bi bi-buildings me-2 text-info"></i>Quản Lý Khoa / Phòng Ban</a></li>
+                    </ul>
+                </li>
             </ul>
 
             <!-- Auth Controls -->
@@ -68,6 +78,16 @@
                         </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
                         <li><h6 class="dropdown-header" sec:authentication="name">Tài khoản</h6></li>
+                        <li sec:authorize="hasRole('ADMIN')">
+                            <a class="dropdown-item fw-semibold text-danger" th:href="@{/admin/dashboard}"><i class="bi bi-speedometer2 me-2"></i>SLA Dashboard Toàn Trường</a>
+                        </li>
+                        <li sec:authorize="hasRole('ADMIN')">
+                            <a class="dropdown-item" th:href="@{/admin/users}"><i class="bi bi-people me-2 text-primary"></i>Quản trị Người dùng</a>
+                        </li>
+                        <li sec:authorize="hasRole('ADMIN')">
+                            <a class="dropdown-item" th:href="@{/admin/departments}"><i class="bi bi-buildings me-2 text-info"></i>Quản lý Khoa / Phòng</a>
+                        </li>
+                        <li sec:authorize="hasRole('ADMIN')"><hr class="dropdown-divider"></li>
                         <li sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
                             <a class="dropdown-item" th:href="@{/feed/official/create}"><i class="bi bi-megaphone-fill me-2 text-primary"></i>Đăng thông báo mới</a>
                         </li>

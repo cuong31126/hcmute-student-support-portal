@@ -49,8 +49,8 @@
 - [x] **SLA Engine Scheduler (`@Scheduled`):**
   - Quét định kỳ tự động đóng Ticket sau 72h ở trạng thái `RESOLVED`.
   - Tự động phát hiện Ticket quá hạn và đổi trạng thái sang `OVERDUE`, gửi email cảnh báo SLA đến Cán bộ phụ trách.
-- [ ] **Admin Web Dashboard & User Management (`/admin/**`):**
-  - Màn hình Dashboard quản trị thống kê SLA toàn trường.
-  - Quản trị danh sách người dùng (`/admin/users`), khóa/mở tài khoản, gán Khoa/Phòng ban.
-  - Quản lý danh mục Khoa (`/admin/departments`).
+- [x] **Admin Web Dashboard & User Management (`/admin/**`):**
+  - Màn hình Dashboard quản trị thống kê SLA toàn trường (`/admin/dashboard` & `/admin`): Đo lường SLA Compliance Rate, phân tích ma trận hiệu suất từng Khoa/Phòng ban, phân bổ mức độ ưu tiên SLA và bảng cảnh báo các ticket vi phạm hạn chót.
+  - Quản trị danh sách người dùng (`/admin/users`): Tìm kiếm, lọc theo vai trò/khoa/trạng thái, phân trang, toggle Khóa/Mở tài khoản bằng AJAX + Right-side Toast, Modal chỉnh sửa vai trò và gán đơn vị trực thuộc.
+  - Quản lý danh mục Khoa/Phòng ban (`/admin/departments`): Xem thống kê nhân sự và ticket, thêm mới/chỉnh sửa đơn vị và toggle hoạt động qua AJAX.
 - [ ] **CSAT Rating cho Guest:** Bổ sung form đánh giá hài lòng trực tiếp trên trang tra cứu `guest-track.html`.

@@ -199,4 +199,102 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.id = :ticketId AND t.isDeleted = false
     """)
     Optional<TicketAccessAuthInfo> findAccessAuthInfoById(@Param("ticketId") Long ticketId);
+
+    // ─── SLA Analytics & Dashboard Queries ───
+
+    long countByDepartmentId(Long departmentId);
+
+    @Query("""
+        SELECT COUNT(t) FROM Ticket t
+        WHERE t.isDeleted = false
+          AND (:since IS NULL OR t.createdAt >= :since)
+          AND (:deptId IS NULL OR t.department.id = :deptId)
+    """)
+    long countTicketsFiltered(@Param("since") LocalDateTime since, @Param("deptId") Long deptId);
+
+    @Query("""
+        SELECT COUNT(t) FROM Ticket t
+        WHERE t.isDeleted = false
+          AND t.status = :status
+          AND (:since IS NULL OR t.createdAt >= :since)
+          AND (:deptId IS NULL OR t.department.id = :deptId)
+    """)
+    long countTicketsByStatusFiltered(@Param("status") String status,
+                                      @Param("since") LocalDateTime since,
+                                      @Param("deptId") Long deptId);
+
+    @Query("""
+        SELECT COUNT(t) FROM Ticket t
+        WHERE t.isDeleted = false
+          AND (t.status = 'OVERDUE' OR (t.status IN ('OPEN', 'IN_PROGRESS') AND t.dueDate < CURRENT_TIMESTAMP))
+          AND (:since IS NULL OR t.createdAt >= :since)
+          AND (:deptId IS NULL OR t.department.id = :deptId)
+    """)
+    long countOverdueTicketsFiltered(@Param("since") LocalDateTime since, @Param("deptId") Long deptId);
+
+    @Query("""
+        SELECT COUNT(t) FROM Ticket t
+        WHERE t.isDeleted = false
+          AND t.status IN ('RESOLVED', 'CLOSED')
+          AND (t.resolvedAt IS NOT NULL AND t.resolvedAt <= t.dueDate)
+          AND (:since IS NULL OR t.createdAt >= :since)
+          AND (:deptId IS NULL OR t.department.id = :deptId)
+    """)
+    long countResolvedOnTimeFiltered(@Param("since") LocalDateTime since, @Param("deptId") Long deptId);
+
+    @Query("""
+        SELECT AVG(t.rating) FROM Ticket t
+        WHERE t.isDeleted = false
+          AND t.rating IS NOT NULL
+          AND (:since IS NULL OR t.createdAt >= :since)
+          AND (:deptId IS NULL OR t.department.id = :deptId)
+    """)
+    Double getAverageRatingFiltered(@Param("since") LocalDateTime since, @Param("deptId") Long deptId);
+
+    @Query("""
+        SELECT t.priority, COUNT(t) FROM Ticket t
+        WHERE t.isDeleted = false
+          AND (:since IS NULL OR t.createdAt >= :since)
+          AND (:deptId IS NULL OR t.department.id = :deptId)
+        GROUP BY t.priority
+    """)
+    List<Object[]> countByPriorityFiltered(@Param("since") LocalDateTime since, @Param("deptId") Long deptId);
+
+    @Query("""
+        SELECT t.department.id,
+               d.name,
+               d.code,
+               COUNT(t),
+               SUM(CASE WHEN t.status = 'OPEN' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN t.status = 'IN_PROGRESS' THEN 1 ELSE 0 END),
+               SUM(CASE WHEN t.status IN ('RESOLVED', 'CLOSED') THEN 1 ELSE 0 END),
+               SUM(CASE WHEN t.status = 'OVERDUE' OR (t.status IN ('OPEN', 'IN_PROGRESS') AND t.dueDate < CURRENT_TIMESTAMP) THEN 1 ELSE 0 END),
+               AVG(CASE WHEN t.rating IS NOT NULL THEN t.rating ELSE NULL END)
+        FROM Ticket t
+        JOIN t.department d
+        WHERE t.isDeleted = false
+          AND (:since IS NULL OR t.createdAt >= :since)
+        GROUP BY t.department.id, d.name, d.code
+        ORDER BY COUNT(t) DESC
+    """)
+    List<Object[]> getDepartmentSlaAggregates(@Param("since") LocalDateTime since);
+
+    @Query("""
+        SELECT new com.school.counseling.module.ticket.dto.TicketSummaryDto(
+            t.id, t.ticketCode, t.title,
+            d.id, d.name,
+            t.status, t.priority, t.dueDate, t.createdAt,
+            COALESCE(c.fullName, t.guestName),
+            a.fullName
+        )
+        FROM Ticket t
+        JOIN t.department d
+        LEFT JOIN t.creator c
+        LEFT JOIN t.assignedTo a
+        WHERE t.isDeleted = false
+          AND (t.status = 'OVERDUE' OR (t.status IN ('OPEN', 'IN_PROGRESS') AND t.dueDate < CURRENT_TIMESTAMP))
+          AND (:deptId IS NULL OR d.id = :deptId)
+        ORDER BY t.dueDate ASC
+    """)
+    List<TicketSummaryDto> findTopOverdueTicketsFiltered(@Param("deptId") Long deptId);
 }
