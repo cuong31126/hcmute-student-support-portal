@@ -111,6 +111,38 @@ public class EmailAsyncService {
         sendHtmlMail(toEmail, subject, htmlContent);
     }
 
+    @Async("mailTaskExecutor")
+    public void sendSlaOverdueAlertEmail(String toEmail, String recipientName, String ticketCode, String title, LocalDateTime dueDate, String priority, String departmentName) {
+        if (toEmail == null || toEmail.trim().isEmpty()) {
+            return;
+        }
+
+        String dueStr = dueDate != null ? dueDate.format(DateTimeFormatter.ofPattern("HH:mm - dd/MM/yyyy")) : "Không xác định";
+        String subject = "[CẢNH BÁO SLA] Yêu cầu #" + ticketCode + " đã quá hạn xử lý!";
+
+        String htmlContent = String.format("""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #fecaca; border-radius: 8px; overflow: hidden;">
+                <div style="background-color: #dc2626; padding: 20px; text-align: center; color: white;">
+                    <h2 style="margin: 0;">QAUTE Portal - Cảnh Báo Vi Phạm SLA</h2>
+                </div>
+                <div style="padding: 24px; color: #374151; line-height: 1.6;">
+                    <p>Kính gửi <strong>%s</strong> (%s),</p>
+                    <p>Hệ thống ghi nhận yêu cầu tư vấn sau đây đã <strong style="color: #dc2626;">QUÁ HẠN XỬ LÝ (OVERDUE)</strong> theo cam kết SLA của Nhà trường:</p>
+                    <table style="width: 100%%; border-collapse: collapse; margin: 16px 0; background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 6px;">
+                        <tr><td style="padding: 10px; border-bottom: 1px solid #fee2e2; color: #6b7280;">Mã Ticket:</td><td style="padding: 10px; border-bottom: 1px solid #fee2e2; font-weight: bold; color: #dc2626;">#%s</td></tr>
+                        <tr><td style="padding: 10px; border-bottom: 1px solid #fee2e2; color: #6b7280;">Tiêu đề:</td><td style="padding: 10px; border-bottom: 1px solid #fee2e2; font-weight: bold;">%s</td></tr>
+                        <tr><td style="padding: 10px; border-bottom: 1px solid #fee2e2; color: #6b7280;">Mức ưu tiên:</td><td style="padding: 10px; border-bottom: 1px solid #fee2e2;">%s</td></tr>
+                        <tr><td style="padding: 10px; border-bottom: 1px solid #fee2e2; color: #6b7280;">Hạn chót cam kết:</td><td style="padding: 10px; border-bottom: 1px solid #fee2e2; font-weight: bold; color: #dc2626;">%s</td></tr>
+                    </table>
+                    <p>Đề nghị Thầy/Cô và Đơn vị khẩn trương tiếp nhận giải đáp hoặc phân công cán bộ xử lý dứt điểm nhằm đảm bảo quyền lợi cho sinh viên.</p>
+                    <p style="font-size: 13px; color: #9ca3af; margin-top: 24px;">Thông báo tự động từ Hệ thống Giám sát SLA - QAUTE Portal HCMUTE.</p>
+                </div>
+            </div>
+            """, recipientName != null ? recipientName : "Cán bộ phụ trách", departmentName != null ? departmentName : "Đơn vị", ticketCode, title, priority, dueStr);
+
+        sendHtmlMail(toEmail, subject, htmlContent);
+    }
+
     private void sendHtmlMail(String toEmail, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

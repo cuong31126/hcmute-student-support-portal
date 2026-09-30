@@ -169,6 +169,26 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.status IN ('OPEN', 'IN_PROGRESS') AND t.dueDate < :now AND t.isDeleted = false")
     List<Ticket> findOverdueTickets(@Param("now") LocalDateTime now);
 
+    @Query("""
+        SELECT t FROM Ticket t
+        LEFT JOIN FETCH t.department
+        LEFT JOIN FETCH t.assignedTo
+        LEFT JOIN FETCH t.creator
+        WHERE t.status IN ('OPEN', 'IN_PROGRESS') AND t.dueDate < :now AND t.isDeleted = false
+    """)
+    List<Ticket> findOverdueTicketsWithRelations(@Param("now") LocalDateTime now);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        LEFT JOIN FETCH t.department
+        LEFT JOIN FETCH t.creator
+        LEFT JOIN FETCH t.assignedTo
+        WHERE t.status = 'RESOLVED'
+          AND (t.resolvedAt <= :threshold OR (t.resolvedAt IS NULL AND t.updatedAt <= :threshold))
+          AND t.isDeleted = false
+    """)
+    List<Ticket> findResolvedTicketsEligibleForAutoClose(@Param("threshold") LocalDateTime threshold);
+
     // ─── Phân quyền: Tải thông tin sở hữu tối thiểu để kiểm tra quyền (không load toàn Entity) ───
 
     @Query("""

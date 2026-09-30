@@ -46,7 +46,7 @@
 
 ## 🎯 4. CÁC HẠNG MỤC CÒN THIẾU CẦN TRIỂN KHAI TIẾP THEO
 
-- [ ] **SLA Engine Scheduler (`@Scheduled`):**
+- [x] **SLA Engine Scheduler (`@Scheduled`):**
   - Quét định kỳ tự động đóng Ticket sau 72h ở trạng thái `RESOLVED`.
   - Tự động phát hiện Ticket quá hạn và đổi trạng thái sang `OVERDUE`, gửi email cảnh báo SLA đến Cán bộ phụ trách.
 - [ ] **Admin Web Dashboard & User Management (`/admin/**`):**
