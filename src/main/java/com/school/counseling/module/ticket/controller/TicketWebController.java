@@ -91,6 +91,31 @@ public class TicketWebController {
         return "ticket/guest-track";
     }
 
+    @PostMapping("/guest-track/rate")
+    public String handleGuestRateTicket(
+            @RequestParam("token") String token,
+            @RequestParam("rating") Integer rating,
+            @RequestParam(value = "feedback", required = false) String feedback,
+            RedirectAttributes redirectAttributes) {
+
+        ticketService.rateTicketByGuest(token, rating, feedback);
+        redirectAttributes.addFlashAttribute("successMessage", "Cảm ơn bạn đã gửi đánh giá hài lòng cho buổi tư vấn!");
+        return "redirect:/tickets/guest-track?token=" + token;
+    }
+
+    @ResponseBody
+    @PostMapping("/guest-track/api/rate")
+    public org.springframework.http.ResponseEntity<com.school.counseling.common.dto.ApiResponse<TicketResponseDto>> handleGuestRateTicketAjax(
+            @RequestParam("token") String token,
+            @RequestParam("rating") Integer rating,
+            @RequestParam(value = "feedback", required = false) String feedback) {
+
+        TicketResponseDto ticket = ticketService.rateTicketByGuest(token, rating, feedback);
+        return org.springframework.http.ResponseEntity.ok(
+                com.school.counseling.common.dto.ApiResponse.success(ticket, "Cảm ơn bạn đã gửi đánh giá hài lòng!")
+        );
+    }
+
     @GetMapping("/detail/{ticketId}")
     @PreAuthorize("@deptSecurity.canAccessTicket(#ticketId)")
     public String ticketDetailPage(@PathVariable Long ticketId, Model model) {

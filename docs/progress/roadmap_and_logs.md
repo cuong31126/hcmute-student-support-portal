@@ -53,4 +53,4 @@
   - Màn hình Dashboard quản trị thống kê SLA toàn trường (`/admin/dashboard` & `/admin`): Đo lường SLA Compliance Rate, phân tích ma trận hiệu suất từng Khoa/Phòng ban, phân bổ mức độ ưu tiên SLA và bảng cảnh báo các ticket vi phạm hạn chót.
   - Quản trị danh sách người dùng (`/admin/users`): Tìm kiếm, lọc theo vai trò/khoa/trạng thái, phân trang, toggle Khóa/Mở tài khoản bằng AJAX + Right-side Toast, Modal chỉnh sửa vai trò và gán đơn vị trực thuộc.
   - Quản lý danh mục Khoa/Phòng ban (`/admin/departments`): Xem thống kê nhân sự và ticket, thêm mới/chỉnh sửa đơn vị và toggle hoạt động qua AJAX.
-- [ ] **CSAT Rating cho Guest:** Bổ sung form đánh giá hài lòng trực tiếp trên trang tra cứu `guest-track.html`.
+- [x] **CSAT Rating cho Guest:** Bổ sung form đánh giá hài lòng trực tiếp trên trang tra cứu `guest-track.html` (chọn sao 1-5 tương tác trực quan, đóng góp ý kiến, cập nhật sang `CLOSED`, hỗ trợ AJAX Zero Full-Page Refresh và Toast).

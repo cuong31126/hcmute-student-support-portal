@@ -308,6 +308,34 @@ public class TicketService {
         return mapToDetailDto(ticket);
     }
 
+    @Transactional
+    public TicketResponseDto rateTicketByGuest(String token, Integer rating, String feedback) {
+        Ticket ticket = ticketRepository.findByGuestTokenWithRelations(token)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "token", token));
+
+        if (rating != null && rating >= 1 && rating <= 5) {
+            ticket.setRating(rating);
+        }
+
+        // Nếu Ticket đang ở trạng thái RESOLVED, người dùng đánh giá CSAT sẽ đóng hoàn tất
+        if ("RESOLVED".equalsIgnoreCase(ticket.getStatus())) {
+            ticket.setStatus("CLOSED");
+            ticket.setClosedAt(LocalDateTime.now());
+        }
+
+        ticket = ticketRepository.save(ticket);
+
+        String note = "Khách tra cứu gửi đánh giá CSAT: " + (rating != null ? rating + " sao" : "Không");
+        if (feedback != null && !feedback.trim().isEmpty()) {
+            note += " | Góp ý: " + feedback.trim();
+        }
+
+        saveHistory(ticket, null, ticket.getGuestName() != null ? ticket.getGuestName() : "Khách vãng lai",
+                ticket.getStatus(), ticket.getStatus(), note);
+
+        return mapToDetailDto(ticket);
+    }
+
     // ─── NHÓM TRUY VẤN / ĐỌC DỮ LIỆU ───────────────────────────────────────────────────
 
     /**
