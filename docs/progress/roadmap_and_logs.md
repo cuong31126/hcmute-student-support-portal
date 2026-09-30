@@ -54,3 +54,7 @@
   - Quản trị danh sách người dùng (`/admin/users`): Tìm kiếm, lọc theo vai trò/khoa/trạng thái, phân trang, toggle Khóa/Mở tài khoản bằng AJAX + Right-side Toast, Modal chỉnh sửa vai trò và gán đơn vị trực thuộc.
   - Quản lý danh mục Khoa/Phòng ban (`/admin/departments`): Xem thống kê nhân sự và ticket, thêm mới/chỉnh sửa đơn vị và toggle hoạt động qua AJAX.
 - [x] **CSAT Rating cho Guest:** Bổ sung form đánh giá hài lòng trực tiếp trên trang tra cứu `guest-track.html` (chọn sao 1-5 tương tác trực quan, đóng góp ý kiến, cập nhật sang `CLOSED`, hỗ trợ AJAX Zero Full-Page Refresh và Toast).
+- [x] **Kiểm thử Tự động & Ổn định hóa Test Suite:**
+  - 50/50 test cases đạt 100% BUILD SUCCESS (`mvn test`).
+  - Bao quát Unit Test, Controller Web/REST Test, Department Data Isolation Test, Race Condition Concurrency Test, và MockMvc DeferredResult Async Test.
+
