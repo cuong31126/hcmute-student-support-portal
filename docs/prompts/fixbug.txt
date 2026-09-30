@@ -31,6 +31,7 @@ Yêu cầu:
    - Xử lý triệt để nguyên nhân gốc rễ (không dùng try-catch bọc tạm hoặc null-check đối phó).
    - Giữ nguyên cấu trúc logic đúng đắn sẵn có.
    - Bổ sung log chi tiết (SLF4J) nếu cần.
+   - LƯU Ý KIẾN TRÚC: Do `spring.jpa.open-in-view: false`, 100% dữ liệu truyền sang View bắt buộc phải là DTO/Record được load sẵn trong Service, tuyệt đối không gọi `entity.setList()` trên quan hệ `@OneToMany(orphanRemoval = true)`.
 2. Đảm bảo bài test tái hiện ở Bước 1 chuyển sang PASSED (Green) và toàn bộ test suite chạy thành công không có lỗi hồi quy (No Regression).
 3. DỌN DẸP FILE TEST DƯ THỪA (TEST CLEANUP): Sau khi test chuyển sang GREEN và lỗi đã được sửa triệt để, BẮT BUỘC PHẢI XÓA BỎ các file Reproduction Test tạm thời (throwaway test) để tránh gây rối mã nguồn, tránh làm phình to thư mục src/test/java và không kéo dài thời gian build (chỉ giữ lại hoặc sáp nhập vào file test chính nếu là nghiệp vụ lâu dài).
 4. Hướng dẫn các bước xác minh thực tế (Manual Verification) từng bước để tôi kiểm tra lại trên trình duyệt / Swagger / Postman.

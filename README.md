@@ -68,7 +68,7 @@ cd hcmute-student-support-portal
 mysql -u root -p -e "CREATE DATABASE qaute_portal CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # 3. Import Schema & DDL
-mysql -u root -p qaute_portal < docs/database/srs_schema.sql
+mysql -u root -p qaute_portal < docs/requirements/database/schema.sql
 
 # 4. Chạy ứng dụng Spring Boot
 mvn spring-boot:run

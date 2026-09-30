@@ -31,7 +31,8 @@ Yêu cầu:
 2. Tầng Repository: Viết query chuẩn JPA / JPQL, tối ưu performance tránh N+1 Query.
 3. Tầng Service: Xử lý logic nghiệp vụ chặt chẽ, quản lý giao dịch (@Transactional), ném Business Exception phù hợp.
 4. Tầng Controller / DTO: Tạo DTO có validation, Controller trả về `ApiResponse<T>` với HTTP status code chuẩn RESTful.
-5. Đảm bảo toàn bộ test case ở Bước 1 đều vượt qua và không làm ảnh hưởng đến các module khác.
+5. LƯU Ý KIẾN TRÚC BẮT BUỘC: Do `spring.jpa.open-in-view: false`, 100% dữ liệu truyền sang View bắt buộc phải là DTO/Record được load sẵn trong Service, tuyệt đối không gọi `entity.setList()` trên quan hệ `@OneToMany(orphanRemoval = true)`.
+6. Đảm bảo toàn bộ test case ở Bước 1 đều vượt qua và không làm ảnh hưởng đến các module khác.
 
 
 --- BƯỚC 3: RÀ SOÁT CHẤT LƯỢNG (CODE REVIEW) & HƯỚNG DẪN KIỂM THỬ ---
