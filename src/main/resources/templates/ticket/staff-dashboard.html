@@ -5,6 +5,8 @@
 </head>
 <body>
 <div th:fragment="content">
+    <!-- Portal Workspace Header -->
+    <div th:replace="~{layout/portal-header :: portal-header('tickets')}"></div>
     
     <!-- Flash Messages -->
     <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">

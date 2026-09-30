@@ -5,6 +5,8 @@
 </head>
 <body>
 <div th:fragment="content">
+    <!-- Portal Workspace Header -->
+    <div th:replace="~{layout/portal-header :: portal-header('admin-dashboard')}"></div>
 
     <!-- Toast Container góc phải -->
     <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;"></div>

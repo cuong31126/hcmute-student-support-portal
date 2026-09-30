@@ -1,47 +1,94 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
 <head>
-    <title>Đăng Ký Tài Khoản - QAUTE Portal</title>
+    <title>Đăng Ký Tài Khoản - HCMUTE QAUTE Portal</title>
 </head>
 <body>
 <div th:fragment="content">
-    <div class="row justify-content-center py-4">
-        <div class="col-md-7 col-lg-5">
-            <div class="card p-4 shadow-sm">
-                <div class="text-center mb-3">
-                    <span class="badge bg-success px-3 py-2 fs-6 mb-2">ĐĂNG KÝ SINH VIÊN</span>
-                    <h5 class="fw-bold text-dark mb-1">Tạo Tài Khoản Sinh Viên</h5>
-                    <p class="small text-muted mb-0">Sử dụng Email trường (@student.hcmute.edu.vn)</p>
-                </div>
+    <style>
+        .register-hero-bg {
+            background-image: linear-gradient(135deg, rgba(138, 21, 37, 0.88) 0%, rgba(20, 24, 33, 0.88) 100%), url('/images/hero2.jpg');
+            background-size: cover;
+            background-position: center;
+            border-radius: 16px;
+            padding: 3rem 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .register-card {
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            animation: registerCardFade 0.6s ease-out;
+        }
+        @keyframes registerCardFade {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .form-control:focus {
+            border-color: var(--crimson);
+            box-shadow: 0 0 0 0.25rem rgba(165, 28, 48, 0.15);
+        }
+    </style>
 
-                <form th:action="@{/auth/register}" th:object="${registerForm}" method="post">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Tên đăng nhập (Mã số sinh viên)</label>
-                        <input type="text" th:field="*{username}" class="form-control" placeholder="VD: 21110001" required>
+    <div class="register-hero-bg">
+        <div class="row justify-content-center">
+            <div class="col-md-9 col-lg-6 col-xl-5">
+                <div class="register-card p-4 p-md-5">
+                    <!-- Brand & Logo -->
+                    <div class="text-center mb-4">
+                        <img th:src="@{/images/logo.png}" alt="HCMUTE" height="60" class="mb-2">
+                        <h4 class="fw-bold text-dark font-serif mb-1">TẠO TÀI KHOẢN</h4>
+                        <div class="badge bg-danger bg-opacity-10 text-crimson px-3 py-1 rounded-pill fw-semibold small mb-2">
+                            Cổng Tư Vấn Sinh Viên QAUTE
+                        </div>
+                        <p class="small text-muted mb-0">Đăng ký bằng Email sinh viên trường HCMUTE</p>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Họ và tên</label>
-                        <input type="text" th:field="*{fullName}" class="form-control" placeholder="Nguyễn Văn A" required>
-                    </div>
+                    <form th:action="@{/auth/register}" th:object="${registerForm}" method="post">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary">Mã số sinh viên (Username)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-card-heading"></i></span>
+                                <input type="text" th:field="*{username}" class="form-control border-start-0 ps-0" placeholder="VD: 21110001" required>
+                            </div>
+                        </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Email sinh viên</label>
-                        <input type="email" th:field="*{email}" class="form-control" placeholder="21110001@student.hcmute.edu.vn" required>
-                    </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary">Họ và tên</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                                <input type="text" th:field="*{fullName}" class="form-control border-start-0 ps-0" placeholder="Nguyễn Văn A" required>
+                            </div>
+                        </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Mật khẩu</label>
-                        <input type="password" th:field="*{password}" class="form-control" placeholder="••••••••" required>
-                    </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary">Email sinh viên HCMUTE</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
+                                <input type="email" th:field="*{email}" class="form-control border-start-0 ps-0" placeholder="21110001@student.hcmute.edu.vn" required>
+                            </div>
+                        </div>
 
-                    <div class="d-grid mb-3">
-                        <button type="submit" class="btn btn-primary fw-semibold">Đăng Ký Tài Khoản</button>
-                    </div>
-                </form>
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary">Mật khẩu</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+                                <input type="password" th:field="*{password}" class="form-control border-start-0 ps-0" placeholder="••••••••" required>
+                            </div>
+                        </div>
 
-                <div class="text-center small border-top pt-3 text-muted">
-                    Đã có tài khoản? <a th:href="@{/auth/login}" class="text-primary fw-semibold text-decoration-none">Đăng nhập ngay</a>
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary fw-bold py-2 shadow-xs" style="background-color: var(--crimson); border-color: var(--crimson);">
+                                <i class="bi bi-check-circle-fill me-1"></i>Đăng Ký Tài Khoản
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="text-center small border-top pt-3 text-muted">
+                        Đã có tài khoản sinh viên? <a th:href="@{/auth/login}" class="fw-bold text-crimson text-decoration-none">Đăng nhập ngay</a>
+                    </div>
                 </div>
             </div>
         </div>

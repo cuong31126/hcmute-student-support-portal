@@ -5,6 +5,8 @@
 </head>
 <body>
 <div th:fragment="content">
+    <!-- Portal Workspace Header -->
+    <div th:replace="~{layout/portal-header :: portal-header('admin-depts')}"></div>
 
     <!-- CSRF Metadata for Secure AJAX Requests -->
     <input type="hidden" id="csrfToken" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}" th:value="${_csrf != null ? _csrf.token : ''}" />
