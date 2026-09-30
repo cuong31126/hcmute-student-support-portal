@@ -13,7 +13,7 @@
 | **Sprint 2** | **Quản lý Ticket, Động cơ SLA & Gửi Mail Bất đồng bộ** | ✅ Hoàn thành | 2 kênh tiếp nhận (Sinh viên & Khách tra cứu bằng Guest Token), Tự động tính `due_date`, Bàn giao tiếp nhận xử lý, Gửi mail `@Async`, Đánh giá sao CSAT. |
 | **Sprint 3** | **Bảng Tin Chính Thức, Diễn Đàn Sinh Viên & Webhook Video** | ✅ Hoàn thành | Video Hybrid (nhúng YouTube/Drive hoặc tải trực tiếp), Đa tệp văn phòng (tối đa 5 file), Thả tim (Like) & Bình luận bằng AJAX tức thì, Hàng đợi kiểm duyệt bài viết. |
 | **Sprint 4** | **Trợ Lý Tri Thức Học Vụ & AI RAG Phân Tầng** | ✅ Hoàn thành | Tinh tuyển 300 FAQ chất lượng, Bộ nhớ Cache Caffeine ngắt tải sớm (70% lượt hỏi), Gemini Embedding + Cosine Similarity tính toán trên RAM CPU $\le 2\text{ms}$. |
-| **Sprint 5** | **Chiến Dịch Cải Tổ UI/UX & Nhận Diện HCMUTE** | 🔄 Đang triển khai | Tích hợp Logo HCMUTE góc trái, Hero Slider 2 ảnh khuôn viên trường chuyển cảnh mượt mà, tinh giản nội dung rườm rà, phân tách Public vs Portal (`tiendo5.md`). |
+| **Sprint 5** | **Chiến Dịch Cải Tổ UI/UX & Nhận Diện HCMUTE** | ✅ Hoàn thành | Tích hợp Logo HCMUTE góc trái, Hero Slider 2 ảnh khuôn viên trường chuyển cảnh mượt mà, tinh giản nội dung rườm rà, phân tách Public vs Portal (`tiendo5.md`). |
 
 ---
 

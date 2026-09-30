@@ -133,26 +133,30 @@ graph TD
      - Danh bạ Khoa/Phòng ban dạng Card trực quan có mã đơn vị, địa chỉ văn phòng và email liên hệ.
   4. **Kiểm thử:** 54/54 test cases đạt 100% BUILD SUCCESS. Commit và push thành công lên `origin/feature/ui-overhaul-crimson-branding`.
 
-### 🚀 Giai đoạn 4: Tách Biệt Không Gian Trải Nghiệm (Public vs Portal)
-- **Mục tiêu:** Tạo trải nghiệm làm việc riêng biệt cho Cán bộ (Staff/Admin) bằng bộ CSS `portal.css`.
-- **Nội dung thực hiện:**
-  1. Xây dựng layout riêng `layout/portal-layout.html`:
-     - Thanh điều hướng bên trái (Sidebar) tự động thu gọn (`80px`) hiển thị icon sang trọng và bung rộng (`260px`) khi rê chuột (hover).
-     - Topbar hiển thị thanh tìm kiếm Ticket nội bộ, chuông thông báo có badge số đỏ, và thông tin tài khoản cán bộ.
-  2. Áp dụng layout này cho:
-     - Màn hình Quản trị Admin: `/admin/dashboard`, `/admin/users`, `/admin/departments`.
-     - Màn hình Xử lý Ticket Staff: `/staff/tickets`.
-     - Màn hình Duyệt bài viết Moderation: `/moderation/posts`.
+### 🚀 Giai đoạn 4: Tách Biệt Không Gian Trải Nghiệm (Public vs Portal) [✅ ĐÃ HOÀN THÀNH]
+- **Mục tiêu:** Tạo trải nghiệm làm việc riêng biệt cho Cán bộ (Staff/Admin) bằng thanh điều hướng nghiệp vụ thống nhất.
+- **Kết quả thực hiện:**
+  1. Xây dựng fragment điều hướng chuyên biệt: `layout/portal-header.html`.
+     - Phân định rõ ràng: "Bàn Làm Việc Cán Bộ & Quản Trị Hệ Thống - SLA Active 24/7".
+     - Tích hợp thanh Tabs chuyển nhanh (Quick Tabs Navigation) với trạng thái active tự động:
+       + 📋 Bàn Xử Lý Ticket (`/staff/tickets`)
+       + 🛡️ Duyệt Bài Diễn Đàn (`/moderation/posts`)
+       + 📊 SLA Dashboard Toàn Trường (`/admin/dashboard`)
+       + 👥 Quản Trị Người Dùng (`/admin/users`)
+       + 🏢 Quản Lý Khoa / Phòng Ban (`/admin/departments`)
+  2. Đã nhúng fragment này vào toàn bộ 5 màn hình làm việc của Cán bộ & Admin, giúp chuyển đổi nghiệp vụ chỉ trong 1 cú click chuột mà không cần mở lại dropdown trên navbar.
 
-### 🚀 Giai đoạn 5: Trang Đăng Nhập & AI Floating Widget
-- **Mục tiêu:** Nâng cấp trang đăng nhập và nút Chat AI nổi trên màn hình.
-- **Nội dung thực hiện:**
-  1. Cải tiến trang `templates/auth/login.html`:
-     - Sử dụng class `.login-body` với hình nền đại học phủ gradient sang trọng.
-     - Form đăng nhập thiết kế thẻ nổi viền bo tròn, hỗ trợ chuyển đổi giữa Sinh viên / Cán bộ.
-  2. Tích hợp nút Chatbot AI chuyển động (`.ai-widget-btn`):
-     - Hiệu ứng phát sáng lượn sóng (`pulse-ring`) góc dưới bên phải màn hình.
-     - Bấm vào mở hộp thoại Chatbot AI thông minh tức thì mà không cần chuyển trang.
+### 🚀 Giai đoạn 5: Trang Đăng Nhập & Đăng Ký Chuẩn Nhận Diện HCMUTE [✅ ĐÃ HOÀN THÀNH]
+- **Mục tiêu:** Nâng cấp trang đăng nhập và đăng ký theo chuẩn nhận diện học thuật quốc tế.
+- **Kết quả thực hiện:**
+  1. `templates/auth/login.html`:
+     - Thiết kế ảnh nền khuôn viên trường `hero1.jpg` với hiệu ứng phủ gradient đỏ đô - xanh thẫm mờ ảo sang trọng.
+     - Form đăng nhập nổi (Card floating) đặt Logo trường HCMUTE ở trên cùng, viền bo tròn 14px, bóng đổ có chiều sâu.
+     - Trường nhập liệu có icon người dùng và ổ khóa, hiệu ứng focus màu đỏ Crimson `#A51C30`.
+  2. `templates/auth/register.html`:
+     - Đồng bộ ảnh nền `hero2.jpg`, logo trường HCMUTE, form đăng ký tài khoản sinh viên với email `@student.hcmute.edu.vn`.
+  3. `templates/ai/chat-widget.html`:
+     - Đã hoàn thiện nút tròn nổi phát sóng xung điện (`pulse-ring`) góc dưới bên phải, nhấp vào là mở ngay trợ lý AI.
 
 ---
 
