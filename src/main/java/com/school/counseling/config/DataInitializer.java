@@ -167,13 +167,7 @@ public class DataInitializer implements CommandLineRunner {
         try {
             File file = new File("docs/dataset/faq_dataset_curated.json");
             if (!file.exists()) {
-                file = new File("docs/dataset/faq_dataset.json");
-            }
-            if (!file.exists()) {
-                file = new File("form_demo/faq_dataset.json");
-            }
-            if (!file.exists()) {
-                log.info("Không tìm thấy tệp dataset FAQ tại docs/dataset/ hoặc form_demo/, bỏ qua nạp FAQ");
+                log.info("Không tìm thấy tệp dataset FAQ tại docs/dataset/faq_dataset_curated.json, bỏ qua nạp FAQ");
                 return;
             }
 
