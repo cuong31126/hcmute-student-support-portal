@@ -88,8 +88,11 @@ npx playwright test
 
 | Tài khoản | Mật khẩu | Vai trò (Role) | Phạm vi quản lý |
 | :--- | :--- | :--- | :--- |
-| `admin` | `Password123@` | `ROLE_ADMIN` | Toàn quyền hệ thống |
+| `admin` | `123456` | `ROLE_ADMIN` | Toàn quyền hệ thống & Quản trị SLA/User (`/admin/dashboard`) |
 | `staff_tuyensinh` | `Password123@` | `ROLE_STAFF` | Phòng Tuyển sinh & Truyền thông |
 | `staff_daotao` | `Password123@` | `ROLE_STAFF` | Phòng Đào tạo & Công tác Sinh viên |
 | `staff_cntt` | `Password123@` | `ROLE_STAFF` | Khoa Công nghệ Thông tin |
 | `student01` | `Password123@` | `ROLE_STUDENT` | Sinh viên chính quy |
+| `lecuong` | `123456` | `ROLE_STUDENT` | Tài khoản dev sinh viên |
+| `lecuong2` | `123456` | `ROLE_STAFF` | Tư vấn viên Phòng Đào tạo |
+
