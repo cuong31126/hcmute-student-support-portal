@@ -85,7 +85,7 @@ public class BatchDocumentIngestionService {
                         }
                     } catch (Exception e) {
                         failed++;
-                        String err = "Lỗi khi xử lý file " + pdf.getName() + ": " + e.getMessage();
+                        String err = "Loi khi xu ly file " + pdf.getName() + ": " + e.getMessage();
                         log.warn("[Batch Ingestion] {}", err);
                         errors.add(err);
                     }
@@ -99,7 +99,7 @@ public class BatchDocumentIngestionService {
         }
 
         long elapsed = System.currentTimeMillis() - startTime;
-        log.info("[Batch Ingestion] Hoàn thành quét {} file. Thành công: {}, Bỏ qua: {}, Thất bại: {}, Tổng chunks: {} ({} ms)",
+        log.info("[Batch Ingestion] Hoan thanh quet {} file. Thanh cong: {}, Bo qua: {}, That bai: {}, Tong chunks: {} ({} ms)",
                 totalScanned, successful, skipped, failed, totalChunks, elapsed);
 
         return IngestionSummary.builder()
@@ -125,7 +125,7 @@ public class BatchDocumentIngestionService {
         if (documentRepository.existsByFilePath(canonicalPath)) {
             var existingDoc = documentRepository.findByFilePath(canonicalPath);
             if (existingDoc.isPresent() && "COMPLETED".equals(existingDoc.get().getStatus())) {
-                log.debug("[Batch Ingestion] Bỏ qua file đã tồn tại: {}", pdfFile.getName());
+                log.debug("[Batch Ingestion] Bo qua file da ton tai: {}", pdfFile.getName());
                 return 0;
             }
         }

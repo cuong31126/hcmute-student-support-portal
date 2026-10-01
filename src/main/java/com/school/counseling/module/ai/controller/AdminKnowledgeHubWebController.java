@@ -69,11 +69,11 @@ public class AdminKnowledgeHubWebController {
             @RequestParam(defaultValue = "D:\\HK5\\CongNghePhanMem\\tailieuAI") String rootPath
     ) {
         try {
-            log.info("[Admin Knowledge Hub] Kích hoạt Batch Ingestion từ đường dẫn: {}", rootPath);
+            log.info("[Admin Knowledge Hub] Kich hoat Batch Ingestion tu duong dan: {}", rootPath);
             var summary = batchIngestionService.ingestAllYearFolders(rootPath);
             return ResponseEntity.ok(ApiResponse.success(summary, "Quét và nạp dữ liệu hoàn tất thành công!"));
         } catch (Exception e) {
-            log.error("[Admin Knowledge Hub] Lỗi Batch Ingestion: {}", e.getMessage(), e);
+            log.error("[Admin Knowledge Hub] Loi Batch Ingestion: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(ApiResponse.error("Thất bại khi nạp kho công văn: " + e.getMessage()));
         }
     }

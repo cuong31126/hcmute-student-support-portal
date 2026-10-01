@@ -36,7 +36,14 @@ public class GeminiApiClient {
     private String chatModel;
 
     public GeminiApiClient(ObjectMapper objectMapper) {
-        this.restClient = RestClient.builder().build();
+        org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory =
+                new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(java.time.Duration.ofSeconds(5));
+        requestFactory.setReadTimeout(java.time.Duration.ofSeconds(10));
+
+        this.restClient = RestClient.builder()
+                .requestFactory(requestFactory)
+                .build();
         this.objectMapper = objectMapper;
     }
 
@@ -49,7 +56,7 @@ public class GeminiApiClient {
         }
 
         if ("demo_key".equalsIgnoreCase(apiKey) || apiKey == null || apiKey.isBlank()) {
-            log.debug("[Gemini] API Key chưa được thiết lập, sinh vector giả lập cho môi trường dev/test");
+            log.debug("[Gemini] API Key chua duoc thiet lap, sinh vector gia lap cho moi truong dev/test");
             return generateDeterministicVector(text);
         }
 
@@ -78,18 +85,18 @@ public class GeminiApiClient {
                 return result;
             }
         } catch (Exception e) {
-            log.warn("[Gemini] Không thể gọi Gemini Embedding API: {}. Sử dụng fallback vector.", e.getMessage());
+            log.warn("[Gemini] Khong the goi Gemini Embedding API: {}. Su dung fallback vector.", e.getMessage());
         }
 
         return generateDeterministicVector(text);
     }
 
     /**
-     * Gửi Prompt có kèm Context cho Gemini 1.5 Flash sinh câu trả lời
+     * Gửi Prompt có kèm Context cho Gemini 2.5 Flash sinh câu trả lời
      */
     public String generateChatResponse(String systemPrompt, String userMessage) {
         if ("demo_key".equalsIgnoreCase(apiKey) || apiKey == null || apiKey.isBlank()) {
-            log.debug("[Gemini] Chạy ở chế độ local không có key, trả về phản hồi mẫu.");
+            log.debug("[Gemini] Chay o che do local khong co key, tra ve phan hoi mau.");
             return "Dựa vào quy chế học vụ được cung cấp: " + userMessage;
         }
 
@@ -113,7 +120,7 @@ public class GeminiApiClient {
                 return textNode.asText();
             }
         } catch (Exception e) {
-            log.warn("[Gemini] Lỗi khi gọi Gemini Chat API: {}. Trả về fallback.", e.getMessage());
+            log.warn("[Gemini] Loi khi goi Gemini Chat API: {}. Tra ve fallback.", e.getMessage());
         }
 
         return "Hệ thống AI đang bảo trì kết nối ngoài. Vui lòng liên hệ trực tiếp phòng ban phụ trách để được giải đáp.";

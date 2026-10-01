@@ -47,7 +47,7 @@ public class RagChatbotService {
 
         String cacheKey = (question.trim().toLowerCase() + "_" + (departmentId != null ? departmentId : 0));
         if (responseCache.containsKey(cacheKey)) {
-            log.debug("[RAG Cache] Đã tìm thấy câu trả lời trong Cache cho câu hỏi: '{}'", question);
+            log.debug("[RAG Cache] Da tim thay cau tra loi trong Cache cho cau hoi: '{}'", question);
             return responseCache.get(cacheKey);
         }
 

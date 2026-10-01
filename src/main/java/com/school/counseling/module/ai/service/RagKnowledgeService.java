@@ -73,12 +73,12 @@ public class RagKnowledgeService {
             List<KnowledgeChunk> activeChunks = chunkRepository.findAllActiveWithRelations();
             inMemoryChunks.clear();
             inMemoryChunks.addAll(activeChunks);
-            log.info("[RAG] Đã nạp thành công {} vector tri thức vào bộ nhớ RAM Cache!", inMemoryChunks.size());
+            log.info("[RAG] Da nap thanh cong {} vector tri thuc vao bo nho RAM Cache!", inMemoryChunks.size());
 
             // Huấn luyện mô hình PCA 3D từ các vector có sẵn
             trainPcaModelFromActiveChunks();
         } catch (Exception e) {
-            log.warn("[RAG] Không thể nạp vector cache lúc khởi động: {}", e.getMessage());
+            log.warn("[RAG] Khong the nap vector cache luc khoi dong: {}", e.getMessage());
         }
     }
 
@@ -256,7 +256,7 @@ public class RagKnowledgeService {
                     oldDoc.setSupersededBy(document);
                     documentRepository.save(oldDoc);
                     chunkRepository.deactivateByDocumentId(supersededById);
-                    log.info("[RAG] Đã vô hiệu hóa văn bản cũ #{} do được thay thế bởi #{}", supersededById, documentId);
+                    log.info("[RAG] Da vo hieu hoa van ban cu #{} do duoc thay the boi #{}", supersededById, documentId);
                 }
             }
 
@@ -318,9 +318,9 @@ public class RagKnowledgeService {
             // Nạp lại RAM Cache
             reloadVectorCache();
 
-            log.info("[RAG] Xử lý thành công tệp PDF '{}', đã tạo {} chunks vector!", document.getTitle(), chunksToSave.size());
+            log.info("[RAG] Xu ly thanh cong tep PDF '{}', da tao {} chunks vector!", document.getTitle(), chunksToSave.size());
         } catch (Exception e) {
-            log.error("[RAG] Thất bại khi xử lý tài liệu PDF #{}: {}", documentId, e.getMessage(), e);
+            log.error("[RAG] That bai khi xu ly tai lieu PDF #{}: {}", documentId, e.getMessage(), e);
             document.setStatus("FAILED");
             document.setErrorMessage(e.getMessage());
             documentRepository.save(document);
@@ -421,7 +421,7 @@ public class RagKnowledgeService {
 
         if (vectors.size() >= 3) {
             this.pcaModel = VectorReductionUtils.fit(vectors);
-            log.info("[RAG] Đã huấn luyện thành công mô hình PCA 3D từ {} vector mẫu!", vectors.size());
+            log.info("[RAG] Da huan luyen thanh cong mo hinh PCA 3D tu {} vector mau!", vectors.size());
         }
     }
 
@@ -487,7 +487,7 @@ public class RagKnowledgeService {
         // Đồng bộ lại RAM Cache
         reloadVectorCache();
 
-        log.info("[Human-in-the-loop] Đã nạp thành công Ticket #{} vào kho tri thức AI!", ticket.getTicketCode());
+        log.info("[Human-in-the-loop] Da nap thanh cong Ticket #{} vao kho tri thuc AI!", ticket.getTicketCode());
         return chunk;
     }
 

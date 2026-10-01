@@ -40,18 +40,13 @@ public class RagChatRestController {
     private final RagChatbotService ragChatbotService;
     private final com.school.counseling.module.ai.service.RagKnowledgeService ragKnowledgeService;
 
-    private static final long DEFERRED_TIMEOUT_MS = 9_000L;  // 9s timeout cho DeferredResult HTTP
+    private static final long DEFERRED_TIMEOUT_MS = 15_000L;  // 15s timeout cho DeferredResult HTTP
     private static final String FALLBACK_MESSAGE =
             "Trợ lý AI đang xử lý lượng lớn yêu cầu hoặc đang bảo trì. " +
             "Bạn có thể tra cứu trong mục FAQ, hoặc bấm 'Gửi Ticket Hỗ Trợ' để Cán bộ Phòng/Khoa phụ trách liên hệ lại sớm nhất.";
 
     /**
      * API nhận câu hỏi học vụ từ sinh viên và trả về câu trả lời từ hệ thống RAG.
-     *
-     * Sử dụng DeferredResult (Servlet 3.1+) để không block Tomcat worker thread:
-     * 1. Tomcat worker nhận request, tạo DeferredResult và lập tức trả control về container.
-     * 2. aiTaskExecutor chạy CompletableFuture.supplyAsync() để gọi Gemini AI.
-     * 3. Khi AI trả về → setResult() hoặc timeout → setErrorResult() với Fallback.
      */
     @PostMapping("/chat")
     public DeferredResult<ResponseEntity<ApiResponse<RagQueryResponse>>> askChatbot(
@@ -60,9 +55,9 @@ public class RagChatRestController {
         DeferredResult<ResponseEntity<ApiResponse<RagQueryResponse>>> deferredResult =
                 new DeferredResult<>(DEFERRED_TIMEOUT_MS, buildFallbackResponse());
 
-        // Timeout handler: Gemini không phản hồi trong 9s → trả về Fallback
+        // Timeout handler: Gemini không phản hồi trong 15s → trả về Fallback
         deferredResult.onTimeout(() -> {
-            log.warn("[AI Timeout] Câu hỏi vượt quá {}ms: '{}'", DEFERRED_TIMEOUT_MS,
+            log.warn("[AI Timeout] Cau hoi vuot qua {}ms: '{}'", DEFERRED_TIMEOUT_MS,
                     request.getQuestion() != null ? request.getQuestion().substring(0, Math.min(50, request.getQuestion().length())) : "");
             deferredResult.setErrorResult(buildFallbackResponse());
         });
@@ -70,13 +65,13 @@ public class RagChatRestController {
         // Giao tác vụ cho aiTaskExecutor (non-blocking): Tomcat worker được giải phóng ngay
         CompletableFuture.supplyAsync(
                 () -> ragChatbotService.ask(request.getQuestion(), request.getDepartmentId())
-        ).orTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+        ).orTimeout(12, java.util.concurrent.TimeUnit.SECONDS)
          .whenComplete((response, ex) -> {
              if (ex != null) {
                  if (ex instanceof TimeoutException) {
-                     log.warn("[AI Timeout CompletableFuture] Gemini API không phản hồi sau 8s");
+                     log.warn("[AI Timeout CompletableFuture] Gemini API khong phan hoi sau 12s, kich hoat Fallback.");
                  } else {
-                     log.error("[AI Error] Lỗi xử lý câu hỏi AI: {}", ex.getMessage(), ex);
+                     log.error("[AI Error] Loi xu ly cau hoi AI: {}", ex.getMessage(), ex);
                  }
                  deferredResult.setResult(buildFallbackResponse());
              } else {
@@ -104,7 +99,7 @@ public class RagChatRestController {
                     "Đã nạp thành công câu hỏi và câu trả lời vào Kho Tri Thức AI!"
             ));
         } catch (Exception e) {
-            log.error("[AI FAQ Promote] Thất bại khi nạp Ticket #{}: {}", ticketId, e.getMessage(), e);
+            log.error("[AI FAQ Promote] That bai khi nap Ticket #{}: {}", ticketId, e.getMessage(), e);
             return ResponseEntity.badRequest().body(ApiResponse.error("Không thể nạp vào FAQ: " + e.getMessage()));
         }
     }
