@@ -15,6 +15,7 @@
 | **Sprint 4** | **Trợ Lý Tri Thức Học Vụ & AI RAG Phân Tầng** | ✅ Hoàn thành | Tinh tuyển 300 FAQ chất lượng, Bộ nhớ Cache Caffeine ngắt tải sớm (70% lượt hỏi), Gemini Embedding + Cosine Similarity tính toán trên RAM CPU $\le 2\text{ms}$. |
 | **Sprint 5** | **Chiến Dịch Cải Tổ UI/UX & Nhận Diện HCMUTE** | ✅ Hoàn thành | Tích hợp Logo HCMUTE góc trái, Hero Slider 2 ảnh khuôn viên trường chuyển cảnh mượt mà, tinh giản nội dung rườm rà, phân tách Public vs Portal (`tiendo5.md`). |
 | **Sprint 6** | **Hệ Thống Trợ Lý AI RAG Hoàn Chỉnh (91 Công Văn)** | ✅ Hoàn thành | Nạp toàn diện 91 PDF công văn (2024-2026), Structural Chunking, In-Memory PCA 3D Space Visualizer, Time-Decay Re-ranking & Citation Provenance đạt chuẩn đồ án 10 điểm (`tiendo6.md`). |
+| **Sprint 7** | **Khảo Sát, Đồng Bộ & Nâng Cấp Phân Hệ AI (Java + Python)** | 🔄 Đang triển khai | Khảo sát chi tiết hiện trạng Python AI Engine, bóc tách 9 khoảng trống kỹ thuật (Data Sync, Time-Decay, Abbreviations, Fast Non-blocking API) và hoạch định lộ trình 5 giai đoạn (`tiendo7.md`). |
 
 ---
 

@@ -35,3 +35,22 @@ Yêu cầu:
 2. Đảm bảo bài test tái hiện ở Bước 1 chuyển sang PASSED (Green) và toàn bộ test suite chạy thành công không có lỗi hồi quy (No Regression).
 3. DỌN DẸP FILE TEST DƯ THỪA (TEST CLEANUP): Sau khi test chuyển sang GREEN và lỗi đã được sửa triệt để, BẮT BUỘC PHẢI XÓA BỎ các file Reproduction Test tạm thời (throwaway test) để tránh gây rối mã nguồn, tránh làm phình to thư mục src/test/java và không kéo dài thời gian build (chỉ giữ lại hoặc sáp nhập vào file test chính nếu là nghiệp vụ lâu dài).
 4. Hướng dẫn các bước xác minh thực tế (Manual Verification) từng bước để tôi kiểm tra lại trên trình duyệt / Swagger / Postman.
+
+Đóng vai trò Senior Java/Spring Boot 3 Engineer.
+
+[MỤC TIÊU DUY NHẤT]: 
+Viết logic cho hàm claimTicketAtomic trong TicketService.java để chống Race Condition khi 2 Cán bộ cùng nhận ticket.
+
+[NGỮ CẢNH CÓ SẴN - KHÔNG ĐƯỢC TỰ BỊA THÊM]:
+- Entity Ticket: id, status (OPEN, IN_PROGRESS, RESOLVED), assignedStaff, department.
+- Phương thức Repository ĐÃ CÓ SẴN (chỉ được dùng phương thức này):
+  int claimTicket(@Param("ticketId") Long ticketId, @Param("staff") User staff);
+- Custom Exception ĐÃ CÓ SẴN: 
+  TicketAlreadyClaimedException, ResourceNotFoundException.
+
+[RÀNG BUỘC BẮT BUỘC]:
+1. Tuyệt đối KHÔNG tự ý tạo thêm helper class, không sửa file Entity.
+2. Không sinh các hàm getter/setter lạ ngoài ngữ cảnh trên.
+3. Nếu code ảnh hưởng đến UI Thymeleaf, chỉ in đúng khối thẻ <div> liên quan kèm class Bootstrap 5, không in lại toàn bộ trang.
+
+Hãy viết mã nguồn hoàn chỉnh cho phương thức trên.
