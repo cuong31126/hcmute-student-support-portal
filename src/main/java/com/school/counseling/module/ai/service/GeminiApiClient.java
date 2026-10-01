@@ -29,10 +29,10 @@ public class GeminiApiClient {
     @Value("${app.gemini.api-key:demo_key}")
     private String apiKey;
 
-    @Value("${app.gemini.embedding-model:text-embedding-004}")
+    @Value("${app.gemini.embedding-model:gemini-embedding-001}")
     private String embeddingModel;
 
-    @Value("${app.gemini.chat-model:gemini-1.5-flash}")
+    @Value("${app.gemini.chat-model:gemini-2.5-flash}")
     private String chatModel;
 
     public GeminiApiClient(ObjectMapper objectMapper) {
@@ -56,7 +56,8 @@ public class GeminiApiClient {
         try {
             Map<String, Object> body = Map.of(
                     "model", "models/" + embeddingModel,
-                    "content", Map.of("parts", List.of(Map.of("text", text)))
+                    "content", Map.of("parts", List.of(Map.of("text", text))),
+                    "outputDimensionality", 768
             );
 
             String response = restClient.post()
