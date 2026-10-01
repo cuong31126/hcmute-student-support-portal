@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
@@ -37,6 +38,7 @@ import java.util.concurrent.TimeoutException;
 public class RagChatRestController {
 
     private final RagChatbotService ragChatbotService;
+    private final com.school.counseling.module.ai.service.RagKnowledgeService ragKnowledgeService;
 
     private static final long DEFERRED_TIMEOUT_MS = 9_000L;  // 9s timeout cho DeferredResult HTTP
     private static final String FALLBACK_MESSAGE =
@@ -83,6 +85,28 @@ public class RagChatRestController {
          });
 
         return deferredResult;
+    }
+
+    /**
+     * API Human-in-the-loop: Cán bộ chuyển đổi Ticket đã giải quyết thành FAQ Tri thức AI
+     */
+    @PostMapping("/promote-ticket-to-faq")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> promoteTicketToFaq(
+            @RequestBody Map<String, Long> payload) {
+        Long ticketId = payload.get("ticketId");
+        if (ticketId == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Thiếu mã Ticket ID"));
+        }
+        try {
+            var chunk = ragKnowledgeService.promoteTicketToFaq(ticketId);
+            return ResponseEntity.ok(ApiResponse.success(
+                    Map.of("chunkId", chunk.getId(), "title", chunk.getTitle()),
+                    "Đã nạp thành công câu hỏi và câu trả lời vào Kho Tri Thức AI!"
+            ));
+        } catch (Exception e) {
+            log.error("[AI FAQ Promote] Thất bại khi nạp Ticket #{}: {}", ticketId, e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("Không thể nạp vào FAQ: " + e.getMessage()));
+        }
     }
 
     private ResponseEntity<ApiResponse<RagQueryResponse>> buildFallbackResponse() {

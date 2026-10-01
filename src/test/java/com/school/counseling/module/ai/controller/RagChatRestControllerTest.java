@@ -34,6 +34,9 @@ class RagChatRestControllerTest {
     @MockBean
     private RagChatbotService ragChatbotService;
 
+    @MockBean
+    private com.school.counseling.module.ai.service.RagKnowledgeService ragKnowledgeService;
+
     @Test
     @DisplayName("TDD-CHAT-01: Gửi câu hỏi hợp lệ tới /api/v1/ai/chat -> 200 OK và trả về câu trả lời RAG")
     void askChatbot_validQuestion_returnsOk() throws Exception {
@@ -104,5 +107,23 @@ class RagChatRestControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.needsHistoricalWarning").value(true));
+    }
+
+    @Test
+    @DisplayName("TDD-CHAT-04: Gọi API /api/v1/ai/promote-ticket-to-faq -> 200 OK và nạp vào FAQ")
+    void promoteTicketToFaq_validTicket_returnsOk() throws Exception {
+        com.school.counseling.module.ai.entity.KnowledgeChunk mockChunk = com.school.counseling.module.ai.entity.KnowledgeChunk.builder()
+                .id(999L)
+                .title("FAQ [Ticket #TK-100]: Học phí học lại")
+                .build();
+
+        when(ragKnowledgeService.promoteTicketToFaq(100L)).thenReturn(mockChunk);
+
+        mockMvc.perform(post("/api/v1/ai/promote-ticket-to-faq")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ticketId\": 100}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.chunkId").value(999L));
     }
 }

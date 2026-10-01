@@ -155,18 +155,40 @@
                         // Định dạng nội dung câu trả lời
                         answerHtml += `<div class="ai-text-content">${formatAiResponse(rawAnswer)}</div>`;
 
-                        // Hiển thị nguồn tài liệu trích dẫn từ kho RAG
+                        // Hiển thị nguồn tài liệu trích dẫn minh bạch từ kho RAG
                         if (ragData.matchedChunks && ragData.matchedChunks.length > 0) {
-                            answerHtml += `<div class="mt-2 pt-2 border-top"><small class="text-muted fw-bold d-block mb-1" style="font-size: 11px;"><i class="bi bi-journal-bookmark me-1"></i>Nguồn tài liệu quy chế đối chiếu:</small><div class="d-flex flex-wrap gap-1">`;
-                            ragData.matchedChunks.slice(0, 3).forEach(chunk => {
+                            answerHtml += `<div class="mt-2 pt-2 border-top"><small class="text-muted fw-bold d-block mb-1" style="font-size: 11px;"><i class="bi bi-shield-check text-success me-1"></i>Căn cứ công văn pháp lý (Provenance):</small><div class="d-flex flex-column gap-1.5">`;
+                            ragData.matchedChunks.slice(0, 3).forEach((chunk, cIdx) => {
                                 const isReg = chunk.sourceType === 'REGULATION';
-                                const badgeClass = isReg ? 'bg-primary-subtle text-primary border-primary' : 'bg-light text-secondary border';
-                                const icon = isReg ? '📜' : '💬';
-                                const dept = chunk.departmentName ? ` [${chunk.departmentName}]` : '';
+                                const badgeClass = isReg ? 'bg-danger bg-opacity-10 text-danger border-danger border-opacity-25' : 'bg-light text-secondary border';
+                                const icon = isReg ? '📄' : '💬';
+                                const code = chunk.documentCode ? `[${chunk.documentCode}] ` : '';
+                                const page = chunk.pageNumber ? ` - Trang ${chunk.pageNumber}` : '';
+                                const article = chunk.articleHeader ? ` (${chunk.articleHeader})` : '';
+
+                                // Lưu dữ liệu vào data attributes để modal đọc
+                                const safeTitle = escapeHtml(chunk.title || 'Công văn quy chế');
+                                const safeCode = escapeHtml(chunk.documentCode || 'Đang cập nhật');
+                                const safeArticle = escapeHtml(chunk.articleHeader || 'Điều khoản');
+                                const safeContent = escapeHtml(chunk.content || '');
+
                                 answerHtml += `
-                                    <span class="badge ${badgeClass} border text-wrap text-start p-1" style="font-size: 10px; font-weight: normal; max-width: 100%;">
-                                        ${icon} ${chunk.title || 'Quy chế học vụ'} (Năm ${chunk.effectiveYear || '2026'})${dept}
-                                    </span>
+                                    <div class="d-flex align-items-center justify-content-between p-1.5 rounded ${badgeClass} border small" style="font-size: 11px;">
+                                        <div class="text-truncate me-2">
+                                            <span class="fw-semibold">${icon} ${code}${safeTitle}</span>
+                                            <span class="text-muted" style="font-size: 10px;">${page}${article}</span>
+                                        </div>
+                                        <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1.5 fw-semibold btn-preview-chunk"
+                                                data-title="${safeTitle}"
+                                                data-code="${safeCode}"
+                                                data-year="${chunk.effectiveYear || 2026}"
+                                                data-page="${chunk.pageNumber || 1}"
+                                                data-article="${safeArticle}"
+                                                data-content="${safeContent}"
+                                                style="font-size: 10px; white-space: nowrap;">
+                                            <i class="bi bi-eye me-1"></i>Xem trích dẫn
+                                        </button>
+                                    </div>
                                 `;
                             });
                             answerHtml += `</div></div>`;
@@ -241,12 +263,81 @@
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
 
-            function removeLoading(id) {
-                const elem = document.getElementById(id);
-                if (elem) elem.remove();
-            }
+            // Lắng nghe sự kiện nhấp vào nút "Xem trích dẫn" trên tin nhắn AI
+            document.addEventListener('click', (e) => {
+                const btn = e.target.closest('.btn-preview-chunk');
+                if (!btn) return;
+
+                const title = btn.getAttribute('data-title');
+                const code = btn.getAttribute('data-code');
+                const year = btn.getAttribute('data-year');
+                const page = btn.getAttribute('data-page');
+                const article = btn.getAttribute('data-article');
+                const content = btn.getAttribute('data-content');
+
+                document.getElementById('modal-pdf-title').textContent = title;
+                document.getElementById('modal-pdf-code').textContent = code;
+                document.getElementById('modal-pdf-year').textContent = 'Năm ' + year;
+                document.getElementById('modal-pdf-page').textContent = 'Trang ' + page;
+                document.getElementById('modal-pdf-article').textContent = article;
+                document.getElementById('modal-pdf-content').textContent = content;
+
+                const modalEl = document.getElementById('aiPdfPreviewModal');
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    bsModal.show();
+                }
+            });
         });
     </script>
+
+    <!-- Modal Xem Trước Trích Dẫn Công Văn Pháp Quy (PDF Preview Modal) -->
+    <div class="modal fade" id="aiPdfPreviewModal" tabindex="-1" aria-labelledby="aiPdfPreviewModalLabel" aria-hidden="true" style="z-index: 1100;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-3">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, var(--crimson, #A51C30) 0%, #8a1525 100%);">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-pdf-fill fs-4 text-warning"></i>
+                        <div>
+                            <h6 class="modal-title fw-bold mb-0" id="aiPdfPreviewModalLabel">Chứng Cứ Pháp Lý & Văn Bản Đối Chiếu</h6>
+                            <small class="text-white-50" style="font-size: 11px;">Trích xuất nguyên văn từ kho tài liệu công văn HCMUTE</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <!-- Metadata Header -->
+                    <div class="card border-0 shadow-xs rounded p-3 bg-white mb-3">
+                        <h6 class="fw-bold text-dark mb-1 font-serif" id="modal-pdf-title">Tiêu đề công văn</h6>
+                        <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+                            <span class="badge bg-danger" id="modal-pdf-code">1084/QĐ</span>
+                            <span class="badge bg-primary" id="modal-pdf-year">Năm 2026</span>
+                            <span class="badge bg-dark" id="modal-pdf-page">Trang 1</span>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                <i class="bi bi-shield-check me-1"></i>Văn bản số chính thống
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Article Section -->
+                    <div class="card border-0 shadow-xs rounded p-3 bg-white">
+                        <div class="fw-bold text-dark mb-2 small text-uppercase" style="letter-spacing: 0.5px;">
+                            <i class="bi bi-bookmark-fill text-danger me-1"></i>Điều khoản quy định:
+                            <span class="text-primary text-none" id="modal-pdf-article">Điều khoản</span>
+                        </div>
+                        <div class="p-3 bg-light rounded text-dark small" style="white-space: pre-wrap; font-family: inherit; line-height: 1.6; max-height: 260px; overflow-y: auto;" id="modal-pdf-content">
+                            Nội dung chi tiết trích xuất...
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between">
+                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Đoạn trích được AI sử dụng làm căn cứ trả lời, đảm bảo tính trung thực 100%.</small>
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 </body>
 </html>
+

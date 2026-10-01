@@ -33,6 +33,7 @@ public class RagKnowledgeService {
     private final KnowledgeChunkRepository chunkRepository;
     private final KnowledgeDocumentRepository documentRepository;
     private final GeminiApiClient geminiApiClient;
+    private final com.school.counseling.module.ticket.repository.TicketRepository ticketRepository;
 
     private final List<KnowledgeChunk> inMemoryChunks = new CopyOnWriteArrayList<>();
     private volatile VectorReductionUtils.PcaModel pcaModel;
@@ -40,17 +41,20 @@ public class RagKnowledgeService {
     @org.springframework.beans.factory.annotation.Autowired
     public RagKnowledgeService(KnowledgeChunkRepository chunkRepository,
                                KnowledgeDocumentRepository documentRepository,
-                               GeminiApiClient geminiApiClient) {
+                               GeminiApiClient geminiApiClient,
+                               @org.springframework.beans.factory.annotation.Autowired(required = false)
+                               com.school.counseling.module.ticket.repository.TicketRepository ticketRepository) {
         this.chunkRepository = chunkRepository;
         this.documentRepository = documentRepository;
         this.geminiApiClient = geminiApiClient;
+        this.ticketRepository = ticketRepository;
     }
 
     /**
      * Constructor phục vụ Unit Test Mockito
      */
     public RagKnowledgeService(KnowledgeChunkRepository chunkRepository, GeminiApiClient geminiApiClient) {
-        this(chunkRepository, null, geminiApiClient);
+        this(chunkRepository, null, geminiApiClient, null);
     }
 
     @PostConstruct
@@ -436,6 +440,55 @@ public class RagKnowledgeService {
             }
         }
         return new double[]{0.0, 0.0, 0.0};
+    }
+
+    /**
+     * Vòng lặp tự học Human-in-the-loop: Chuyển đổi Ticket đã giải quyết thành FAQ Tri thức AI
+     */
+    @Transactional
+    public KnowledgeChunk promoteTicketToFaq(Long ticketId) {
+        if (ticketRepository == null) {
+            throw new IllegalStateException("TicketRepository chưa được cấu hình");
+        }
+        var ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Ticket #" + ticketId));
+
+        String question = ticket.getTitle() + "\n" + ticket.getDescription();
+        String answer = (ticket.getFeedback() != null && !ticket.getFeedback().isBlank())
+                ? ticket.getFeedback()
+                : "Vấn đề đã được Cán bộ " + (ticket.getDepartment() != null ? ticket.getDepartment().getName() : "phụ trách") + " xử lý và giải quyết dứt điểm.";
+
+        String fullContent = "[CÂU HỎI]: " + question + "\n[GIẢI ĐÁP TỪ CÁN BỘ]:\n" + answer;
+
+        float[] embedding = geminiApiClient.getEmbedding(fullContent);
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        String embeddingJson;
+        try {
+            embeddingJson = mapper.writeValueAsString(embedding);
+        } catch (Exception e) {
+            embeddingJson = "[]";
+        }
+
+        KnowledgeChunk chunk = KnowledgeChunk.builder()
+                .title("FAQ [Ticket #" + ticket.getTicketCode() + "]: " + ticket.getTitle())
+                .content(fullContent)
+                .sourceType("FAQ_CHAT")
+                .effectiveYear(Year.now().getValue())
+                .priorityLevel(2)
+                .department(ticket.getDepartment())
+                .embeddingJson(embeddingJson)
+                .isActive(true)
+                .isDeprecated(false)
+                .build();
+
+        chunk.setCachedEmbedding(embedding);
+        chunk = chunkRepository.save(chunk);
+
+        // Đồng bộ lại RAM Cache
+        reloadVectorCache();
+
+        log.info("[Human-in-the-loop] Đã nạp thành công Ticket #{} vào kho tri thức AI!", ticket.getTicketCode());
+        return chunk;
     }
 
     private KnowledgeChunkMatchDto mapToMatchDto(ScoredChunk sc) {
