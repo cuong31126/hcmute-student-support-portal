@@ -7,7 +7,6 @@ import com.school.counseling.module.ai.entity.KnowledgeDocument;
 import com.school.counseling.module.ai.repository.KnowledgeChunkRepository;
 import com.school.counseling.module.ai.repository.KnowledgeDocumentRepository;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -20,21 +19,23 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 /**
- * Service quản lý kho tri thức RAG và thuật toán tìm kiếm phân tầng (Hierarchical Retrieval).
- * Toàn bộ vector được lưu trong MySQL và nạp lên RAM để tính toán Cosine Similarity siêu tốc.
+ * Service quản lý kho tri thức RAG và thuật toán tìm kiếm kết hợp phân tầng (Hybrid Hierarchical Retrieval).
+ * Lưu trữ vector trong MySQL, tải lên RAM Cache tính toán Cosine Similarity siêu tốc < 3ms
+ * và hỗ trợ xuất dữ liệu mô phỏng không gian 3D WebGL (3D Vector Space Visualizer).
  */
 @Slf4j
 @Service
 public class RagKnowledgeService {
 
     private static final double TIER_1_CONFIDENCE_THRESHOLD = 0.75;
-    private static final double DEPARTMENT_BOOST_FACTOR = 1.20;
+    private static final double DEPARTMENT_BOOST_FACTOR = 1.25;
 
     private final KnowledgeChunkRepository chunkRepository;
     private final KnowledgeDocumentRepository documentRepository;
     private final GeminiApiClient geminiApiClient;
 
     private final List<KnowledgeChunk> inMemoryChunks = new CopyOnWriteArrayList<>();
+    private volatile VectorReductionUtils.PcaModel pcaModel;
 
     @org.springframework.beans.factory.annotation.Autowired
     public RagKnowledgeService(KnowledgeChunkRepository chunkRepository,
@@ -60,7 +61,7 @@ public class RagKnowledgeService {
     }
 
     /**
-     * Nạp toàn bộ vector các chunk đang active từ MySQL vào RAM
+     * Nạp toàn bộ vector các chunk đang active từ MySQL vào RAM và huấn luyện mô hình PCA 3D
      */
     @Transactional(readOnly = true)
     public synchronized void reloadVectorCache() {
@@ -69,6 +70,9 @@ public class RagKnowledgeService {
             inMemoryChunks.clear();
             inMemoryChunks.addAll(activeChunks);
             log.info("[RAG] Đã nạp thành công {} vector tri thức vào bộ nhớ RAM Cache!", inMemoryChunks.size());
+
+            // Huấn luyện mô hình PCA 3D từ các vector có sẵn
+            trainPcaModelFromActiveChunks();
         } catch (Exception e) {
             log.warn("[RAG] Không thể nạp vector cache lúc khởi động: {}", e.getMessage());
         }
@@ -85,25 +89,20 @@ public class RagKnowledgeService {
     }
 
     /**
-     * Thuật toán Tìm kiếm Phân tầng (Hierarchical Retrieval)
-     *
-     * @param rawQuery Câu hỏi của sinh viên
-     * @param departmentId ID Khoa/Phòng cần ưu tiên (nếu có)
-     * @return Kết quả tìm kiếm có phân cấp kèm cờ cảnh báo đối chiếu
+     * Thuật toán Tìm kiếm Kết hợp (Hybrid Search: Dense Vector + Keyword Jaccard) theo Phân tầng
      */
     public RagQueryResponse hierarchicalSearch(String rawQuery, Long departmentId) {
         long startTime = System.currentTimeMillis();
 
-        // 1. Chuẩn hóa từ viết tắt học vụ (avđr -> anh văn đầu ra...)
+        // 1. Chuẩn hóa từ viết tắt học vụ (avđr -> chuẩn ngoại ngữ đầu ra...)
         String expandedQuery = AcademicAbbreviationUtils.expand(rawQuery);
         float[] queryVector = geminiApiClient.getEmbedding(expandedQuery);
-
-        int currentYear = Year.now().getValue();
+        Set<String> queryTokens = tokenize(expandedQuery);
 
         // 2. TẦNG 1: Quét trong kho Công văn / Quy chế chính thức (REGULATION)
         List<ScoredChunk> tier1Matches = new ArrayList<>();
         for (KnowledgeChunk chunk : inMemoryChunks) {
-            if (!chunk.getIsActive() || !"REGULATION".equalsIgnoreCase(chunk.getSourceType())) {
+            if (!Boolean.TRUE.equals(chunk.getIsActive()) || !"REGULATION".equalsIgnoreCase(chunk.getSourceType())) {
                 continue;
             }
 
@@ -112,9 +111,18 @@ public class RagKnowledgeService {
                 continue;
             }
 
-            double score = VectorMathUtils.cosineSimilarity(queryVector, chunkVec);
+            // A. Dense Vector Cosine Similarity
+            double denseScore = VectorMathUtils.cosineSimilarity(queryVector, chunkVec);
 
-            // Ưu tiên theo Khoa/Phòng (Department Scope Boost)
+            // B. Sparse Keyword Boost (Thưởng điểm khi trùng từ khóa chính xác)
+            double keywordScore = calculateTokenOverlap(queryTokens, chunk.getContent());
+            double score = denseScore * (1.0 + 0.20 * keywordScore);
+
+            // C. Phạt suy giảm thời gian (Time-decay)
+            double timeWeight = calculateTimeWeight(chunk.getEffectiveYear());
+            score *= timeWeight;
+
+            // D. Ưu tiên theo Khoa/Phòng (Department Scope Boost)
             if (departmentId != null && chunk.getDepartment() != null
                     && Objects.equals(chunk.getDepartment().getId(), departmentId)) {
                 score *= DEPARTMENT_BOOST_FACTOR;
@@ -145,7 +153,7 @@ public class RagKnowledgeService {
         // 3. TẦNG 2: Mở rộng quét sang kho Lịch sử tư vấn (FAQ_CHAT)
         List<ScoredChunk> tier2Matches = new ArrayList<>();
         for (KnowledgeChunk chunk : inMemoryChunks) {
-            if (!chunk.getIsActive() || !"FAQ_CHAT".equalsIgnoreCase(chunk.getSourceType())) {
+            if (!Boolean.TRUE.equals(chunk.getIsActive()) || !"FAQ_CHAT".equalsIgnoreCase(chunk.getSourceType())) {
                 continue;
             }
 
@@ -154,14 +162,13 @@ public class RagKnowledgeService {
                 continue;
             }
 
-            double score = VectorMathUtils.cosineSimilarity(queryVector, chunkVec);
+            double denseScore = VectorMathUtils.cosineSimilarity(queryVector, chunkVec);
+            double keywordScore = calculateTokenOverlap(queryTokens, chunk.getContent());
+            double score = denseScore * (1.0 + 0.20 * keywordScore);
 
-            // Time Decay: Giảm 5% điểm tương đồng cho mỗi năm cũ hơn
-            int ageInYears = Math.max(0, currentYear - chunk.getEffectiveYear());
-            double timeWeight = Math.max(0.60, 1.0 - (ageInYears * 0.05));
+            double timeWeight = calculateTimeWeight(chunk.getEffectiveYear());
             score *= timeWeight;
 
-            // Department Boost
             if (departmentId != null && chunk.getDepartment() != null
                     && Objects.equals(chunk.getDepartment().getId(), departmentId)) {
                 score *= DEPARTMENT_BOOST_FACTOR;
@@ -182,7 +189,7 @@ public class RagKnowledgeService {
 
         return RagQueryResponse.builder()
                 .primarySourceType("FAQ_CHAT")
-                .needsHistoricalWarning(true) // BẮT BUỘC gắn nhãn cảnh báo đối chiếu thời gian
+                .needsHistoricalWarning(true) // Bắt buộc gắn cảnh báo đối chiếu thời gian
                 .confidenceScore(bestScore)
                 .executionTimeMs(elapsed)
                 .matchedChunks(matches)
@@ -194,7 +201,34 @@ public class RagKnowledgeService {
     }
 
     /**
-     * Xử lý nền (@Async) trích xuất văn bản từ PDF, băm chunk và tạo vector
+     * Tính trọng số thời gian (Time-decay): 2026 = 1.0, 2025 = 0.85, 2024 = 0.70
+     */
+    private double calculateTimeWeight(Integer year) {
+        if (year == null) return 0.70;
+        if (year >= 2026) return 1.00;
+        if (year == 2025) return 0.85;
+        if (year == 2024) return 0.70;
+        int age = Math.max(0, 2024 - year);
+        return Math.max(0.50, 0.70 - (age * 0.05));
+    }
+
+    private double calculateTokenOverlap(Set<String> queryTokens, String content) {
+        if (queryTokens.isEmpty() || content == null || content.isBlank()) {
+            return 0.0;
+        }
+        Set<String> contentTokens = tokenize(content);
+        long matches = queryTokens.stream().filter(contentTokens::contains).count();
+        return (double) matches / queryTokens.size();
+    }
+
+    private Set<String> tokenize(String text) {
+        return Arrays.stream(text.toLowerCase().split("[^\\p{L}\\p{Nd}]+"))
+                .filter(t -> t.length() > 1)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Xử lý nền (@Async) trích xuất văn bản từ PDF, băm chunk cấu trúc và tạo vector
      */
     @Async("mailTaskExecutor")
     @Transactional
@@ -222,31 +256,52 @@ public class RagKnowledgeService {
                 }
             }
 
-            // 2. Trích xuất text và kiểm tra layer chữ
+            // 2. Trích xuất text từng trang
             File pdfFile = new File(document.getFilePath());
-            String fullText = PdfExtractorUtils.extractText(pdfFile);
+            List<PdfExtractorUtils.PageContent> pages = PdfExtractorUtils.extractPagesWithInfo(pdfFile);
 
-            // 3. Phân mảnh văn bản thông minh (Chunking with overlap)
-            List<String> textChunks = PdfExtractorUtils.chunkText(fullText);
+            String firstPageText = pages.isEmpty() ? "" : pages.get(0).text();
+            String docCode = PdfExtractorUtils.extractDocumentCode(firstPageText);
+            String category = PdfExtractorUtils.detectCategory(document.getTitle(), firstPageText);
 
-            // 4. Tạo vector embeddings và lưu vào MySQL
+            document.setDocumentCode(docCode != null ? docCode : "Đang cập nhật");
+            document.setCategory(category);
+            document.setFileSize(pdfFile.length());
+            document.setPageCount(pages.size());
+
+            // 3. Phân mảnh văn bản cấu trúc có Header ngữ cảnh
+            List<PdfExtractorUtils.StructuralChunk> structuralChunks = PdfExtractorUtils.chunkStructural(
+                    pages,
+                    document.getTitle(),
+                    docCode,
+                    document.getEffectiveYear(),
+                    "HCMUTE"
+            );
+
+            // 4. Tạo vector embeddings và lưu vào DB
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             List<KnowledgeChunk> chunksToSave = new ArrayList<>();
             int chunkIndex = 1;
 
-            for (String chunkContent : textChunks) {
-                float[] embedding = geminiApiClient.getEmbedding(chunkContent);
+            for (PdfExtractorUtils.StructuralChunk sc : structuralChunks) {
+                float[] embedding = geminiApiClient.getEmbedding(sc.injectedContent());
+                String embeddingJson = mapper.writeValueAsString(embedding);
 
                 KnowledgeChunk chunk = KnowledgeChunk.builder()
                         .document(document)
-                        .title(document.getTitle() + " (Đoạn " + chunkIndex++ + ")")
-                        .content(chunkContent)
+                        .title(document.getTitle() + " - Trang " + sc.pageNumber() + " (#" + chunkIndex++ + ")")
+                        .content(sc.injectedContent())
                         .sourceType("REGULATION")
                         .effectiveYear(document.getEffectiveYear())
                         .priorityLevel(1)
+                        .pageNumber(sc.pageNumber())
+                        .articleHeader(sc.articleHeader())
+                        .embeddingJson(embeddingJson)
                         .isActive(true)
+                        .isDeprecated(false)
                         .build();
 
-                chunk.setEmbeddingArray(embedding);
+                chunk.setCachedEmbedding(embedding);
                 chunksToSave.add(chunk);
             }
 
@@ -268,8 +323,126 @@ public class RagKnowledgeService {
         }
     }
 
+    /**
+     * Xuất dữ liệu biểu diễn không gian 3D Vector WebGL (3D Force Graph)
+     */
+    public Map<String, Object> get3DVectorGraphData(String testQuery) {
+        List<Map<String, Object>> nodes = new ArrayList<>();
+        List<Map<String, Object>> links = new ArrayList<>();
+
+        if (pcaModel == null && !inMemoryChunks.isEmpty()) {
+            trainPcaModelFromActiveChunks();
+        }
+
+        // Lấy tối đa 120 điểm tiêu biểu để WebGL hiển thị 60fps mượt mà
+        int limit = Math.min(120, inMemoryChunks.size());
+        for (int i = 0; i < limit; i++) {
+            KnowledgeChunk c = inMemoryChunks.get(i);
+            double[] coords = getOrComputePcaCoords(c);
+
+            String color = "#4ade80"; // Xanh lục: Công văn 2026
+            String group = "Công văn 2026";
+
+            if ("FAQ_CHAT".equalsIgnoreCase(c.getSourceType())) {
+                color = "#facc15"; // Vàng: FAQ
+                group = "FAQ Tích lũy";
+            } else if (c.getEffectiveYear() != null && c.getEffectiveYear() < 2026) {
+                color = "#60a5fa"; // Xanh dương: Công văn cũ (2024-2025)
+                group = "Công văn " + c.getEffectiveYear();
+            }
+
+            if (Boolean.TRUE.equals(c.getIsDeprecated()) || !Boolean.TRUE.equals(c.getIsActive())) {
+                color = "#94a3b8"; // Xám: Hết hiệu lực
+                group = "Lỗi thời / Tắt";
+            }
+
+            Map<String, Object> node = new HashMap<>();
+            node.put("id", "chunk-" + c.getId());
+            node.put("name", c.getTitle());
+            node.put("group", group);
+            node.put("color", color);
+            node.put("year", c.getEffectiveYear());
+            node.put("article", c.getArticleHeader() != null ? c.getArticleHeader() : "Điều khoản");
+            node.put("x", coords[0]);
+            node.put("y", coords[1]);
+            node.put("z", coords[2]);
+            node.put("val", 6);
+            nodes.add(node);
+        }
+
+        // Nếu có câu hỏi thử nghiệm, chiếu câu hỏi thành node màu Đỏ và vẽ liên kết
+        if (testQuery != null && !testQuery.isBlank() && pcaModel != null) {
+            String expanded = AcademicAbbreviationUtils.expand(testQuery);
+            float[] qVec = geminiApiClient.getEmbedding(expanded);
+            double[] qCoords = VectorReductionUtils.project(qVec, pcaModel);
+
+            String queryNodeId = "query-red";
+            Map<String, Object> queryNode = new HashMap<>();
+            queryNode.put("id", queryNodeId);
+            queryNode.put("name", "Câu hỏi: " + testQuery);
+            queryNode.put("group", "Query Hiện Tại");
+            queryNode.put("color", "#ef4444"); // Đỏ nổi bật
+            queryNode.put("x", qCoords[0]);
+            queryNode.put("y", qCoords[1]);
+            queryNode.put("z", qCoords[2]);
+            queryNode.put("val", 12);
+            nodes.add(queryNode);
+
+            // Tìm Top 3 chunks gần nhất để nối đường link
+            RagQueryResponse topMatches = hierarchicalSearch(testQuery);
+            if (topMatches.getMatchedChunks() != null) {
+                for (KnowledgeChunkMatchDto match : topMatches.getMatchedChunks()) {
+                    Map<String, Object> link = new HashMap<>();
+                    link.put("source", queryNodeId);
+                    link.put("target", "chunk-" + match.getId());
+                    link.put("similarity", match.getSimilarityScore());
+                    link.put("color", "#ef4444");
+                    links.add(link);
+                }
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("nodes", nodes);
+        result.put("links", links);
+        return result;
+    }
+
+    private synchronized void trainPcaModelFromActiveChunks() {
+        List<float[]> vectors = inMemoryChunks.stream()
+                .map(KnowledgeChunk::getEmbeddingArray)
+                .filter(v -> v.length > 0)
+                .limit(100)
+                .collect(Collectors.toList());
+
+        if (vectors.size() >= 3) {
+            this.pcaModel = VectorReductionUtils.fit(vectors);
+            log.info("[RAG] Đã huấn luyện thành công mô hình PCA 3D từ {} vector mẫu!", vectors.size());
+        }
+    }
+
+    private double[] getOrComputePcaCoords(KnowledgeChunk c) {
+        if (c.getPcaX() != null && c.getPcaY() != null && c.getPcaZ() != null) {
+            return new double[]{c.getPcaX(), c.getPcaY(), c.getPcaZ()};
+        }
+        if (pcaModel != null) {
+            float[] vec = c.getEmbeddingArray();
+            if (vec.length > 0) {
+                double[] p = VectorReductionUtils.project(vec, pcaModel);
+                c.setPcaX(p[0]);
+                c.setPcaY(p[1]);
+                c.setPcaZ(p[2]);
+                return p;
+            }
+        }
+        return new double[]{0.0, 0.0, 0.0};
+    }
+
     private KnowledgeChunkMatchDto mapToMatchDto(ScoredChunk sc) {
         String deptName = sc.chunk.getDepartment() != null ? sc.chunk.getDepartment().getName() : "Toàn trường";
+        String docCode = sc.chunk.getDocument() != null ? sc.chunk.getDocument().getDocumentCode() : null;
+        String filePath = sc.chunk.getDocument() != null ? sc.chunk.getDocument().getFilePath() : null;
+
         return KnowledgeChunkMatchDto.builder()
                 .id(sc.chunk.getId())
                 .title(sc.chunk.getTitle())
@@ -278,6 +451,10 @@ public class RagKnowledgeService {
                 .effectiveYear(sc.chunk.getEffectiveYear())
                 .priorityLevel(sc.chunk.getPriorityLevel())
                 .departmentName(deptName)
+                .pageNumber(sc.chunk.getPageNumber())
+                .articleHeader(sc.chunk.getArticleHeader())
+                .documentCode(docCode)
+                .filePath(filePath)
                 .similarityScore(Math.round(sc.score * 10000.0) / 10000.0)
                 .build();
     }
