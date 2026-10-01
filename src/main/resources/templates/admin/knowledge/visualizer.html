@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>3D Vector Space & Similarity Visualizer - QAUTE Portal</title>
+</head>
+<body>
+<div th:fragment="content">
+    <!-- Portal Workspace Header -->
+    <div th:replace="~{layout/portal-header :: portal-header('admin-visualizer')}"></div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;"></div>
+
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-danger px-2.5 py-1 text-uppercase fw-semibold" style="letter-spacing: 0.5px;">TENSOR SPACE VISUALIZER</span>
+                <span class="text-muted small">| PCA 3D Dimensionality Reduction (768-D &rarr; 3-D)</span>
+            </div>
+            <h3 class="fw-bold text-dark mb-0 font-serif">Mô Hình 3D Không Gian Dữ Liệu & Khoảng Cách Ngữ Nghĩa</h3>
+            <p class="text-muted small mb-0 mt-1">Biểu diễn đám mây vector công văn HCMUTE trong không gian 3 chiều và mô phỏng trực quan truy vấn Cosine Similarity</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-dark px-3 py-2 fs-6 fw-normal">
+                <i class="bi bi-cpu me-1 text-success"></i><span id="active-nodes-count">Đang tải...</span> vector nodes
+            </span>
+        </div>
+    </div>
+
+    <!-- Visualizer Container: 2-Column Layout -->
+    <div class="row g-3 mb-4">
+        <!-- Cột Trái: Khung Thử Nghiệm Truy Vấn & Kết Quả Top Chunks -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 mb-3">
+                <h6 class="fw-bold font-serif text-dark mb-2"><i class="bi bi-search me-1.5 text-danger"></i>Thử Nghiệm Truy Vấn Ngữ Nghĩa</h6>
+                <p class="text-muted small mb-3">Gõ câu hỏi để mô hình tính toán Query Vector, chiếu điểm Đỏ vào không gian 3D và vẽ đường nối Top matches.</p>
+
+                <form id="search-form">
+                    <div class="mb-2">
+                        <input type="text" id="query-input" class="form-control form-control-sm"
+                               placeholder="Ví dụ: Rớt môn có được xét học bổng không?" value="Học bổng khuyến khích cần điều kiện gì?">
+                    </div>
+                    <button type="submit" id="btn-search" class="btn btn-crimson btn-sm w-100 fw-bold shadow-xs">
+                        <i class="bi bi-play-circle-fill me-1"></i>Chiếu Query Lên Không Gian 3D
+                    </button>
+                </form>
+            </div>
+
+            <!-- Top Chunks Match Card -->
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 mb-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="fw-bold font-serif text-dark mb-0"><i class="bi bi-bullseye me-1.5 text-success"></i>Top Đoạn Văn Bản Gần Nhất</h6>
+                    <span id="search-time" class="badge bg-light text-muted border">0 ms</span>
+                </div>
+                <div id="top-matches-container" class="small text-muted">
+                    <p class="mb-0 text-center py-3">Bấm nút "Chiếu Query" để quan sát các tia nối ngữ nghĩa tới văn bản.</p>
+                </div>
+            </div>
+
+            <!-- Legend Card -->
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3">
+                <h6 class="fw-bold font-serif text-dark mb-2"><i class="bi bi-palette me-1.5 text-primary"></i>Chú Giải Màu Sắc Không Gian</h6>
+                <div class="d-flex flex-column gap-2 small">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-circle d-inline-block" style="width: 14px; height: 14px; background-color: #ef4444;"></span>
+                        <span class="fw-semibold text-danger">Điểm Đỏ:</span> <span>Query Vector câu hỏi vừa nhập</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-circle d-inline-block" style="width: 14px; height: 14px; background-color: #4ade80;"></span>
+                        <span class="fw-semibold text-success">Điểm Xanh Lục:</span> <span>Công văn chính thức năm 2026 (Ưu tiên)</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-circle d-inline-block" style="width: 14px; height: 14px; background-color: #60a5fa;"></span>
+                        <span class="fw-semibold text-primary">Điểm Xanh Dương:</span> <span>Công văn năm 2024 - 2025</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-circle d-inline-block" style="width: 14px; height: 14px; background-color: #facc15;"></span>
+                        <span class="fw-semibold text-warning">Điểm Vàng:</span> <span>FAQ tinh tuyển & lịch sử tư vấn</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-circle d-inline-block" style="width: 14px; height: 14px; background-color: #94a3b8;"></span>
+                        <span class="fw-semibold text-secondary">Điểm Xám:</span> <span>Văn bản lỗi thời / đã bị vô hiệu hóa</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột Phải: Canvas Không Gian 3D WebGL -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-3 bg-dark overflow-hidden position-relative" style="height: 600px;">
+                <div id="3d-graph-container" style="width: 100%; height: 100%;"></div>
+
+                <!-- Overlay Controls -->
+                <div class="position-absolute bottom-0 start-0 p-3 text-white-50 small bg-black bg-opacity-50 rounded-top-end" style="backdrop-filter: blur(4px);">
+                    <div><i class="bi bi-mouse me-1"></i>Chuột trái: Xoay không gian 360° | Chuột phải: Di chuyển | Cuộn: Phóng to / Thu nhỏ</div>
+                    <div><i class="bi bi-cursor-fill me-1"></i>Nhấp vào hạt vector để xem chi tiết nội dung Điều/Khoản</div>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div id="graph-loading" class="position-absolute top-50 start-50 translate-middle text-center text-white">
+                    <div class="spinner-border text-danger mb-2" role="status"></div>
+                    <div class="small fw-semibold">Đang khởi tạo không gian vector 3D WebGL...</div>
+                </div>
+            </div>
+
+            <!-- Modal / Card Chi Tiết Đoạn Chunk Được Chọn -->
+            <div id="node-detail-card" class="card border-0 shadow-sm rounded-3 bg-white p-3 mt-3 d-none">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="fw-bold mb-0 text-dark" id="node-detail-title">Tiêu đề đoạn trích</h6>
+                    <span class="badge bg-danger" id="node-detail-badge">Năm 2026</span>
+                </div>
+                <div class="small text-secondary mb-2" id="node-detail-article">Điều 5. Mức thu học phí</div>
+                <div class="p-2.5 bg-light rounded text-dark small" id="node-detail-content" style="max-height: 120px; overflow-y: auto;">
+                    Nội dung chi tiết...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3D Force Graph WebGL Library -->
+<script src="https://unpkg.com/3d-force-graph"></script>
+<script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('3d-graph-container');
+        const loading = document.getElementById('graph-loading');
+        const form = document.getElementById('search-form');
+        const queryInput = document.getElementById('query-input');
+        const btnSearch = document.getElementById('btn-search');
+        const topMatchesContainer = document.getElementById('top-matches-container');
+        const searchTimeBadge = document.getElementById('search-time');
+        const activeNodesBadge = document.getElementById('active-nodes-count');
+
+        const detailCard = document.getElementById('node-detail-card');
+        const detailTitle = document.getElementById('node-detail-title');
+        const detailBadge = document.getElementById('node-detail-badge');
+        const detailArticle = document.getElementById('node-detail-article');
+        const detailContent = document.getElementById('node-detail-content');
+
+        let graph = null;
+
+        // Khởi tạo đồ thị 3D WebGL
+        function initGraph(data) {
+            if (!graph) {
+                graph = ForceGraph3D()(container)
+                    .backgroundColor('#0f172a')
+                    .nodeLabel(node => `<b>${node.name}</b><br/>Nhóm: ${node.group}<br/>Tọa độ: (${node.x}, ${node.y}, ${node.z})`)
+                    .nodeColor(node => node.color || '#4ade80')
+                    .nodeVal(node => node.val || 6)
+                    .nodeResolution(16)
+                    .linkColor(link => link.color || '#ef4444')
+                    .linkWidth(link => 2)
+                    .linkDirectionalParticles(2)
+                    .linkDirectionalParticleSpeed(0.006)
+                    .linkDirectionalParticleWidth(2.5)
+                    .onNodeClick(node => {
+                        showNodeDetail(node);
+                    });
+            }
+
+            graph.graphData({
+                nodes: data.nodes || [],
+                links: data.links || []
+            });
+
+            if (data.nodes) {
+                activeNodesBadge.textContent = data.nodes.length;
+            }
+
+            loading.classList.add('d-none');
+        }
+
+        function showNodeDetail(node) {
+            detailCard.classList.remove('d-none');
+            detailTitle.textContent = node.name || 'Chi tiết';
+            detailBadge.textContent = node.group || 'Thông tin';
+            detailArticle.textContent = node.article || 'Không có tiêu đề điều khoản';
+            detailContent.textContent = `Tọa độ không gian ngữ nghĩa PCA: X = ${node.x}, Y = ${node.y}, Z = ${node.z}.`;
+        }
+
+        // Tải dữ liệu ban đầu
+        async function loadGraphData(query = '') {
+            const start = performance.now();
+            try {
+                const url = '/admin/knowledge/api/visualizer/graph' + (query ? `?query=${encodeURIComponent(query)}` : '');
+                const res = await fetch(url);
+                const json = await res.json();
+
+                if (json.success && json.data) {
+                    initGraph(json.data);
+                    const elapsed = Math.round(performance.now() - start);
+                    searchTimeBadge.textContent = `${elapsed} ms`;
+
+                    // Cập nhật Top matches ở cột trái nếu có links
+                    renderTopMatches(json.data);
+                }
+            } catch (e) {
+                console.error('Lỗi khi tải dữ liệu 3D:', e);
+                loading.innerHTML = '<span class="text-danger">Không thể nạp dữ liệu không gian 3D</span>';
+            }
+        }
+
+        function renderTopMatches(data) {
+            const links = data.links || [];
+            if (links.length === 0) {
+                topMatchesContainer.innerHTML = '<p class="text-center py-3 text-muted mb-0">Không có liên kết tương đồng nào.</p>';
+                return;
+            }
+
+            let html = '<div class="list-group list-group-flush">';
+            links.forEach((l, idx) => {
+                const targetNode = data.nodes.find(n => n.id === l.target);
+                const title = targetNode ? targetNode.name : l.target;
+                const sim = l.similarity ? (l.similarity * 100).toFixed(1) + '%' : 'Rất cao';
+
+                html += `
+                    <div class="list-group-item px-0 py-2 border-0 border-bottom">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="badge bg-danger">Top ${idx + 1}</span>
+                            <span class="text-success fw-bold">Cosine: ${sim}</span>
+                        </div>
+                        <div class="fw-semibold text-dark text-truncate">${title}</div>
+                        <small class="text-muted">${targetNode ? targetNode.article : ''}</small>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            topMatchesContainer.innerHTML = html;
+        }
+
+        // Bắt sự kiện form submit tìm kiếm
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const q = queryInput.value.trim();
+            if (!q) return;
+
+            btnSearch.disabled = true;
+            btnSearch.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang tính vector...';
+
+            loadGraphData(q).finally(() => {
+                btnSearch.disabled = false;
+                btnSearch.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i>Chiếu Query Lên Không Gian 3D';
+            });
+        });
+
+        // Khởi động nạp dữ liệu
+        loadGraphData('Học bổng khuyến khích cần điều kiện gì?');
+    });
+</script>
+</body>
+</html>

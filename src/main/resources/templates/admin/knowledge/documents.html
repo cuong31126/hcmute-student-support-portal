@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Kho Công Văn & Quy Chế Học Vụ AI - QAUTE Portal</title>
+</head>
+<body>
+<div th:fragment="content">
+    <!-- Portal Workspace Header -->
+    <div th:replace="~{layout/portal-header :: portal-header('admin-docs')}"></div>
+
+    <!-- Toast Container góc phải -->
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;"></div>
+
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-danger px-2.5 py-1 text-uppercase fw-semibold" style="letter-spacing: 0.5px;">AI KNOWLEDGE HUB</span>
+                <span class="text-muted small">| Data Governance & Vector Chunks</span>
+            </div>
+            <h3 class="fw-bold text-dark mb-0 font-serif">Kho Công Văn & Quy Chế Học Vụ (2024 - 2026)</h3>
+            <p class="text-muted small mb-0 mt-1">Quản trị toàn diện 91 tệp văn bản pháp quy từ HCMUTE, băm chunk cấu trúc theo Điều/Khoản và đồng bộ vector nhúng</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button id="btn-batch-ingest" class="btn btn-crimson btn-sm fw-bold shadow-xs px-3">
+                <i class="bi bi-cloud-arrow-down-fill me-1.5"></i>Quét & Nạp 91 Công Văn (Batch Ingest)
+            </button>
+            <a th:href="@{/admin/knowledge/visualizer}" class="btn btn-outline-dark btn-sm fw-semibold">
+                <i class="bi bi-diagram-3 me-1"></i>3D Vector Space
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Tổng Số Văn Bản Đã Nạp</div>
+                        <h3 class="fw-bold mb-0 text-dark mt-1" id="metric-total-docs" th:text="${totalDocs}">0</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle">
+                        <i class="bi bi-folder2-open fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Văn Bản Hoàn Tất (Vector Ready)</div>
+                        <h3 class="fw-bold mb-0 text-success mt-1" id="metric-completed-docs" th:text="${completedDocs}">0</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle">
+                        <i class="bi bi-check-circle-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Tổng Đoạn Chunks Trong RAM</div>
+                        <h3 class="fw-bold mb-0 text-danger mt-1" id="metric-total-chunks" th:text="${totalChunks}">0</h3>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-circle">
+                        <i class="bi bi-cpu-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents Table Card -->
+    <div class="card border-0 shadow-sm rounded-3 bg-white overflow-hidden mb-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+            <h5 class="fw-bold mb-0 font-serif text-dark"><i class="bi bi-files me-2 text-danger"></i>Danh Sách Tài Liệu Pháp Quy</h5>
+            <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">Độ trễ tra cứu RAM: &le; 3ms</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase small text-secondary fw-semibold">
+                    <tr>
+                        <th class="ps-4">Số Hiệu / Tiêu Đề Công Văn</th>
+                        <th>Năm</th>
+                        <th>Danh Mục</th>
+                        <th>Số Trang</th>
+                        <th>Số Chunks</th>
+                        <th>Trạng Thái</th>
+                        <th class="text-end pe-4">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="documents-table-body">
+                    <tr th:if="${#lists.isEmpty(documents)}">
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
+                            Chưa có công văn nào được nạp. Hãy bấm nút <b>"Quét & Nạp 91 Công Văn"</b> ở trên để bắt đầu!
+                        </td>
+                    </tr>
+                    <tr th:each="doc : ${documents}">
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark" th:text="${doc.title}">Tiêu đề công văn</div>
+                            <small class="text-muted">
+                                <span class="badge bg-light text-dark border me-1" th:text="${doc.documentCode}">1084/QĐ</span>
+                                <span th:text="${doc.fileName}">file.pdf</span>
+                            </small>
+                        </td>
+                        <td>
+                            <span class="badge" 
+                                  th:classappend="${doc.effectiveYear == 2026 ? 'bg-success' : (doc.effectiveYear == 2025 ? 'bg-primary' : 'bg-secondary')}"
+                                  th:text="${doc.effectiveYear}">2026</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border" th:text="${doc.category}">HOC_PHI</span>
+                        </td>
+                        <td th:text="${doc.pageCount != null ? doc.pageCount + ' trang' : '-'}">3 trang</td>
+                        <td>
+                            <span class="fw-bold text-danger" th:text="${doc.totalChunks}">12</span> đoạn
+                        </td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${doc.status == 'COMPLETED' ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : (doc.status == 'PROCESSING' ? 'bg-warning bg-opacity-10 text-warning border border-warning' : 'bg-danger bg-opacity-10 text-danger border border-danger')}"
+                                  th:text="${doc.status}">COMPLETED</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <span class="text-success small fw-semibold" th:if="${doc.status == 'COMPLETED'}">
+                                <i class="bi bi-shield-check me-1"></i>Active
+                            </span>
+                            <span class="text-danger small" th:if="${doc.status == 'FAILED'}" th:title="${doc.errorMessage}">
+                                <i class="bi bi-exclamation-triangle me-1"></i>Lỗi
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        const btnBatch = document.getElementById('btn-batch-ingest');
+        const toastContainer = document.getElementById('toastContainer');
+
+        function showToast(message, isSuccess = true) {
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-white ${isSuccess ? 'bg-success' : 'bg-danger'} border-0 show shadow-lg mb-2`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body d-flex align-items-center gap-2">
+                        <i class="bi ${isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} fs-5"></i>
+                        <span>${message}</span>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            toastContainer.appendChild(toastEl);
+            setTimeout(() => toastEl.remove(), 4000);
+        }
+
+        if (btnBatch) {
+            btnBatch.addEventListener('click', async () => {
+                if (!confirm('Hệ thống sẽ quét toàn bộ thư mục D:\\HK5\\CongNghePhanMem\\tailieuAI (năm 2024, 2025, 2026), trích xuất văn bản và tạo vector nhúng. Bạn có chắc chắn muốn tiến hành?')) {
+                    return;
+                }
+
+                btnBatch.disabled = true;
+                btnBatch.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang quét và nạp vector...';
+
+                try {
+                    const response = await fetch('/admin/knowledge/batch-ingest', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        }
+                    });
+                    const res = await response.json();
+
+                    if (res.success) {
+                        showToast(`Hoàn tất nạp ${res.data.successfulDocuments} công văn, tạo ${res.data.totalChunksCreated} chunks vector!`, true);
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast(res.message || 'Lỗi khi nạp dữ liệu', false);
+                        btnBatch.disabled = false;
+                        btnBatch.innerHTML = '<i class="bi bi-cloud-arrow-down-fill me-1.5"></i>Quét & Nạp 91 Công Văn (Batch Ingest)';
+                    }
+                } catch (e) {
+                    showToast('Lỗi mạng hoặc máy chủ không phản hồi: ' + e.message, false);
+                    btnBatch.disabled = false;
+                    btnBatch.innerHTML = '<i class="bi bi-cloud-arrow-down-fill me-1.5"></i>Quét & Nạp 91 Công Văn (Batch Ingest)';
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>
