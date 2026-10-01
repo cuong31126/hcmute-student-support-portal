@@ -90,3 +90,4 @@ app:
     api-key: ${GEMINI_API_KEY:demo_key}
     embedding-model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}
     chat-model: ${GEMINI_CHAT_MODEL:gemini-2.5-flash}
+    secondary-chat-model: ${GEMINI_SECONDARY_CHAT_MODEL:gemini-flash-latest}

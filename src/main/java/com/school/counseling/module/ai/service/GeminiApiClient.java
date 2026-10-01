@@ -27,13 +27,16 @@ public class GeminiApiClient {
     private final ObjectMapper objectMapper;
 
     @Value("${app.gemini.api-key:demo_key}")
-    private String apiKey;
+    private String apiKey = "demo_key";
 
     @Value("${app.gemini.embedding-model:gemini-embedding-001}")
-    private String embeddingModel;
+    private String embeddingModel = "gemini-embedding-001";
 
     @Value("${app.gemini.chat-model:gemini-2.5-flash}")
-    private String chatModel;
+    private String chatModel = "gemini-2.5-flash";
+
+    @Value("${app.gemini.secondary-chat-model:gemini-flash-latest}")
+    private String secondaryChatModel = "gemini-flash-latest";
 
     public GeminiApiClient(ObjectMapper objectMapper) {
         org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory =
@@ -92,7 +95,8 @@ public class GeminiApiClient {
     }
 
     /**
-     * Gửi Prompt có kèm Context cho Gemini 2.5 Flash sinh câu trả lời
+     * Gửi Prompt có kèm Context cho Gemini sinh câu trả lời
+     * Tích hợp cơ chế Fallback tự động sang Secondary Model khi Model chính bị 503 / 429
      */
     public String generateChatResponse(String systemPrompt, String userMessage) {
         if ("demo_key".equalsIgnoreCase(apiKey) || apiKey == null || apiKey.isBlank()) {
@@ -106,23 +110,74 @@ public class GeminiApiClient {
                     "contents", List.of(Map.of("parts", List.of(Map.of("text", fullPrompt))))
             );
 
-            String response = restClient.post()
-                    .uri(CHAT_URL, chatModel, apiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .body(String.class);
+            // 1. Thử gọi Model chính (ví dụ gemini-2.5-flash)
+            try {
+                String reply = callChatApi(chatModel, body);
+                if (reply != null && !reply.isBlank()) {
+                    return reply;
+                }
+            } catch (Exception e) {
+                log.warn("[Gemini] Model chinh '{}' gap su co ({}). Tu dong chuyen sang model du phong '{}'...",
+                        chatModel, e.getMessage(), secondaryChatModel);
+            }
 
-            JsonNode root = objectMapper.readTree(response);
-            JsonNode textNode = root.path("candidates").get(0).path("content").path("parts").get(0).path("text");
-
-            if (!textNode.isMissingNode()) {
-                return textNode.asText();
+            // 2. Tự động chuyển tiếp sang Secondary Model dự phòng (ví dụ gemini-flash-latest)
+            if (secondaryChatModel != null && !secondaryChatModel.equalsIgnoreCase(chatModel)) {
+                try {
+                    String reply = callChatApi(secondaryChatModel, body);
+                    if (reply != null && !reply.isBlank()) {
+                        log.info("[Gemini] Model du phong '{}' da phan hoi thanh cong!", secondaryChatModel);
+                        return reply;
+                    }
+                } catch (Exception e) {
+                    log.warn("[Gemini] Model du phong '{}' cung gap su co: {}", secondaryChatModel, e.getMessage());
+                }
             }
         } catch (Exception e) {
-            log.warn("[Gemini] Loi khi goi Gemini Chat API: {}. Tra ve fallback.", e.getMessage());
+            log.error("[Gemini] Loi khi xu ly chat: {}", e.getMessage());
         }
 
+        // 3. Fallback thông minh dựa trên Context RAG nếu các model bên ngoài đều không khả dụng
+        return buildSmartFallback(systemPrompt, userMessage);
+    }
+
+    private String callChatApi(String model, Map<String, Object> body) {
+        String response = restClient.post()
+                .uri(CHAT_URL, model, apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(String.class);
+
+        try {
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode candidates = root.path("candidates");
+            if (candidates.isArray() && candidates.size() > 0) {
+                JsonNode parts = candidates.get(0).path("content").path("parts");
+                if (parts.isArray() && parts.size() > 0) {
+                    return parts.get(0).path("text").asText("");
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[Gemini] Parse JSON response that bai: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    private String buildSmartFallback(String systemPrompt, String userMessage) {
+        if (systemPrompt != null && systemPrompt.contains("[THÔNG TIN NGỮ CẢNH ĐƯỢC TRÍCH XUẤT TỪ HỆ THỐNG]:")) {
+            int startIdx = systemPrompt.indexOf("[THÔNG TIN NGỮ CẢNH ĐƯỢC TRÍCH XUẤT TỪ HỆ THỐNG]:");
+            int endIdx = systemPrompt.indexOf("[NGUYÊN TẮC TRẢ LỜI]:");
+            String context = (endIdx > startIdx)
+                    ? systemPrompt.substring(startIdx + 50, endIdx).trim()
+                    : systemPrompt.substring(startIdx + 50).trim();
+
+            if (!context.isBlank() && !context.contains("Không tìm thấy văn bản quy chế")) {
+                return "ℹ️ *Do máy chủ AI đang quá tải đột biến, hệ thống tự động trích xuất thông tin quy chế liên quan gửi trực tiếp tới bạn:*\n\n"
+                        + context
+                        + "\n\n💡 *Nếu cần hướng dẫn thêm, bạn có thể gửi Ticket hỗ trợ tới đúng Phòng ban chuyên trách.*";
+            }
+        }
         return "Hệ thống AI đang bảo trì kết nối ngoài. Vui lòng liên hệ trực tiếp phòng ban phụ trách để được giải đáp.";
     }
 
