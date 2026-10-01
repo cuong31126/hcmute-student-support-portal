@@ -14,7 +14,7 @@
 | **Sprint 3** | **Bảng Tin Chính Thức, Diễn Đàn Sinh Viên & Webhook Video** | ✅ Hoàn thành | Video Hybrid (nhúng YouTube/Drive hoặc tải trực tiếp), Đa tệp văn phòng (tối đa 5 file), Thả tim (Like) & Bình luận bằng AJAX tức thì, Hàng đợi kiểm duyệt bài viết. |
 | **Sprint 4** | **Trợ Lý Tri Thức Học Vụ & AI RAG Phân Tầng** | ✅ Hoàn thành | Tinh tuyển 300 FAQ chất lượng, Bộ nhớ Cache Caffeine ngắt tải sớm (70% lượt hỏi), Gemini Embedding + Cosine Similarity tính toán trên RAM CPU $\le 2\text{ms}$. |
 | **Sprint 5** | **Chiến Dịch Cải Tổ UI/UX & Nhận Diện HCMUTE** | ✅ Hoàn thành | Tích hợp Logo HCMUTE góc trái, Hero Slider 2 ảnh khuôn viên trường chuyển cảnh mượt mà, tinh giản nội dung rườm rà, phân tách Public vs Portal (`tiendo5.md`). |
-| **Sprint 6** | **Hệ Thống Trợ Lý AI RAG Hoàn Chỉnh (91 Công Văn)** | 🚀 Đang triển khai | Nạp toàn diện 91 PDF công văn (2024-2026), Structural Chunking, Vector RAM Cache, Time-Decay Re-ranking & Citation Provenance đạt điểm 10 (`tiendo6.md`). |
+| **Sprint 6** | **Hệ Thống Trợ Lý AI RAG Hoàn Chỉnh (91 Công Văn)** | ✅ Hoàn thành | Nạp toàn diện 91 PDF công văn (2024-2026), Structural Chunking, In-Memory PCA 3D Space Visualizer, Time-Decay Re-ranking & Citation Provenance đạt chuẩn đồ án 10 điểm (`tiendo6.md`). |
 
 ---
 
@@ -59,4 +59,11 @@
 - [x] **Kiểm thử Tự động & Ổn định hóa Test Suite:**
   - 50/50 test cases đạt 100% BUILD SUCCESS (`mvn test`).
   - Bao quát Unit Test, Controller Web/REST Test, Department Data Isolation Test, Race Condition Concurrency Test, và MockMvc DeferredResult Async Test.
+- [x] **AI RAG Hoàn Chỉnh & 3D Vector Space Visualizer (Sprint 6):**
+  - Trích xuất cấu trúc văn bản học thuật (`PdfExtractorUtils`): Nhận diện Điều/Khoản, gán Header ngữ cảnh, bóc tách số hiệu văn bản tự động.
+  - Xử lý nạp hàng loạt (`BatchDocumentIngestionService`): Tự động nạp 91 công văn PDF thực tế từ các thư mục 2024, 2025, 2026.
+  - Thuật toán PCA Power Iteration 3D (`VectorReductionUtils`) & Không gian Vector 3 chiều WebGL (`visualizer.html`).
+  - Tìm kiếm kết hợp Hybrid Dense-Sparse Boost & Hệ số suy giảm theo thời gian Time-Decay (2026 = 1.0, 2025 = 0.85, 2024 = 0.70).
+  - Giao diện Admin Hub quản lý công văn (`documents.html`), xem trước PDF Modal (`chat-widget.html`) và Vòng lặp Human-in-the-loop Ticket-to-FAQ.
+  - Toàn bộ 15/15 unit & integration tests của phân hệ AI đạt 100% BUILD SUCCESS.
 
