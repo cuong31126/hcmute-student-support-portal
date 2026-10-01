@@ -158,8 +158,12 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userDropdown">
                         <li class="px-3 py-2 border-bottom bg-light">
-                            <div class="small text-muted">Đang đăng nhập với vai trò:</div>
-                            <div class="fw-bold text-dark" sec:authentication="principal.authorities">Role</div>
+                            <div class="small text-muted mb-1">Vai trò hệ thống:</div>
+                            <div>
+                                <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger">Quản Trị Viên</span>
+                                <span sec:authorize="hasRole('STAFF') and !hasRole('ADMIN')" class="badge bg-primary">Cán Bộ Tư Vấn</span>
+                                <span sec:authorize="hasRole('STUDENT')" class="badge bg-success">Sinh Viên</span>
+                            </div>
                         </li>
                         <li>
                             <a class="dropdown-item py-2" th:href="@{/tickets/my-tickets}">

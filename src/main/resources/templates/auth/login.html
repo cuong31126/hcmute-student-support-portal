@@ -1,26 +1,52 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng Nhập - HCMUTE QAUTE Portal</title>
-</head>
-<body>
-<div th:fragment="content">
+
+    <!-- Favicon: Logo HCMUTE -->
+    <link rel="icon" type="image/png" th:href="@{/images/logo.png}">
+
+    <!-- Google Fonts: Inter & Playfair Display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 CSS & Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <style>
-        /* Auth Fullscreen Split-Screen Breakout Layout */
-        .auth-split-wrapper {
-            position: relative;
-            width: 100vw;
-            margin-left: calc(-50vw + 50%);
-            margin-right: calc(-50vw + 50%);
-            margin-top: -1.5rem;
-            margin-bottom: -1.5rem;
-            min-height: calc(100vh - 60px);
-            display: flex;
-            background-color: #ffffff;
-            overflow: hidden;
+        :root {
+            --crimson: #A51C30;
+            --dark-crimson: #8a1525;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
         }
 
-        /* Cột Trái: Slideshow Cảnh Quan Trường HCMUTE (hero1.webp & hero2.webp) */
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #ffffff;
+            color: #111827;
+            overflow-x: hidden;
+        }
+
+        .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Fullscreen Edge-to-Edge Split Layout */
+        .auth-container {
+            display: flex;
+            min-height: 100vh;
+            width: 100vw;
+        }
+
+        /* Cột Trái: Visual Slideshow Cảnh Quan HCMUTE (58%) */
         .auth-visual-col {
             flex: 1 1 58%;
             position: relative;
@@ -38,7 +64,7 @@
             background-size: cover;
             background-position: center center;
             opacity: 0;
-            transform: scale(1.06);
+            transform: scale(1.05);
             transition: opacity 2s cubic-bezier(0.4, 0, 0.2, 1), transform 8s cubic-bezier(0.25, 1, 0.5, 1);
             z-index: 1;
         }
@@ -48,11 +74,11 @@
             transform: scale(1);
         }
 
-        /* Lớp phủ tự nhiên điện ảnh trong suốt, KHÔNG dùng gradient đỏ đen để lộ rõ cổng trường */
+        /* Lớp phủ tự nhiên điện ảnh trong suốt, làm lộ rõ cảnh quan khuôn viên trường */
         .auth-visual-overlay {
             position: absolute;
             inset: 0;
-            background: linear-gradient(180deg, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.12) 45%, rgba(15, 23, 42, 0.75) 100%);
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.15) 50%, rgba(15, 23, 42, 0.8) 100%);
             z-index: 2;
         }
 
@@ -61,36 +87,59 @@
             z-index: 3;
         }
 
-        /* Cột Phải: Biểu Mẫu Đăng Nhập Tone Trắng / Slate Đẳng Cấp */
+        /* Cột Phải: Biểu Mẫu Đăng Nhập (42%) */
         .auth-form-col {
             flex: 1 1 42%;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
+            align-items: center;
             padding: 3rem 2.5rem;
             background-color: #ffffff;
-            z-index: 3;
+            position: relative;
+        }
+
+        .btn-back-home {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background-color: #f1f5f9;
+            transition: all 0.2s ease;
+        }
+
+        .btn-back-home:hover {
+            color: #0f172a;
+            background-color: #e2e8f0;
         }
 
         .auth-form-box {
             width: 100%;
-            max-width: 420px;
-            animation: authFadeIn 0.5s ease-out;
+            max-width: 410px;
+            animation: authFadeIn 0.4s ease-out;
         }
 
         @keyframes authFadeIn {
-            from { opacity: 0; transform: translateY(16px); }
+            from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         .auth-input-group .form-control {
             border-radius: 8px;
-            padding: 0.7rem 0.95rem;
+            padding: 0.72rem 0.95rem;
             font-size: 0.95rem;
             border: 1px solid #d1d5db;
             background-color: #f8fafc;
-            transition: all 0.2s ease;
             color: #111827;
+            transition: all 0.2s ease;
         }
 
         .auth-input-group .form-control:focus {
@@ -106,7 +155,6 @@
             color: #64748b;
         }
 
-        /* Nút Đăng Nhập Tone Đen / Dark Slate Cao Cấp */
         .btn-auth-submit {
             background-color: #111827;
             border-color: #111827;
@@ -125,15 +173,25 @@
             box-shadow: 0 4px 12px rgba(17, 24, 39, 0.25);
         }
 
-        /* Responsive Mobile: Ẩn cột visual, hiển thị form 100% */
+        /* Demo Account Pills */
+        .demo-pill {
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .demo-pill:hover {
+            background-color: #e2e8f0 !important;
+            transform: scale(1.02);
+        }
+
         @media (max-width: 991.98px) {
             .auth-visual-col {
                 display: none;
             }
             .auth-form-col {
                 flex: 1 1 100%;
-                padding: 3rem 1.5rem;
-                background-color: #f8f9fa;
+                padding: 4rem 1.5rem 2rem;
+                background-color: #f8fafc;
             }
             .auth-form-box {
                 background: #ffffff;
@@ -143,109 +201,132 @@
             }
         }
     </style>
+</head>
+<body>
 
-    <div class="auth-split-wrapper">
-        <!-- Cột Trái: Visual cảnh quan trường HCMUTE chuyển cảnh mượt mà -->
-        <div class="auth-visual-col">
-            <!-- Slide 1: hero1.webp (Cổng Trường HCMUTE) -->
-            <div class="auth-slide active" id="auth-slide-0" style="background-image: url('/images/hero1.webp');"></div>
-            <!-- Slide 2: hero2.webp (Khuôn Viên & Giảng Đường HCMUTE) -->
-            <div class="auth-slide" id="auth-slide-1" style="background-image: url('/images/hero2.webp');"></div>
+<div class="auth-container">
+    <!-- Cột Trái: Slideshow Cảnh Quan Trường HCMUTE -->
+    <div class="auth-visual-col">
+        <div class="auth-slide active" id="auth-slide-0" style="background-image: url('/images/hero1.webp');"></div>
+        <div class="auth-slide" id="auth-slide-1" style="background-image: url('/images/hero2.webp');"></div>
+        <div class="auth-visual-overlay"></div>
 
-            <!-- Overlay Tự Nhiên (Không Đỏ Đen) -->
-            <div class="auth-visual-overlay"></div>
-            
-            <div class="auth-visual-content">
-                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-20 text-white backdrop-blur mb-3 shadow-xs">
-                    <i class="bi bi-mortarboard-fill"></i>
-                    <span class="small fw-semibold letter-spacing-1 text-uppercase" style="font-size: 0.78rem;">Đại Học Sư Phạm Kỹ Thuật TP.HCM</span>
-                </div>
-                <h2 class="display-6 fw-bold font-serif mb-2 text-white" style="line-height: 1.25; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
-                    CỔNG TƯ VẤN SINH VIÊN QAUTE
-                </h2>
-                <p class="text-white-50 small mb-0" style="max-width: 480px; text-shadow: 0 1px 4px rgba(0,0,0,0.4);">
-                    Nền tảng hỗ trợ học vụ, tiếp nhận Ticket đa kênh và giải đáp quy chế đào tạo tích hợp trí tuệ nhân tạo.
-                </p>
+        <div class="auth-visual-content">
+            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-20 text-white backdrop-blur mb-3 shadow-xs">
+                <i class="bi bi-mortarboard-fill"></i>
+                <span class="small fw-semibold letter-spacing-1 text-uppercase" style="font-size: 0.78rem;">Đại Học Sư Phạm Kỹ Thuật TP.HCM</span>
             </div>
-
-            <div class="auth-visual-content">
-                <blockquote class="border-start border-3 border-light ps-3 mb-3 text-white-50 small fst-italic">
-                    "Đồng hành cùng người học trên mọi chặng đường phát triển tri thức và kỹ năng nghề nghiệp."
-                </blockquote>
-                <div class="small text-white-50">&copy; 2026 HCMUTE - Phòng Đào Tạo & CTSV</div>
-            </div>
+            <h1 class="display-6 fw-bold font-serif mb-2 text-white" style="line-height: 1.25; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+                CỔNG TƯ VẤN SINH VIÊN QAUTE
+            </h1>
+            <p class="text-white-50 small mb-0" style="max-width: 480px; text-shadow: 0 1px 4px rgba(0,0,0,0.4);">
+                Hệ thống tiếp nhận Ticket, giải đáp quy chế bằng Trợ lý AI và phân luồng tự động theo chuẩn cam kết chất lượng dịch vụ SLA.
+            </p>
         </div>
 
-        <!-- Cột Phải: Biểu mẫu Đăng Nhập -->
-        <div class="auth-form-col">
-            <div class="auth-form-box">
-                <!-- Brand & Header -->
-                <div class="text-center mb-4">
-                    <img th:src="@{/images/logo.png}" alt="HCMUTE" height="66" class="mb-3">
-                    <h4 class="fw-bold text-dark font-serif mb-1">Đăng Nhập Hệ Thống</h4>
-                    <p class="small text-muted mb-0">Sử dụng tài khoản Sinh viên hoặc Cán bộ được cấp</p>
-                </div>
-
-                <!-- Thông báo lỗi đăng nhập -->
-                <div th:if="${param.error}" class="alert alert-danger small py-2 px-3 d-flex align-items-center mb-3 rounded-2">
-                    <i class="bi bi-exclamation-circle-fill me-2 fs-6"></i>
-                    <span>Tên đăng nhập hoặc mật khẩu không chính xác!</span>
-                </div>
-
-                <!-- Thông báo đăng xuất -->
-                <div th:if="${param.logout}" class="alert alert-info small py-2 px-3 d-flex align-items-center mb-3 rounded-2">
-                    <i class="bi bi-check-circle-fill me-2 fs-6"></i>
-                    <span>Đã đăng xuất an toàn khỏi hệ thống.</span>
-                </div>
-
-                <!-- Form Login -->
-                <form th:action="@{/auth/login}" method="post">
-                    <div class="mb-3">
-                        <label for="username" class="form-label small fw-bold text-dark">Tên đăng nhập / Email</label>
-                        <div class="input-group auth-input-group">
-                            <span class="input-group-text"><i class="bi bi-person"></i></span>
-                            <input type="text" id="username" name="username" class="form-control" placeholder="VD: 21110001 hoặc email..." required autofocus>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label for="password" class="form-label small fw-bold text-dark mb-0">Mật khẩu</label>
-                        </div>
-                        <div class="input-group auth-input-group">
-                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
-                        </div>
-                    </div>
-
-                    <div class="d-grid mb-3">
-                        <button type="submit" class="btn btn-auth-submit">
-                            <i class="bi bi-box-arrow-in-right me-1"></i>Đăng Nhập
-                        </button>
-                    </div>
-                </form>
-
-                <div class="text-center small border-top pt-3 text-muted">
-                    Chưa có tài khoản sinh viên? <a th:href="@{/auth/register}" class="fw-bold text-dark text-decoration-none hover-underline">Đăng ký ngay</a>
-                </div>
-            </div>
+        <div class="auth-visual-content">
+            <blockquote class="border-start border-3 border-light ps-3 mb-3 text-white-50 small fst-italic">
+                "Đồng hành cùng người học trên mọi chặng đường phát triển tri thức và kỹ năng nghề nghiệp."
+            </blockquote>
+            <div class="small text-white-50">&copy; 2026 HCMUTE - Phòng Đào Tạo & CTSV</div>
         </div>
     </div>
 
-    <!-- Script điều khiển Slideshow tự động chuyển cảnh giữa hero1.webp và hero2.webp -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            let authSlideIndex = 0;
-            const authSlides = document.querySelectorAll('.auth-slide');
-            if (authSlides.length > 1) {
-                setInterval(function() {
-                    authSlides[authSlideIndex].classList.remove('active');
-                    authSlideIndex = (authSlideIndex + 1) % authSlides.length;
-                    authSlides[authSlideIndex].classList.add('active');
-                }, 6000);
-            }
-        });
-    </script>
+    <!-- Cột Phải: Biểu Mẫu Đăng Nhập -->
+    <div class="auth-form-col">
+        <a th:href="@{/}" class="btn-back-home" title="Trở về Trang chủ">
+            <i class="bi bi-arrow-left"></i>Trang chủ
+        </a>
+
+        <div class="auth-form-box">
+            <!-- Brand & Header -->
+            <div class="text-center mb-4">
+                <a th:href="@{/}">
+                    <img th:src="@{/images/logo.png}" alt="HCMUTE" height="66" class="mb-3">
+                </a>
+                <h3 class="fw-bold text-dark font-serif mb-1">Đăng Nhập Hệ Thống</h3>
+                <p class="small text-muted mb-0">Sử dụng tài khoản Sinh viên hoặc Cán bộ được cấp</p>
+            </div>
+
+            <!-- Thông báo lỗi đăng nhập -->
+            <div th:if="${param.error}" class="alert alert-danger small py-2 px-3 d-flex align-items-center mb-3 rounded-2 shadow-xs">
+                <i class="bi bi-exclamation-circle-fill me-2 fs-6 text-danger"></i>
+                <div>Tên đăng nhập hoặc mật khẩu không chính xác! Vui lòng thử lại.</div>
+            </div>
+
+            <!-- Thông báo đăng xuất an toàn -->
+            <div th:if="${param.logout}" class="alert alert-success small py-2 px-3 d-flex align-items-center mb-3 rounded-2 shadow-xs">
+                <i class="bi bi-check-circle-fill me-2 fs-6 text-success"></i>
+                <div>Bạn đã đăng xuất an toàn khỏi hệ thống!</div>
+            </div>
+
+            <!-- Form Login -->
+            <form th:action="@{/auth/login}" method="post">
+                <!-- CSRF Token -->
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                <div class="mb-3">
+                    <label for="username" class="form-label small fw-bold text-dark">Tên đăng nhập / Email</label>
+                    <div class="input-group auth-input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" id="username" name="username" class="form-control" placeholder="VD: admin hoặc 21110001..." required autofocus>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label for="password" class="form-label small fw-bold text-dark mb-0">Mật khẩu</label>
+                    </div>
+                    <div class="input-group auth-input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn btn-auth-submit">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>Đăng Nhập
+                    </button>
+                </div>
+            </form>
+
+            <!-- Gợi ý tài khoản demo kiểm thử nhanh -->
+            <div class="p-2.5 rounded bg-light border mb-3 small text-muted">
+                <div class="fw-semibold text-dark mb-1" style="font-size: 11px;"><i class="bi bi-info-circle me-1 text-primary"></i>Tài khoản dùng thử (Click để điền nhanh):</div>
+                <div class="d-flex flex-wrap gap-1">
+                    <span class="badge bg-white text-dark border demo-pill p-1.5" onclick="fillDemo('admin', '123456')">👑 Admin: <code>admin / 123456</code></span>
+                    <span class="badge bg-white text-dark border demo-pill p-1.5" onclick="fillDemo('staff_daotao', 'Password123@')">💼 Staff ĐT: <code>staff_daotao</code></span>
+                    <span class="badge bg-white text-dark border demo-pill p-1.5" onclick="fillDemo('student01', 'Password123@')">🎓 SV: <code>student01</code></span>
+                </div>
+            </div>
+
+            <div class="text-center small border-top pt-3 text-muted">
+                Chưa có tài khoản sinh viên? <a th:href="@{/auth/register}" class="fw-bold text-dark text-decoration-none">Đăng ký ngay</a>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+    // Điền nhanh tài khoản demo
+    function fillDemo(u, p) {
+        document.getElementById('username').value = u;
+        document.getElementById('password').value = p;
+    }
+
+    // Slideshow chuyển ảnh mượt mà
+    document.addEventListener('DOMContentLoaded', function() {
+        let authSlideIndex = 0;
+        const authSlides = document.querySelectorAll('.auth-slide');
+        if (authSlides.length > 1) {
+            setInterval(function() {
+                authSlides[authSlideIndex].classList.remove('active');
+                authSlideIndex = (authSlideIndex + 1) % authSlides.length;
+                authSlides[authSlideIndex].classList.add('active');
+            }, 6000);
+        }
+    });
+</script>
+
 </body>
 </html>
