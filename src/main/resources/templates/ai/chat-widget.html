@@ -111,9 +111,16 @@
                 });
             }
 
+            let isAiThinking = false;
+
             function handleUserQuery() {
+                if (isAiThinking) return;
+
                 const query = chatInput.value.trim();
                 if (!query) return;
+
+                isAiThinking = true;
+                btnSend.disabled = true;
 
                 // 1. Render tin nhắn User
                 appendMessage('user', escapeHtml(query));
@@ -137,6 +144,8 @@
                 })
                 .then(res => {
                     removeLoading(loadingId);
+                    isAiThinking = false;
+                    btnSend.disabled = false;
                     if (res.success && res.data) {
                         const ragData = res.data;
                         let rawAnswer = ragData.answer || 'Xin chào! Tôi đã tiếp nhận câu hỏi của bạn.';
@@ -208,7 +217,7 @@
                         // Fallback khi không có data
                         appendMessage('ai', `
                             Dạ hiện tại AI chưa tìm thấy quy chế trực tiếp tương ứng trong hệ thống.<br><br>
-                            <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-primary btn-sm w-100" style="background-color: #1e3a8a;">
+                            <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-primary btn-sm w-100" style="background-color: var(--crimson, #A51C30); border-color: var(--crimson, #A51C30);">
                                 <i class="bi bi-ticket-perforated me-1"></i>Tạo Ticket gửi Ban Tư Vấn Học Vụ
                             </a>
                         `);
@@ -216,6 +225,8 @@
                 })
                 .catch(err => {
                     removeLoading(loadingId);
+                    isAiThinking = false;
+                    btnSend.disabled = false;
                     console.error('AI Chat Error:', err);
                     appendMessage('ai', 'Có sự cố kết nối tới máy chủ tri thức AI. Bạn có thể nhấn <a href="/tickets/create">Gửi yêu cầu trực tiếp</a> để Cán bộ hỗ trợ nhé!');
                 });
@@ -247,7 +258,7 @@
                     ? 'rounded p-2 text-white bg-primary small shadow-sm' 
                     : 'rounded p-2 text-dark bg-white border small shadow-sm ai-message-bubble';
                 bubble.style.maxWidth = '85%';
-                if (sender === 'user') bubble.style.backgroundColor = '#1e3a8a';
+                if (sender === 'user') bubble.style.backgroundColor = 'var(--crimson, #A51C30)';
                 bubble.innerHTML = htmlContent;
                 div.appendChild(bubble);
                 messagesContainer.appendChild(div);
@@ -261,6 +272,11 @@
                 div.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div>AI đang tra cứu quy chế...';
                 messagesContainer.appendChild(div);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function removeLoading(id) {
+                const el = document.getElementById(id);
+                if (el) el.remove();
             }
 
             // Lắng nghe sự kiện nhấp vào nút "Xem trích dẫn" trên tin nhắn AI

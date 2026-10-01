@@ -95,7 +95,10 @@ public class SecurityConfig {
                     "/api/v1/ai/**",
                     "/api/v1/auth/**",
                     "/api/v1/integration/**",
-                    "/tickets/guest-track/**"
+                    "/tickets/guest-track/**",
+                    "/error",
+                    "/error/**",
+                    "/favicon.ico"
                 ).permitAll()
 
                 // Các request còn lại yêu cầu xác thực
@@ -104,7 +107,7 @@ public class SecurityConfig {
             .formLogin(form -> form
                 .loginPage("/auth/login")
                 .loginProcessingUrl("/auth/login")
-                .defaultSuccessUrl("/", false)
+                .defaultSuccessUrl("/", true)
                 .failureUrl("/auth/login?error=true")
                 .permitAll()
             )
