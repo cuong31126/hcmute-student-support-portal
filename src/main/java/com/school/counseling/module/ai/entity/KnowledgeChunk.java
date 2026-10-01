@@ -72,6 +72,26 @@ public class KnowledgeChunk extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    @Builder.Default
+    @Column(name = "is_deprecated", nullable = false)
+    private Boolean isDeprecated = false; // Bật cờ cảnh báo lỗi thời khi đã có quy chế mới hơn
+
+    @Column(name = "page_number")
+    private Integer pageNumber; // Trang PDF chứa đoạn văn bản này để phục vụ PDF preview modal
+
+    @Size(max = 255)
+    @Column(name = "article_header", length = 255)
+    private String articleHeader; // Tiêu đề Điều/Khoản (vd: "Điều 4. Học bổng khuyến khích")
+
+    @Column(name = "pca_x")
+    private Double pcaX; // Tọa độ X trong không gian 3D
+
+    @Column(name = "pca_y")
+    private Double pcaY; // Tọa độ Y trong không gian 3D
+
+    @Column(name = "pca_z")
+    private Double pcaZ; // Tọa độ Z trong không gian 3D
+
     @Transient
     private float[] cachedEmbedding;
 

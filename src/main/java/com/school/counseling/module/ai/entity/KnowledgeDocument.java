@@ -58,6 +58,24 @@ public class KnowledgeDocument extends BaseEntity {
     @Column(name = "total_chunks")
     private Integer totalChunks = 0;
 
+    @Size(max = 100, message = "Số hiệu công văn tối đa 100 ký tự")
+    @Column(name = "document_code", length = 100)
+    private String documentCode;
+
+    @Size(max = 150, message = "Cơ quan ban hành tối đa 150 ký tự")
+    @Column(name = "issuer", length = 150)
+    private String issuer;
+
+    @Size(max = 50, message = "Danh mục tối đa 50 ký tự")
+    @Column(name = "category", length = 50)
+    private String category;
+
+    @Column(name = "file_size")
+    private Long fileSize;
+
+    @Column(name = "page_count")
+    private Integer pageCount;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "superseded_by_id")
     private KnowledgeDocument supersededBy; // Tài liệu mới hơn thay thế cho văn bản này
