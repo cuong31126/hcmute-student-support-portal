@@ -2,8 +2,8 @@ package com.school.counseling.module.ai.service;
 
 import com.school.counseling.module.ai.dto.KnowledgeChunkMatchDto;
 import com.school.counseling.module.ai.dto.RagQueryResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
@@ -21,10 +21,14 @@ import java.util.concurrent.ConcurrentHashMap;
  *  - BR-07: suggestCreateTicket = true chỉ khi confidenceScore < SUGGEST_TICKET_THRESHOLD (0.45)
  *  - BR-08: isLlmGenerated = false khi rơi về fallback raw context
  *  - BR-10: Cache key NFC normalize + toLowerCase(Locale.ROOT) tránh cache miss do Unicode form
+ *
+ * Cải tiến Sprint Python Migration:
+ *  - PY-01: Ưu tiên gọi Python AI Engine (cổng 8001) khi app.python-ai.enabled=true
+ *  - PY-02: Tự động Fallback về Java RAG nếu Python Engine không khả dụng (zero downtime)
+ *  - PY-03: Faithfulness score từ Python được ánh xạ vào RagQueryResponse
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class RagChatbotService {
 
     /** BR-07: Ngưỡng confidence để gợi ý sinh viên tạo Ticket thay vì tin tưởng câu trả lời AI */
@@ -51,9 +55,19 @@ public class RagChatbotService {
 
     private final RagKnowledgeService ragKnowledgeService;
     private final GeminiApiClient geminiApiClient;
+    private final PythonAiEngineClient pythonAiEngineClient;
 
     // Response Cache — lưu câu trả lời cho các câu hỏi trùng lặp trong phiên chạy
     private final Map<String, RagQueryResponse> responseCache = new ConcurrentHashMap<>();
+
+    @Autowired
+    public RagChatbotService(RagKnowledgeService ragKnowledgeService,
+                             GeminiApiClient geminiApiClient,
+                             PythonAiEngineClient pythonAiEngineClient) {
+        this.ragKnowledgeService = ragKnowledgeService;
+        this.geminiApiClient = geminiApiClient;
+        this.pythonAiEngineClient = pythonAiEngineClient;
+    }
 
     /**
      * Backward-compatible overload không cần sessionId.
@@ -86,6 +100,22 @@ public class RagChatbotService {
             return responseCache.get(cacheKey);
         }
 
+        // === PY-01: Ưu tiên gọi Python AI Engine (nếu được bật) ===
+        if (pythonAiEngineClient.isPythonAiEnabled()) {
+            RagQueryResponse pythonResult = askViaPythonEngine(question, departmentId);
+            if (pythonResult != null) {
+                // Python thành công → cache và trả về luôn
+                if (responseCache.size() < 1000) {
+                    responseCache.put(cacheKey, pythonResult);
+                }
+                return pythonResult;
+            }
+            // PY-02: Python không khả dụng → tiếp tục fallback Java RAG bên dưới
+            log.warn("[RAG] Python Engine không phản hồi, fallback về Java RAG.");
+        }
+
+        // === Java RAG Pipeline (legacy — fallback hoặc khi python-ai.enabled=false) ===
+
         // 1. Tìm kiếm phân tầng trong RAM
         RagQueryResponse searchResult = ragKnowledgeService.hierarchicalSearch(question, departmentId);
 
@@ -114,7 +144,7 @@ public class RagChatbotService {
         searchResult.setSuggestCreateTicket(suggest);
         searchResult.setLlmGenerated(isLlmGenerated);
 
-        log.info("[RAG] Q='{}' source={} score={:.4f} llm={} ticket={}",
+        log.info("[RAG Java] Q='{}' source={} score={:.4f} llm={} ticket={}",
                 question.length() > 50 ? question.substring(0, 50) + "..." : question,
                 searchResult.getPrimarySourceType(),
                 searchResult.getConfidenceScore(),
@@ -126,6 +156,38 @@ public class RagChatbotService {
         }
 
         return searchResult;
+    }
+
+    /**
+     * PY-01: Gọi Python AI Engine và chuyển đổi response sang RagQueryResponse.
+     * Trả về null nếu Python không khả dụng (để trigger fallback).
+     */
+    private RagQueryResponse askViaPythonEngine(String question, Long departmentId) {
+        try {
+            PythonAiEngineClient.PythonChatResponse pyResponse =
+                    pythonAiEngineClient.askPythonEngine(question, departmentId, false);
+
+            if (pyResponse == null) return null;
+
+            log.info("[RAG Python] Q='{}' score={:.4f} llm={} ticket={} time={}ms",
+                    question.length() > 50 ? question.substring(0, 50) + "..." : question,
+                    pyResponse.confidence_score(), pyResponse.llm_generated(),
+                    pyResponse.suggest_create_ticket(), pyResponse.execution_time_ms());
+
+            return RagQueryResponse.builder()
+                    .answer(pyResponse.reply())
+                    .primarySourceType(pyResponse.source_type())
+                    .confidenceScore(pyResponse.confidence_score())
+                    .suggestCreateTicket(pyResponse.suggest_create_ticket())
+                    .llmGenerated(pyResponse.llm_generated())
+                    .executionTimeMs(pyResponse.execution_time_ms())
+                    .needsHistoricalWarning(pyResponse.needs_historical_warning())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("[RAG Python] Lỗi khi chuyển đổi response: {}", e.getMessage(), e);
+            return null;
+        }
     }
 
     /**

@@ -10,6 +10,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import org.springframework.test.web.client.ExpectedCount;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -19,7 +20,7 @@ import static org.hamcrest.Matchers.containsString;
 
 /**
  * Reproduction Test: Chứng minh lỗi khi Google Gemini trả về 503 Service Unavailable (High Demand)
- * Code hiện tại không có cơ chế retry / secondary model fallback, dẫn đến thất bại ngay lập tức.
+ * Code hiện tại có cơ chế retry / secondary model fallback.
  */
 class GeminiApiClientReproductionTest {
 
@@ -46,14 +47,14 @@ class GeminiApiClientReproductionTest {
                 }
                 """;
 
-        // Lần 1: Model chính gemini-2.5-flash bị 503 High Demand
-        mockServer.expect(requestTo(containsString("gemini-2.5-flash:generateContent")))
+        // Model chính gemini-2.5-flash bị 503 (sẽ retry 3 lần)
+        mockServer.expect(ExpectedCount.times(3), requestTo(containsString("gemini-2.5-flash:generateContent")))
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(error503Json));
 
-        // Lần 2 (Kỳ vọng): Hệ thống tự động fallback gọi sang model dự phòng gemini-flash-latest và thành công
+        // Lần sau (Kỳ vọng): Hệ thống tự động fallback gọi sang model dự phòng gemini-2.0-flash-lite và thành công
         String successJson = """
                 {
                   "candidates": [
@@ -69,7 +70,7 @@ class GeminiApiClientReproductionTest {
                   ]
                 }
                 """;
-        mockServer.expect(requestTo(containsString("gemini-flash-latest:generateContent")))
+        mockServer.expect(requestTo(containsString("gemini-2.0-flash-lite:generateContent")))
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withSuccess(successJson, MediaType.APPLICATION_JSON));
 
@@ -95,10 +96,10 @@ class GeminiApiClientReproductionTest {
         ReflectionTestUtils.setField(client, "restClient", restClientBuilder.build());
         ReflectionTestUtils.setField(client, "apiKey", "test-api-key-123");
 
-        // Cả 2 model đều trả về lỗi 503
-        mockServer.expect(requestTo(containsString("gemini-2.5-flash:generateContent")))
+        // Cả 2 model đều trả về lỗi 503 (retry 3 lần mỗi model)
+        mockServer.expect(ExpectedCount.times(3), requestTo(containsString("gemini-2.5-flash:generateContent")))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
-        mockServer.expect(requestTo(containsString("gemini-flash-latest:generateContent")))
+        mockServer.expect(ExpectedCount.times(3), requestTo(containsString("gemini-2.0-flash-lite:generateContent")))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
         String ragSystemPrompt = """
@@ -116,6 +117,6 @@ class GeminiApiClientReproductionTest {
         mockServer.verify();
         assertNotNull(response);
         assertTrue(response.contains("Điều 5. Sinh viên có điểm rèn luyện từ 80"), "Phải giữ lại trích đoạn quy chế cho sinh viên");
-        assertTrue(response.contains("quá tải đột biến"), "Phải có thông báo giải thích thân thiện");
+        assertTrue(response.contains("Máy chủ AI đang tạm bận"), "Phải có thông báo giải thích thân thiện");
     }
 }

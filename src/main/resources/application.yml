@@ -91,3 +91,12 @@ app:
     embedding-model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}
     chat-model: ${GEMINI_CHAT_MODEL:gemini-2.5-flash}
     secondary-chat-model: ${GEMINI_SECONDARY_CHAT_MODEL:gemini-flash-latest}
+
+  # ─── Python AI Engine (RAG Microservice) ────────────────────────────────────
+  # Đặt enabled=true để kích hoạt Python Engine (cổng 8001)
+  # Đặt enabled=false để dùng Java RAG (legacy mode — mặc định an toàn)
+  python-ai:
+    enabled: ${PYTHON_AI_ENABLED:false}
+    base-url: ${PYTHON_AI_BASE_URL:http://127.0.0.1:8001}
+    connect-timeout-ms: ${PYTHON_AI_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${PYTHON_AI_READ_TIMEOUT_MS:20000}

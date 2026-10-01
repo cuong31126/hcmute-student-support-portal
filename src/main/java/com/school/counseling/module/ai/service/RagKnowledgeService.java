@@ -454,9 +454,16 @@ public class RagKnowledgeService {
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Ticket #" + ticketId));
 
         String question = ticket.getTitle() + "\n" + ticket.getDescription();
-        String answer = (ticket.getFeedback() != null && !ticket.getFeedback().isBlank())
-                ? ticket.getFeedback()
-                : "Vấn đề đã được Cán bộ " + (ticket.getDepartment() != null ? ticket.getDepartment().getName() : "phụ trách") + " xử lý và giải quyết dứt điểm.";
+        String answer = "Vấn đề đã được Cán bộ " + (ticket.getDepartment() != null ? ticket.getDepartment().getName() : "phụ trách") + " xử lý và giải quyết dứt điểm.";
+        if (ticket.getHistories() != null && !ticket.getHistories().isEmpty()) {
+            for (int i = ticket.getHistories().size() - 1; i >= 0; i--) {
+                var h = ticket.getHistories().get(i);
+                if (h.getActionNote() != null && !h.getActionNote().isBlank()) {
+                    answer = h.getActionNote();
+                    break;
+                }
+            }
+        }
 
         String fullContent = "[CÂU HỎI]: " + question + "\n[GIẢI ĐÁP TỪ CÁN BỘ]:\n" + answer;
 
