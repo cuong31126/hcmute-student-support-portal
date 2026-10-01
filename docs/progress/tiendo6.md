@@ -226,10 +226,23 @@ gantt
 3. **Answer Relevance (Độ thích hợp câu trả lời) $\ge 95\%$:** Trả lời trực diện vào thắc mắc của sinh viên, kèm hướng dẫn hành động cụ thể (nộp tiền ở đâu, hạn chót ngày nào).
 
 ### 9.2. Tiêu Chí Nghiệm Thu Kỹ Thuật (Checklist):
-- [ ] Đã quét và nạp trọn vẹn 91 file PDF từ 3 thư mục `2024`, `2025`, `2026` vào cơ sở dữ liệu.
+- [x] Đã quét và nạp trọn vẹn 91 file PDF từ 3 thư mục `2024`, `2025`, `2026` vào cơ sở dữ liệu.
 - [ ] Toàn bộ vector nhúng 768 chiều được tính toán và lưu trữ sẵn, khởi động nạp vào RAM dưới 2 giây.
 - [ ] Thời gian xử lý truy vấn tìm kiếm (Search Latency) trên RAM $\le 5\text{ms}$.
 - [ ] Tổng thời gian AI trả lời trọn vẹn (End-to-End Latency) $\le 1.8\text{s}$.
 - [ ] Trích dẫn minh bạch 100% công văn nguồn (Số hiệu, Năm, Tên văn bản).
 - [ ] Test Suite `mvn test` đạt **100% BUILD SUCCESS** (không có lỗi hồi quy ở các module khác).
 - [ ] Tuân thủ nghiêm ngặt Git Workflow (`feature/rag-complete-ingestion` -> `main`).
+
+---
+
+## 10. BIÊN BẢN CHỐT PHƯƠNG ÁN THỰC THI (DESIGN DECISIONS SIGNED-OFF)
+
+Sau phiên vấn đáp kỹ thuật cùng Trưởng nhóm phát triển, hệ thống đã chính thức chốt 3 quyết sách kiến trúc:
+
+| Hạng Mục | Quyết Định Đã Chốt | Giải Pháp Kỹ Thuật Chi Tiết |
+| :--- | :--- | :--- |
+| **1. Cơ chế Ingestion Pipeline** | **Hybrid Batch & Admin UI** | • Tự động quét và nạp trọn bộ 91 tệp PDF tại `D:\HK5\CongNghePhanMem\tailieuAI` khi khởi chạy hệ thống lần đầu hoặc kích hoạt qua Admin CLI/Service.<br>• Xây dựng màn hình Admin `/admin/documents` cho phép Upload thêm công văn PDF mới, gán năm hiệu lực, theo dõi trạng thái `PROCESSING/COMPLETED` và xem số lượng chunks được tạo. |
+| **2. Mô hình Embedding & LLM** | **Gemini Dual Mode + Fallback** | • Sử dụng chính thức Google Gemini `text-embedding-004` (vector 768 chiều) và `gemini-1.5-flash` sinh phản hồi thông minh.<br>• Tích hợp cơ chế Deterministic Vector Fallback chạy ngầm 100% độc lập, giúp bảo vệ đồ án an toàn tuyệt đối ngay cả khi mất mạng internet hoặc sự cố quota API. |
+| **3. Trích dẫn & Provenance** | **Interactive PDF Preview Modal** | • Giao diện Chatbot hiển thị Huy hiệu trích dẫn (Source Badges).<br>• Khi sinh viên bấm vào huy hiệu, hệ thống kích hoạt **Modal Xem Trước PDF (PDF Preview Modal)** trỏ đúng trang/mục chứa quy định pháp lý, chứng minh 100% tính xác thực của câu trả lời. |
+
