@@ -261,7 +261,8 @@
             </div>
 
             <!-- Form Login -->
-            <form th:action="@{/auth/login}" method="post">
+            <form action="/auth/login" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
                 <div class="mb-3">
                     <label for="username" class="form-label small fw-bold text-dark">Tên đăng nhập / Email</label>

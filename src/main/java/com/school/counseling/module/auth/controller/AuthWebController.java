@@ -24,12 +24,24 @@ public class AuthWebController {
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/login")
-    public String loginPage() {
+    public String loginPage(jakarta.servlet.http.HttpServletRequest request) {
+        request.getSession(true);
+        org.springframework.security.web.csrf.CsrfToken csrfToken = 
+                (org.springframework.security.web.csrf.CsrfToken) request.getAttribute(org.springframework.security.web.csrf.CsrfToken.class.getName());
+        if (csrfToken != null) {
+            csrfToken.getToken();
+        }
         return "auth/login";
     }
 
     @GetMapping("/register")
-    public String registerPage(Model model) {
+    public String registerPage(Model model, jakarta.servlet.http.HttpServletRequest request) {
+        request.getSession(true);
+        org.springframework.security.web.csrf.CsrfToken csrfToken = 
+                (org.springframework.security.web.csrf.CsrfToken) request.getAttribute(org.springframework.security.web.csrf.CsrfToken.class.getName());
+        if (csrfToken != null) {
+            csrfToken.getToken();
+        }
         model.addAttribute("registerForm", new RegisterRequest());
         return "auth/register";
     }

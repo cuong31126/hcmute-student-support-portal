@@ -26,9 +26,12 @@ class AuthWebControllerTest {
     @Test
     @DisplayName("Truy cập trang /auth/login trả về 200 OK")
     void shouldRenderLoginPageSuccessfully() throws Exception {
-        mockMvc.perform(get("/auth/login"))
+        MvcResult res = mockMvc.perform(get("/auth/login"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("auth/login"));
+                .andExpect(view().name("auth/login"))
+                .andReturn();
+        String html = res.getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("btn-auth-submit"), "Form must render completely");
     }
 
     @Test
