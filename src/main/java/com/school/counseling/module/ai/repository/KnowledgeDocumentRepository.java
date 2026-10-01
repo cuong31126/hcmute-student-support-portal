@@ -12,4 +12,8 @@ public interface KnowledgeDocumentRepository extends JpaRepository<KnowledgeDocu
     List<KnowledgeDocument> findByIsActiveTrueOrderByCreatedAtDesc();
 
     List<KnowledgeDocument> findByStatusOrderByCreatedAtDesc(String status);
+
+    boolean existsByFilePath(String filePath);
+
+    java.util.Optional<KnowledgeDocument> findByFilePath(String filePath);
 }
