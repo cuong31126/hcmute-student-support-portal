@@ -499,7 +499,8 @@ public class RagKnowledgeService {
         return KnowledgeChunkMatchDto.builder()
                 .id(sc.chunk.getId())
                 .title(sc.chunk.getTitle())
-                .content(sc.chunk.getContent())
+                .content(sc.chunk.getContent())                 // injectedContent — cho debug/preview modal
+                .rawContent(sc.chunk.getRawContent())           // plain text — cho LLM context (BR-02)
                 .sourceType(sc.chunk.getSourceType())
                 .effectiveYear(sc.chunk.getEffectiveYear())
                 .priorityLevel(sc.chunk.getPriorityLevel())

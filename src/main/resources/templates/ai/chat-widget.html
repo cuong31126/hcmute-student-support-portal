@@ -203,14 +203,29 @@
                             answerHtml += `</div></div>`;
                         }
 
-                        // Tùy chọn chuyển tiếp thành Ticket hỗ trợ
-                        answerHtml += `
-                            <div class="mt-2 pt-2 border-top">
-                                <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-outline-primary btn-sm w-100" style="font-size: 11px;">
-                                    <i class="bi bi-envelope-plus me-1"></i>Chưa thỏa đáng? Gửi câu hỏi này thành Ticket tới Cán bộ
-                                </a>
-                            </div>
-                        `;
+                        // BR-07: Chỉ hiển thị nút Ticket khi AI thực sự không chắc chắn
+                        if (ragData.suggestCreateTicket) {
+                            answerHtml += `
+                                <div class="mt-2 pt-2 border-top">
+                                    <div class="alert alert-info py-2 px-3 mb-2 small rounded" style="font-size: 11px; background-color: #eff6ff; border-color: #bfdbfe; color: #1e40af;">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        <strong>AI không tìm thấy thông tin đủ chính xác.</strong> Cán bộ tư vấn sẽ hỗ trợ bạn trực tiếp.
+                                    </div>
+                                    <a href="/tickets/create?title=${encodeURIComponent(query)}" class="btn btn-primary btn-sm w-100" style="background-color: var(--crimson, #A51C30); border-color: var(--crimson, #A51C30); font-size: 11px;">
+                                        <i class="bi bi-envelope-plus me-1"></i>Gửi câu hỏi này thành Ticket tới Cán bộ
+                                    </a>
+                                </div>
+                            `;
+                        }
+
+                        // BR-08: Badge cho biết câu trả lời từ LLM hay fallback raw context
+                        if (!ragData.llmGenerated) {
+                            answerHtml += `
+                                <div class="mt-1" style="font-size: 10px; color: #6b7280;">
+                                    <i class="bi bi-cpu me-1"></i><em>Trích xuất trực tiếp từ công văn (AI đang bận)</em>
+                                </div>
+                            `;
+                        }
 
                         appendMessage('ai', answerHtml);
                     } else {

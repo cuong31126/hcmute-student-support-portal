@@ -175,13 +175,15 @@ public class BatchDocumentIngestionService {
         int chunkSeq = 1;
 
         for (PdfExtractorUtils.StructuralChunk sc : structuralChunks) {
+            // BR-03: embedding tạo từ injectedContent (có header ngữ cảnh) để tối đa hóa recall
             float[] embedding = geminiApiClient.getEmbedding(sc.injectedContent());
             String embeddingJson = OBJECT_MAPPER.writeValueAsString(embedding);
 
             KnowledgeChunk chunk = KnowledgeChunk.builder()
                     .document(document)
                     .title(cleanTitle + " - Trang " + sc.pageNumber() + " (#" + chunkSeq++ + ")")
-                    .content(sc.injectedContent())
+                    .content(sc.injectedContent())    // injectedContent — dùng cho debug/preview modal
+                    .rawContent(sc.rawContent())      // BR-01: plain text sạch — dùng cho LLM context
                     .sourceType("REGULATION")
                     .effectiveYear(effectiveYear)
                     .priorityLevel(1)

@@ -68,6 +68,14 @@ public class KnowledgeChunk extends BaseEntity {
     @Column(name = "embedding", columnDefinition = "LONGTEXT", nullable = false)
     private String embeddingJson; // Lưu JSON mảng float: [-0.021, 0.045, ...]
 
+    /**
+     * Plain text sạch không chứa injected context header ([VĂN BẢN:...|NỘI DUNG:...]).
+     * Dùng DUY NHẤT để đưa vào LLM prompt (RAG best practice: tách embedding content vs display content).
+     * embeddingJson vẫn được tạo từ content (injectedContent) để tối đa hóa recall.
+     */
+    @Column(name = "raw_content", columnDefinition = "LONGTEXT")
+    private String rawContent;
+
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

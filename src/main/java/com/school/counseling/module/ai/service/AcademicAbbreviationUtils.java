@@ -14,9 +14,10 @@ public final class AcademicAbbreviationUtils {
     private static final Map<Pattern, String> ABBREVIATION_MAP = new LinkedHashMap<>();
 
     static {
+        addRule("avđv|avdv", "anh văn đầu vào");
         addRule("avđr|avdr", "anh văn đầu ra");
         addRule("đrl|drl", "điểm rèn luyện");
-        addRule("đkhp|dkhp", "đăng ký học phần");
+        addRule("đkhp|dkhp|dkmh|đkmh", "đăng ký học phần");
         addRule("hb", "học bổng");
         addRule("tn", "tốt nghiệp");
         addRule("kltn", "khóa luận tốt nghiệp");
@@ -26,6 +27,16 @@ public final class AcademicAbbreviationUtils {
         addRule("hp", "học phần");
         addRule("tc", "tín chỉ");
         addRule("gpa", "điểm trung bình tích lũy");
+        addRule("nam hc|nam hoc", "năm học");
+        addRule("shdk|shđk|sinh hoat dau nam|sinh hoạt đầu năm", "sinh hoạt đầu khóa tân sinh viên");
+        addRule("khoa it|khoa cntt", "khoa công nghệ thông tin");
+        addRule("it", "công nghệ thông tin");
+        addRule("cntt", "công nghệ thông tin");
+        addRule("gv|cbgd", "giảng viên");
+        addRule("sv", "sinh viên");
+        addRule("ccta|cc ta", "chứng chỉ tiếng anh");
+        addRule("đgnlta|dgnlta", "đánh giá năng lực tiếng anh");
+        addRule("dot 1 va 2|đợt 1 và 2", "đợt 1 và đợt 2");
     }
 
     private static void addRule(String regex, String replacement) {

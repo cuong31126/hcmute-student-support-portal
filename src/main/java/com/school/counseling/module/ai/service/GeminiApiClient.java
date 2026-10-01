@@ -7,14 +7,22 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * REST Client giao tiếp với Google Gemini API (Model text-embedding-004 & gemini-1.5-flash).
+ * REST Client giao tiếp với Google Gemini API (Model gemini-embedding-001 & gemini-2.5-flash).
  * Sử dụng RestClient chuẩn của Spring Boot 3.3.
+ *
+ * Cải tiến Sprint A:
+ *  - BR-04: Exponential backoff retry khi nhận 429/503 (max 3 lần, delay [1s,3s,7s] ±jitter)
+ *  - BR-05: Whitelist secondary model, handle non-JSON response gracefully
+ *  - BR-08: generateChatResponseWithFlag() trả về [answer, isLlmGenerated]
+ *  - BR-09: buildSmartFallback() render format thân thiện, không dump raw injected header
  */
 @Slf4j
 @Service
@@ -22,6 +30,17 @@ public class GeminiApiClient {
 
     private static final String EMBEDDING_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:embedContent?key={key}";
     private static final String CHAT_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}";
+
+    /** BR-04: Backoff delays in ms: attempt 1=1s, 2=3s, 3=7s */
+    private static final long[] RETRY_DELAYS_MS = {1_000L, 3_000L, 7_000L};
+    private static final int MAX_RETRIES = RETRY_DELAYS_MS.length;
+
+    /** BR-05: Danh sách tên model hợp lệ — ngăn chặn secondary model sai tên gây crash */
+    private static final Set<String> VALID_MODEL_NAMES = Set.of(
+            "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash",
+            "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-flash-8b",
+            "gemini-1.5-pro", "gemini-2.5-pro"
+    );
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
@@ -35,8 +54,9 @@ public class GeminiApiClient {
     @Value("${app.gemini.chat-model:gemini-2.5-flash}")
     private String chatModel = "gemini-2.5-flash";
 
-    @Value("${app.gemini.secondary-chat-model:gemini-flash-latest}")
-    private String secondaryChatModel = "gemini-flash-latest";
+    /** BR-05: Fix từ 'gemini-flash-latest' (không hợp lệ) → 'gemini-2.0-flash-lite' (tên thật) */
+    @Value("${app.gemini.secondary-chat-model:gemini-2.0-flash-lite}")
+    private String secondaryChatModel = "gemini-2.0-flash-lite";
 
     public GeminiApiClient(ObjectMapper objectMapper) {
         org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory =
@@ -99,46 +119,98 @@ public class GeminiApiClient {
      * Tích hợp cơ chế Fallback tự động sang Secondary Model khi Model chính bị 503 / 429
      */
     public String generateChatResponse(String systemPrompt, String userMessage) {
+        return generateChatResponseWithFlag(systemPrompt, userMessage)[0];
+    }
+
+    /**
+     * BR-08: Gửi Prompt cho Gemini và trả về cặp [answer, isLlmGenerated].
+     * isLlmGenerated = "true" nếu LLM thực sự trả về câu trả lời,
+     *                  "false" nếu rơi về buildSmartFallback() do API không khả dụng.
+     *
+     * BR-04: Retry exponential backoff khi nhận 429/503:
+     *   Attempt 1: delay 1s, Attempt 2: delay 3s, Attempt 3: delay 7s (±30% jitter)
+     * BR-05: Validate secondary model name trước khi gọi.
+     */
+    public String[] generateChatResponseWithFlag(String systemPrompt, String userMessage) {
         if ("demo_key".equalsIgnoreCase(apiKey) || apiKey == null || apiKey.isBlank()) {
-            log.debug("[Gemini] Chay o che do local khong co key, tra ve phan hoi mau.");
-            return "Dựa vào quy chế học vụ được cung cấp: " + userMessage;
+            log.debug("[Gemini] Chạy chế độ local không có key, trả về phản hồi mẫu.");
+            return new String[]{"Dựa vào quy chế học vụ được cung cấp: " + userMessage, "true"};
         }
 
-        try {
-            String fullPrompt = systemPrompt + "\n\n" + userMessage;
-            Map<String, Object> body = Map.of(
-                    "contents", List.of(Map.of("parts", List.of(Map.of("text", fullPrompt))))
-            );
+        String fullPrompt = systemPrompt + "\n\n" + userMessage;
+        Map<String, Object> body = Map.of(
+                "contents", List.of(Map.of("parts", List.of(Map.of("text", fullPrompt))))
+        );
 
-            // 1. Thử gọi Model chính (ví dụ gemini-2.5-flash)
+        // BR-04: Retry loop cho Primary model với exponential backoff
+        String primaryReply = callWithRetry(chatModel, body);
+        if (primaryReply != null && !primaryReply.isBlank()) {
+            return new String[]{primaryReply, "true"};
+        }
+
+        // BR-05: Validate secondary model name trước khi gọi
+        if (secondaryChatModel != null
+                && !secondaryChatModel.equalsIgnoreCase(chatModel)
+                && VALID_MODEL_NAMES.contains(secondaryChatModel)) {
+            String secondaryReply = callWithRetry(secondaryChatModel, body);
+            if (secondaryReply != null && !secondaryReply.isBlank()) {
+                log.info("[Gemini] Secondary model '{}' phản hồi thành công!", secondaryChatModel);
+                return new String[]{secondaryReply, "true"};
+            }
+        } else if (secondaryChatModel != null && !VALID_MODEL_NAMES.contains(secondaryChatModel)) {
+            log.warn("[Gemini] Secondary model '{}' không nằm trong whitelist hợp lệ, bỏ qua.", secondaryChatModel);
+        }
+
+        // BR-08: Cả hai model fail → fallback, isLlmGenerated = false
+        log.warn("[Gemini] Tất cả model đều không khả dụng, rơi về Smart Fallback.");
+        return new String[]{buildSmartFallback(systemPrompt, userMessage), "false"};
+    }
+
+    /**
+     * BR-04: Gọi API với retry exponential backoff.
+     * Chỉ retry khi nhận 429 (rate limit) hoặc 503 (service unavailable).
+     * Các lỗi khác (400, 404) fail nhanh không retry.
+     */
+    private String callWithRetry(String model, Map<String, Object> body) {
+        for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
             try {
-                String reply = callChatApi(chatModel, body);
+                String reply = callChatApi(model, body);
                 if (reply != null && !reply.isBlank()) {
+                    if (attempt > 0) log.info("[Gemini] Model '{}' thành công ở lần retry {}", model, attempt + 1);
                     return reply;
                 }
+            } catch (RestClientResponseException e) {
+                int status = e.getStatusCode().value();
+                if ((status == 429 || status == 503) && attempt < MAX_RETRIES - 1) {
+                    long delay = addJitter(RETRY_DELAYS_MS[attempt]);
+                    log.warn("[Gemini] Model '{}' {} (attempt {}/{}). Retry sau {}ms...",
+                            model, status, attempt + 1, MAX_RETRIES, delay);
+                    sleepQuietly(delay);
+                } else {
+                    log.warn("[Gemini] Model '{}' lỗi {} (attempt {}) — không retry thêm: {}",
+                            model, status, attempt + 1, e.getMessage());
+                    return null; // fail fast cho non-retryable hoặc hết retry
+                }
             } catch (Exception e) {
-                log.warn("[Gemini] Model chinh '{}' gap su co ({}). Tu dong chuyen sang model du phong '{}'...",
-                        chatModel, e.getMessage(), secondaryChatModel);
-            }
-
-            // 2. Tự động chuyển tiếp sang Secondary Model dự phòng (ví dụ gemini-flash-latest)
-            if (secondaryChatModel != null && !secondaryChatModel.equalsIgnoreCase(chatModel)) {
-                try {
-                    String reply = callChatApi(secondaryChatModel, body);
-                    if (reply != null && !reply.isBlank()) {
-                        log.info("[Gemini] Model du phong '{}' da phan hoi thanh cong!", secondaryChatModel);
-                        return reply;
-                    }
-                } catch (Exception e) {
-                    log.warn("[Gemini] Model du phong '{}' cung gap su co: {}", secondaryChatModel, e.getMessage());
+                log.warn("[Gemini] Model '{}' exception (attempt {}): {}", model, attempt + 1, e.getMessage());
+                if (attempt < MAX_RETRIES - 1) {
+                    sleepQuietly(addJitter(RETRY_DELAYS_MS[attempt]));
+                } else {
+                    return null;
                 }
             }
-        } catch (Exception e) {
-            log.error("[Gemini] Loi khi xu ly chat: {}", e.getMessage());
         }
+        return null;
+    }
 
-        // 3. Fallback thông minh dựa trên Context RAG nếu các model bên ngoài đều không khả dụng
-        return buildSmartFallback(systemPrompt, userMessage);
+    /** BR-04: ±30% random jitter để tránh thundering herd */
+    private long addJitter(long baseMs) {
+        double jitter = 1.0 + (Math.random() * 0.6 - 0.3); // [0.7, 1.3]
+        return (long) (baseMs * jitter);
+    }
+
+    private void sleepQuietly(long ms) {
+        try { Thread.sleep(ms); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
     }
 
     private String callChatApi(String model, Map<String, Object> body) {
@@ -164,6 +236,11 @@ public class GeminiApiClient {
         return null;
     }
 
+    /**
+     * BR-09: Smart Fallback khi cả primary và secondary model đều fail.
+     * Render context thân thiện, KHÔNG dump raw injected header [VĂN BẢN:...|NỘI DUNG:...].
+     * Context từ RagChatbotService.buildContextString() đã được clean (rawContent).
+     */
     private String buildSmartFallback(String systemPrompt, String userMessage) {
         if (systemPrompt != null && systemPrompt.contains("[THÔNG TIN NGỮ CẢNH ĐƯỢC TRÍCH XUẤT TỪ HỆ THỐNG]:")) {
             int startIdx = systemPrompt.indexOf("[THÔNG TIN NGỮ CẢNH ĐƯỢC TRÍCH XUẤT TỪ HỆ THỐNG]:");
@@ -173,9 +250,14 @@ public class GeminiApiClient {
                     : systemPrompt.substring(startIdx + 50).trim();
 
             if (!context.isBlank() && !context.contains("Không tìm thấy văn bản quy chế")) {
-                return "ℹ️ *Do máy chủ AI đang quá tải đột biến, hệ thống tự động trích xuất thông tin quy chế liên quan gửi trực tiếp tới bạn:*\n\n"
-                        + context
-                        + "\n\n💡 *Nếu cần hướng dẫn thêm, bạn có thể gửi Ticket hỗ trợ tới đúng Phòng ban chuyên trách.*";
+                // BR-09: Dọn sạch lần cuối — phòng trường hợp legacy context vẫn có header tag
+                String cleanContext = context
+                        .replaceAll("(?s)\\[VĂN BẢN:.*?\\]\\s*\\[NỘI DUNG\\]:\\s*\n?", "")
+                        .replaceAll("^\\d+\\s+(?=\\d)", "").trim();
+
+                return "📋 *Máy chủ AI đang tạm bận, dưới đây là thông tin quy chế liên quan được trích xuất trực tiếp:*\n\n"
+                        + cleanContext
+                        + "\n\n💡 *Nếu cần giải thích thêm, bạn có thể gửi Ticket hỗ trợ tới đúng Phòng ban chuyên trách.*";
             }
         }
         return "Hệ thống AI đang bảo trì kết nối ngoài. Vui lòng liên hệ trực tiếp phòng ban phụ trách để được giải đáp.";

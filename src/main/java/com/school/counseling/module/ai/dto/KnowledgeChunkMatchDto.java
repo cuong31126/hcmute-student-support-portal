@@ -14,7 +14,8 @@ public class KnowledgeChunkMatchDto {
 
     private Long id;
     private String title;
-    private String content;
+    private String content;       // injectedContent (có header) — chỉ dùng cho debug/display
+    private String rawContent;    // plain text sạch — dùng để build LLM context (BR-02)
     private String sourceType; // 'REGULATION' hoặc 'FAQ_CHAT'
     private Integer effectiveYear;
     private Integer priorityLevel;
