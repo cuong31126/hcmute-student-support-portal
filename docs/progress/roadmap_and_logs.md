@@ -14,6 +14,7 @@
 | **Sprint 3** | **Bảng Tin Chính Thức, Diễn Đàn Sinh Viên & Webhook Video** | ✅ Hoàn thành | Video Hybrid (nhúng YouTube/Drive hoặc tải trực tiếp), Đa tệp văn phòng (tối đa 5 file), Thả tim (Like) & Bình luận bằng AJAX tức thì, Hàng đợi kiểm duyệt bài viết. |
 | **Sprint 4** | **Trợ Lý Tri Thức Học Vụ & AI RAG Phân Tầng** | ✅ Hoàn thành | Tinh tuyển 300 FAQ chất lượng, Bộ nhớ Cache Caffeine ngắt tải sớm (70% lượt hỏi), Gemini Embedding + Cosine Similarity tính toán trên RAM CPU $\le 2\text{ms}$. |
 | **Sprint 5** | **Chiến Dịch Cải Tổ UI/UX & Nhận Diện HCMUTE** | ✅ Hoàn thành | Tích hợp Logo HCMUTE góc trái, Hero Slider 2 ảnh khuôn viên trường chuyển cảnh mượt mà, tinh giản nội dung rườm rà, phân tách Public vs Portal (`tiendo5.md`). |
+| **Sprint 6** | **Hệ Thống Trợ Lý AI RAG Hoàn Chỉnh (91 Công Văn)** | 🚀 Đang triển khai | Nạp toàn diện 91 PDF công văn (2024-2026), Structural Chunking, Vector RAM Cache, Time-Decay Re-ranking & Citation Provenance đạt điểm 10 (`tiendo6.md`). |
 
 ---
 
