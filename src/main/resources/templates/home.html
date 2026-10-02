@@ -171,6 +171,28 @@
             border-color: rgba(165, 28, 48, 0.25);
         }
 
+        /* Service Cards */
+        .service-card {
+            border: 1px solid #edf2f7;
+            transition: all 0.25s ease;
+        }
+        .service-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--bs-primary) !important;
+            box-shadow: 0 10px 25px rgba(30, 58, 138, 0.08) !important;
+        }
+
+        .divide-cols > div:not(:last-child) {
+            border-right: 1px solid #eef2f6;
+        }
+        @media (max-width: 767.98px) {
+            .divide-cols > div:not(:last-child) {
+                border-right: none;
+                border-bottom: 1px solid #eef2f6;
+                padding-bottom: 1rem;
+            }
+        }
+
         /* Department Cards */
         .dept-card {
             border: 1px solid #eef0f3;
@@ -180,7 +202,7 @@
         }
 
         .dept-card:hover {
-            border-color: var(--crimson);
+            border-color: var(--bs-primary);
             box-shadow: 0 6px 16px rgba(0,0,0,0.06);
             transform: translateY(-3px);
         }
@@ -253,62 +275,206 @@
         </div>
     </div>
 
-    <!-- 2. The 3 Core Pillars (3 Trụ Cột Hỗ Trợ Sinh Viên - Chuẩn mực, không màu mè chói mắt) -->
-    <div class="row g-4 mb-5">
-        <!-- Pillar 1: AI Assistant -->
-        <div class="col-md-4">
-            <div class="card h-100 p-4 text-center feature-card shadow-sm border-top border-4" style="border-top-color: var(--bs-primary) !important;">
-                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 mx-auto shadow-xs" style="width: 58px; height: 58px; background-color: #eff6ff; color: var(--bs-primary);">
-                    <i class="bi bi-robot fs-3"></i>
+    <!-- 2. SLA Commitment & Performance Metrics Ribbon -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-5 bg-white position-relative" style="margin-top: -2.5rem; z-index: 10; border: 1px solid #edf2f7 !important;">
+        <div class="row g-4 text-center divide-cols">
+            <div class="col-6 col-md-3">
+                <div class="d-flex flex-column align-items-center">
+                    <span class="fs-2 fw-bold text-dark font-serif">2.600+</span>
+                    <span class="small text-muted text-uppercase fw-semibold letter-spacing-1" style="font-size: 0.75rem;">Câu hỏi đã giải đáp</span>
                 </div>
-                <div class="badge bg-primary bg-opacity-10 text-primary mb-2 mx-auto px-3 py-1 rounded-pill fw-semibold small">
-                    <i class="bi bi-lightning-charge-fill me-1"></i>Tốc độ &le; 2ms
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="d-flex flex-column align-items-center">
+                    <span class="fs-2 fw-bold text-primary font-serif">&le; 24h</span>
+                    <span class="small text-muted text-uppercase fw-semibold letter-spacing-1" style="font-size: 0.75rem;">Thời hạn xử lý khẩn</span>
                 </div>
-                <h5 class="fw-bold mb-2 font-serif text-dark">Trợ Lý AI Học Vụ</h5>
-                <p class="small text-muted mb-4" style="line-height: 1.6;">
-                    Trí tuệ nhân tạo Gemini RAG phân tầng tự động giải đáp 300+ quy chế học vụ, chuẩn đầu ra, điểm rèn luyện 24/7 tức thì.
-                </p>
-                <button type="button" onclick="document.getElementById('btn-open-ai-chat')?.click()" class="btn btn-outline-primary btn-sm rounded-pill mt-auto fw-semibold py-2">
-                    <i class="bi bi-chat-dots-fill me-1"></i>Trò Chuyện Với AI
-                </button>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="d-flex flex-column align-items-center">
+                    <span class="fs-2 fw-bold text-success font-serif">98.8%</span>
+                    <span class="small text-muted text-uppercase fw-semibold letter-spacing-1" style="font-size: 0.75rem;">Tỷ lệ hài lòng CSAT</span>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="d-flex flex-column align-items-center">
+                    <span class="fs-2 fw-bold text-dark font-serif">24/7</span>
+                    <span class="small text-muted text-uppercase fw-semibold letter-spacing-1" style="font-size: 0.75rem;">Trợ lý AI thường trực</span>
+                </div>
             </div>
         </div>
+    </div>
 
-        <!-- Pillar 2: Ticket Desk -->
-        <div class="col-md-4">
-            <div class="card h-100 p-4 text-center feature-card shadow-sm border-top border-4 border-dark">
-                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 mx-auto shadow-xs" style="width: 58px; height: 58px; background-color: #f1f5f9; color: #0f172a;">
-                    <i class="bi bi-ticket-detailed-fill fs-3"></i>
-                </div>
-                <div class="badge bg-dark bg-opacity-10 text-dark mb-2 mx-auto px-3 py-1 rounded-pill fw-semibold small">
-                    <i class="bi bi-clock-history me-1"></i>Cam kết SLA 24h - 72h
-                </div>
-                <h5 class="fw-bold mb-2 font-serif text-dark">Gửi Ticket Tư Vấn</h5>
-                <p class="small text-muted mb-4" style="line-height: 1.6;">
-                    Tiếp nhận và điều phối yêu cầu trực tiếp đến Phòng Đào tạo, Phòng Tuyển sinh, Ban Cố vấn học tập với mã tra cứu tiện lợi.
-                </p>
-                <a th:href="@{/tickets/create}" class="btn btn-outline-primary btn-sm rounded-pill mt-auto fw-semibold py-2">
-                    <i class="bi bi-plus-circle-fill me-1"></i>Tạo Ticket Ngay
-                </a>
+    <!-- 3. One-Stop Academic Services Hub (Dịch vụ một cửa học vụ nhanh) -->
+    <div class="mb-5">
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-primary bg-opacity-10 text-primary small fw-semibold mb-2">
+                <i class="bi bi-grid-3x3-gap-fill"></i> Dịch Vụ Học Vụ Một Cửa
             </div>
+            <h3 class="fw-bold font-serif text-dark mb-1">Tra Cứu & Giải Quyết Thủ Tục Nhanh</h3>
+            <p class="text-muted small mx-auto" style="max-width: 600px;">
+                Chọn đúng nghiệp vụ cần hỗ trợ để được chuyển thẳng đến Khoa/Phòng phụ trách kèm biểu mẫu hướng dẫn chuẩn hóa.
+            </p>
         </div>
 
-        <!-- Pillar 3: Official FAQs -->
-        <div class="col-md-4">
-            <div class="card h-100 p-4 text-center feature-card shadow-sm border-top border-4 border-secondary">
-                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 mx-auto shadow-xs bg-secondary bg-opacity-10 text-dark" style="width: 58px; height: 58px;">
-                    <i class="bi bi-journal-bookmark-fill fs-3 text-secondary"></i>
+        <div class="row g-3">
+            <!-- Service 1: Đăng ký môn học -->
+            <div class="col-md-6 col-lg-4">
+                <div class="service-card p-3.5 h-100 rounded-3 bg-white border d-flex align-items-start gap-3 shadow-xs">
+                    <div class="service-icon rounded-3 p-2.5 bg-primary bg-opacity-10 text-primary fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-calendar2-check"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold text-dark mb-1">Đăng Ký Môn Học (ĐKMH)</h6>
+                        <p class="small text-muted mb-2" style="line-height: 1.45;">Xử lý trùng lịch thi, xin mở thêm lớp học phần, học vượt và hủy môn học.</p>
+                        <a th:href="@{/tickets/create(title='Xin hỗ trợ Đăng ký môn học / Trùng lịch')}" class="small fw-semibold text-primary text-decoration-none d-inline-flex align-items-center gap-1">
+                            Gửi yêu cầu <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
-                <div class="badge bg-secondary bg-opacity-10 text-dark mb-2 mx-auto px-3 py-1 rounded-pill fw-semibold small">
-                    <i class="bi bi-patch-check-fill me-1 text-secondary"></i>Kiểm duyệt chính thức
+            </div>
+
+            <!-- Service 2: Ngoại ngữ & Chuẩn đầu ra -->
+            <div class="col-md-6 col-lg-4">
+                <div class="service-card p-3.5 h-100 rounded-3 bg-white border d-flex align-items-start gap-3 shadow-xs">
+                    <div class="service-icon rounded-3 p-2.5 bg-success bg-opacity-10 text-success fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-patch-check"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold text-dark mb-1">Chứng Chỉ Ngoại Ngữ (CĐR)</h6>
+                        <p class="small text-muted mb-2" style="line-height: 1.45;">Quy chế nộp chứng chỉ TOEIC, IELTS, xét miễn học phần tiếng Anh đầu vào.</p>
+                        <a th:href="@{/faqs(q='chứng chỉ ngoại ngữ')}" class="small fw-semibold text-primary text-decoration-none d-inline-flex align-items-center gap-1">
+                            Xem quy chế <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
-                <h5 class="fw-bold mb-2 font-serif text-dark">Kho Tri Thức FAQ</h5>
-                <p class="small text-muted mb-4" style="line-height: 1.6;">
-                    Tra cứu ngân hàng câu hỏi thường gặp đã được Thầy/Cô và Cán bộ chuyên môn kiểm chứng, sắp xếp theo từng chủ đề rõ ràng.
+            </div>
+
+            <!-- Service 3: Hoãn thi & Phúc khảo -->
+            <div class="col-md-6 col-lg-4">
+                <div class="service-card p-3.5 h-100 rounded-3 bg-white border d-flex align-items-start gap-3 shadow-xs">
+                    <div class="service-icon rounded-3 p-2.5 bg-warning bg-opacity-10 text-dark fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-file-earmark-medical"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold text-dark mb-1">Hoãn Thi & Phúc Khảo Điểm</h6>
+                        <p class="small text-muted mb-2" style="line-height: 1.45;">Nộp đơn xin hoãn thi kèm minh chứng y tế hoặc khiếu nại sai sót điểm số.</p>
+                        <a th:href="@{/tickets/create(title='Đơn xin hoãn thi / Phúc khảo điểm thi')}" class="small fw-semibold text-primary text-decoration-none d-inline-flex align-items-center gap-1">
+                            Nộp hồ sơ <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service 4: Học bổng & Học phí -->
+            <div class="col-md-6 col-lg-4">
+                <div class="service-card p-3.5 h-100 rounded-3 bg-white border d-flex align-items-start gap-3 shadow-xs">
+                    <div class="service-icon rounded-3 p-2.5 bg-info bg-opacity-10 text-dark fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold text-dark mb-1">Học Bổng & Trợ Cấp Xã Hội</h6>
+                        <p class="small text-muted mb-2" style="line-height: 1.45;">Điều kiện xét học bổng khuyến khích (KKHT), điểm rèn luyện và gia hạn học phí.</p>
+                        <a th:href="@{/faqs(q='học bổng')}" class="small fw-semibold text-primary text-decoration-none d-inline-flex align-items-center gap-1">
+                            Tra cứu chỉ tiêu <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service 5: Đồ án & Thực tập doanh nghiệp -->
+            <div class="col-md-6 col-lg-4">
+                <div class="service-card p-3.5 h-100 rounded-3 bg-white border d-flex align-items-start gap-3 shadow-xs">
+                    <div class="service-icon rounded-3 p-2.5 text-dark fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #f3e8ff;">
+                        <i class="bi bi-briefcase text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold text-dark mb-1">Đồ Án & Thực Tập Doanh Nghiệp</h6>
+                        <p class="small text-muted mb-2" style="line-height: 1.45;">Xét điều kiện làm khóa luận tốt nghiệp, giới thiệu thực tập doanh nghiệp.</p>
+                        <a th:href="@{/feed/official}" class="small fw-semibold text-primary text-decoration-none d-inline-flex align-items-center gap-1">
+                            Xem thông báo Khoa <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service 6: Tư vấn Tuyển sinh & Thí sinh -->
+            <div class="col-md-6 col-lg-4">
+                <div class="service-card p-3.5 h-100 rounded-3 bg-white border d-flex align-items-start gap-3 shadow-xs">
+                    <div class="service-icon rounded-3 p-2.5 bg-secondary bg-opacity-10 text-dark fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-mortarboard"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold text-dark mb-1">Tư Vấn Tuyển Sinh & Ngành Học</h6>
+                        <p class="small text-muted mb-2" style="line-height: 1.45;">Dành cho thí sinh, phụ huynh tìm hiểu đề án tuyển sinh, học phí và điểm chuẩn.</p>
+                        <a th:href="@{/tickets/create(title='Thắc mắc tư vấn tuyển sinh đại học')}" class="small fw-semibold text-primary text-decoration-none d-inline-flex align-items-center gap-1">
+                            Hỏi tuyển sinh <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. How SLA Engine Works (Quy trình cam kết chất lượng 4 bước) -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-5 bg-white" style="border: 1px solid #edf2f7 !important;">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-5">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-dark bg-opacity-10 text-dark small fw-semibold mb-2">
+                    <i class="bi bi-shield-check"></i> Cam Kết Chất Lượng Dịch Vụ
+                </div>
+                <h4 class="fw-bold font-serif text-dark mb-3">Quy Trình Xử Lý Ticket Chuẩn SLA 4 Bước</h4>
+                <p class="text-muted small mb-4" style="line-height: 1.6;">
+                    Mọi yêu cầu của sinh viên đều được hệ thống số hóa, đếm ngược hạn chót xử lý và phân công đích danh Cán bộ chuyên trách giải quyết đúng thời hạn.
                 </p>
-                <a th:href="@{/faqs}" class="btn btn-outline-dark btn-sm rounded-pill mt-auto fw-semibold py-2">
-                    <i class="bi bi-search me-1"></i>Khám Phá Ngân Hàng FAQ
-                </a>
+                <div class="d-flex flex-wrap gap-2">
+                    <a th:href="@{/tickets/create}" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold btn-sm">
+                        <i class="bi bi-plus-circle me-1"></i>Tạo Yêu Cầu Mới
+                    </a>
+                    <a th:href="@{/faqs}" class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold btn-sm">
+                        <i class="bi bi-question-circle me-1"></i>Xem Hướng Dẫn
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded-3 bg-light h-100 border">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-primary rounded-circle p-2 fs-6" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">1</span>
+                                <h6 class="fw-bold mb-0 text-dark">Tiếp Nhận & Cấp Mã</h6>
+                            </div>
+                            <p class="small text-muted mb-0">Sinh viên gửi Form hoặc chuyển từ Chat AI. Hệ thống sinh mã Token tra cứu tức thì.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded-3 bg-light h-100 border">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-dark rounded-circle p-2 fs-6" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">2</span>
+                                <h6 class="fw-bold mb-0 text-dark">Gán Hạn Chót SLA</h6>
+                            </div>
+                            <p class="small text-muted mb-0">Tự động tính thời hạn theo mức ưu tiên: Khẩn cấp (24h), Bình thường (72h), Thủ tục (7 ngày).</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded-3 bg-light h-100 border">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-primary rounded-circle p-2 fs-6" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">3</span>
+                                <h6 class="fw-bold mb-0 text-dark">Cán Bộ Claim & Giải Quyết</h6>
+                            </div>
+                            <p class="small text-muted mb-0">Cán bộ Khoa/Phòng tiếp nhận xử lý chính chủ, hướng dẫn và đính kèm văn bản giải quyết.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded-3 bg-light h-100 border">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-success rounded-circle p-2 fs-6" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">4</span>
+                                <h6 class="fw-bold mb-0 text-dark">Email Kết Quả & Đánh Giá</h6>
+                            </div>
+                            <p class="small text-muted mb-0">Sinh viên nhận thông báo kết quả qua Email và chấm điểm hài lòng dịch vụ (1 - 5 sao).</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
