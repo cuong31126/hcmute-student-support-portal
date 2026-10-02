@@ -1,0 +1,41 @@
+@startuml
+autonumber
+actor "Sinh Viên / Thí Sinh" as User
+participant "Giao Diện Portal\n(Chat Widget)" as UI
+participant "RagChatRestController\n(Spring Boot)" as Controller
+participant "RagChatbotService\n(Core Router)" as Service
+participant "In-Memory Vector Cache\n(RAM CPU)" as Cache
+participant "Python AI Engine\n(FastAPI :8001)" as Python
+participant "Google Gemini API\n(Flash / Embedding)" as Gemini
+
+User -> UI: 1. Nhập câu hỏi: "Học bổng KKHT cần bao nhiêu ĐRL?"
+UI -> Controller: 2. POST /api/v1/ai/chat (question, deptId)
+Controller -> Service: 3. processChatRequest(dto)
+
+' Kiểm tra Cache cục bộ
+Service -> Service: 4. Kiểm tra Unicode NFC & InMemory Local Cache
+alt Tìm thấy câu trả lời hoàn hảo trong Cache (< 5ms)
+    Service -->> Controller: 5a. Trả về cached response (Short-circuit)
+    Controller -->> UI: 6a. Hiển thị câu trả lời ngay lập tức
+else Cache Miss: Tiến hành tìm kiếm Vector
+    alt Bật cờ app.python-ai.enabled = true
+        Service -> Python: 5b. POST /ai/ask (REST 127.0.0.1:8001)
+        Python -> Python: 6b. Dense Cosine Retrieval trên ChromaDB
+        Python -> Gemini: 7b. Generate Answer kèm Context
+        Gemini -->> Python: 8b. Trả về Answer trích dẫn nguồn
+        Python -->> Service: 9b. Trả về JSON (Answer, Sources, Score)
+    else Python AI tắt hoặc Timeout -> Java RAG Fallback
+        Service -> Cache: 5c. Quét Cosine Similarity trên RAM (Tầng 1 + Tầng 2)
+        Cache -->> Service: 6c. Top K Chunks phù hợp nhất
+        alt Confidence Score >= 0.70
+            Service -> Gemini: 7c. Gọi GeminiApiClient với Token Budget
+            Gemini -->> Service: 8c. Trả về phản hồi tổng hợp
+        else Không có kết nối mạng / Lỗi Gemini API
+            Service -> Service: 7d. Kích hoạt Deterministic Fallback trích đoạn Điều/Khoản
+        end
+    end
+    Service -->> Controller: 10. Trả về ChatResponseDto
+    Controller -->> UI: 11. Render câu trả lời kèm nút "Tạo Ticket gửi Cán bộ"
+    UI -->> User: 12. Hiển thị văn bản giải đáp và trích dẫn văn bản quy định
+end
+@enduml

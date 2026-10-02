@@ -89,8 +89,8 @@ app:
   gemini:
     api-key: ${GEMINI_API_KEY:demo_key}
     embedding-model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}
-    chat-model: ${GEMINI_CHAT_MODEL:gemini-2.5-flash}
-    secondary-chat-model: ${GEMINI_SECONDARY_CHAT_MODEL:gemini-flash-latest}
+    chat-model: ${GEMINI_CHAT_MODEL:gemini-1.5-flash}
+    secondary-chat-model: ${GEMINI_SECONDARY_CHAT_MODEL:gemini-2.0-flash}
 
   # ─── Python AI Engine (RAG Microservice) ────────────────────────────────────
   # Đặt enabled=true để kích hoạt Python Engine (cổng 8001)

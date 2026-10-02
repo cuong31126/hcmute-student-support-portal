@@ -1,0 +1,33 @@
+@startuml
+autonumber
+actor "Quản Trị Viên (Admin)" as Admin
+participant "Admin Knowledge Hub" as UI
+participant "AdminKnowledgeController" as Controller
+participant "BatchDocumentIngestionService" as IngestionService
+participant "PdfExtractorUtils" as PDFBox
+participant "GeminiApiClient" as Gemini
+database "MySQL 8 Database" as DB
+participant "In-Memory Vector Cache" as Cache
+
+Admin -> UI: 1. Kéo thả file PDF: "Quy_Che_Hoc_Vu_2026.pdf" & Chọn Khoa/Phòng
+UI -> Controller: 2. POST /admin/knowledge/upload (MultipartFile, deptId)
+Controller -> IngestionService: 3. ingestDocumentAsync(file, deptId)
+
+IngestionService -> PDFBox: 4. Trích xuất văn bản & Phân tách cấu trúc (Điều/Khoản)
+PDFBox -->> IngestionService: 5. Danh sách các đoạn văn bản (Chunks: 300-500 từ)
+
+IngestionService -> DB: 6. INSERT INTO ai_knowledge_documents (file_name, dept_id, is_active=true)
+DB -->> IngestionService: 7. Document ID
+
+loop Đối với từng đoạn Chunk
+    IngestionService -> Gemini: 8. POST text-embedding-004 (chunk_content)
+    Gemini -->> IngestionService: 9. Trả về mảng 768 chiều [float_0, ..., float_767]
+    IngestionService -> DB: 10. INSERT INTO knowledge_chunks (doc_id, content, embedding_vector)
+end
+
+IngestionService -> Cache: 11. Nạp đồng bộ vector mới vào In-Memory ConcurrentHashMap trên RAM
+Cache -->> IngestionService: 12. Bộ nhớ đệm vector đã sẵn sàng truy vấn
+
+IngestionService -->> Controller: 13. Hoàn tất nạp văn bản
+Controller -->> UI: 14. Hiển thị thông báo thành công và tọa độ không gian 3D (WebGL)
+@enduml

@@ -51,12 +51,12 @@ public class GeminiApiClient {
     @Value("${app.gemini.embedding-model:gemini-embedding-001}")
     private String embeddingModel = "gemini-embedding-001";
 
-    @Value("${app.gemini.chat-model:gemini-2.5-flash}")
-    private String chatModel = "gemini-2.5-flash";
+    @Value("${app.gemini.chat-model:gemini-1.5-flash}")
+    private String chatModel = "gemini-1.5-flash";
 
-    /** BR-05: Fix từ 'gemini-flash-latest' (không hợp lệ) → 'gemini-2.0-flash-lite' (tên thật) */
-    @Value("${app.gemini.secondary-chat-model:gemini-2.0-flash-lite}")
-    private String secondaryChatModel = "gemini-2.0-flash-lite";
+    /** Model dự phòng khi primary model gặp sự cố */
+    @Value("${app.gemini.secondary-chat-model:gemini-2.0-flash}")
+    private String secondaryChatModel = "gemini-2.0-flash";
 
     public GeminiApiClient(ObjectMapper objectMapper) {
         org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory =

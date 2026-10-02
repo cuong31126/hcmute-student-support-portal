@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,6 +35,12 @@ class BatchDocumentIngestionServiceTest {
 
     @Mock
     private RagKnowledgeService ragKnowledgeService;
+
+    @Mock
+    private com.school.counseling.module.feed.repository.PostRepository postRepository;
+
+    @Mock
+    private com.school.counseling.module.auth.repository.UserRepository userRepository;
 
     @InjectMocks
     private BatchDocumentIngestionService ingestionService;
@@ -65,5 +72,38 @@ class BatchDocumentIngestionServiceTest {
         assertThrows(IllegalArgumentException.class, () ->
                 ingestionService.ingestAllYearFolders("D:\\Path\\Does\\Not\\Exist_12345")
         );
+    }
+
+    @Test
+    @DisplayName("TDD-CAMPAIGN-01: Đăng tải công văn lên bảng tin thành công, bỏ qua bài trùng")
+    void publishAllDocumentsToFeedCampaign_publishesNewAndSkipsExisting() {
+        KnowledgeDocument doc1 = KnowledgeDocument.builder()
+                .title("Quy chế đào tạo 2026")
+                .documentCode("1084/QĐ-ĐHSPKT")
+                .filePath("D:\\mock\\doc1.pdf")
+                .fileName("doc1.pdf")
+                .effectiveYear(2026)
+                .isActive(true)
+                .build();
+
+        KnowledgeDocument doc2 = KnowledgeDocument.builder()
+                .title("Quy định học bổng 2025")
+                .documentCode("500/QĐ-ĐHSPKT")
+                .filePath("D:\\mock\\doc2.pdf")
+                .fileName("doc2.pdf")
+                .effectiveYear(2025)
+                .isActive(true)
+                .build();
+
+        when(documentRepository.findAll()).thenReturn(List.of(doc1, doc2));
+        when(postRepository.existsByTitle("[CÔNG VĂN QUY CHẾ] Quy chế đào tạo 2026")).thenReturn(false);
+        when(postRepository.existsByTitle("[CÔNG VĂN QUY CHẾ] Quy định học bổng 2025")).thenReturn(true);
+
+        var summary = ingestionService.publishAllDocumentsToFeedCampaign(null);
+
+        assertEquals(1, summary.getTotalPublished());
+        assertEquals(1, summary.getTotalSkipped());
+        assertEquals(1, summary.getPublishedTitles().size());
+        verify(postRepository, times(1)).save(any());
     }
 }

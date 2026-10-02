@@ -1,0 +1,44 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam defaultFontName "Arial"
+
+actor "Người Yêu Cầu\n(Sinh Viên / Khách)" as Requester
+actor "Cán Bộ Khoa / Phòng\n(ROLE_STAFF)" as Staff
+actor "Quản Trị Viên\n(ROLE_ADMIN)" as Admin
+actor "Hệ Thống SLA Engine" as System
+
+rectangle "Phân Hệ Ticket & Cam Kết SLA Học Vụ" {
+    usecase "Tạo Ticket Trực Tiếp" as UC_CreateDirect
+    usecase "Chuyển Đổi Từ Phiên Chat AI" as UC_CreateChat
+    usecase "Tính Toán Hạn Chót SLA\n(+24h / +72h / +7 ngày)" as UC_CalcSLA
+    usecase "Gửi Email Thông Báo Bất Đồng Bộ" as UC_SendMail
+    usecase "Xem Danh Sách Ticket Thuộc Khoa" as UC_ViewDeptTickets
+    usecase "Tiếp Nhận Ticket (Claim Lock)" as UC_ClaimTicket
+    usecase "Trao Đổi Tin Nhắn & Đính Kèm File" as UC_ChatTicket
+    usecase "Giải Quyết & Đóng Ticket" as UC_ResolveTicket
+    usecase "Đánh Giá Điểm Hài Lòng CSAT" as UC_RateTicket
+    usecase "Cảnh Báo Quá Hạn (OVERDUE)" as UC_OverdueAlert
+}
+
+Requester --> UC_CreateDirect
+Requester --> UC_CreateChat
+Requester --> UC_ChatTicket
+Requester --> UC_RateTicket
+
+UC_CreateDirect ..> UC_CalcSLA : <<include>>
+UC_CreateChat ..> UC_CalcSLA : <<include>>
+UC_CalcSLA ..> UC_SendMail : <<include>>
+
+Staff --> UC_ViewDeptTickets
+Staff --> UC_ClaimTicket
+Staff --> UC_ChatTicket
+Staff --> UC_ResolveTicket
+
+UC_ClaimTicket ..> UC_SendMail : <<include>>
+UC_ResolveTicket ..> UC_SendMail : <<include>>
+
+System --> UC_CalcSLA
+System --> UC_OverdueAlert
+
+Admin --> UC_ViewDeptTickets
+@enduml

@@ -1,0 +1,39 @@
+@startuml
+autonumber
+actor "Sinh Viên" as Student
+participant "Feed UI" as UI
+participant "PostInteractionController" as Controller
+participant "PostInteractionService" as Service
+database "MySQL 8 Database" as DB
+actor "Cán Bộ Quản Trị" as Staff
+
+' Tương tác Like
+Student -> UI: 1. Nhấn nút "Thích" (Like) trên bài viết công khai
+UI -> Controller: 2. POST /api/v1/posts/{id}/reaction (type='LIKE')
+Controller -> Service: 3. toggleReaction(postId, studentId)
+Service -> DB: 4. Kiểm tra đã Like chưa? (INSERT mới hoặc DELETE nếu bỏ like)
+DB -->> Service: 5. Cập nhật lượt Reaction
+Service -->> Controller: 6. Trả về tổng số like mới
+Controller -->> UI: 7. Cập nhật số like ngay lập tức (AJAX không reload trang)
+
+' Báo cáo vi phạm
+Student -> UI: 8. Phát hiện bài viết có ngôn từ phản cảm, bấm "Báo cáo bài viết"
+UI -> UI: 9. Mở hộp thoại: Chọn lý do (SPAM, HATE_SPEECH, MISINFORMATION)
+Student -> UI: 10. Bấm "Gửi báo cáo"
+UI -> Controller: 11. POST /api/v1/posts/{id}/report
+Controller -> Service: 12. createReport(postId, studentId, reason)
+Service -> DB: 13. INSERT INTO post_reports (post_id, reporter_id, reason, status='PENDING')
+DB -->> Service: 14. Ghi nhận báo cáo thành công
+Service -->> Controller: 15. Thành công
+Controller -->> UI: 16. Hiển thị thông báo: "Cảm ơn bạn đã phản ánh!"
+
+' Cán bộ xử lý báo cáo
+Staff -> UI: 17. Mở danh sách Báo cáo vi phạm (/staff/moderation/reports)
+Staff -> UI: 18. Chọn hành động: "Ẩn bài viết vi phạm"
+UI -> Controller: 19. POST /staff/moderation/reports/{id}/resolve (action='HIDE_POST')
+Controller -> Service: 20. resolveReport(reportId, action)
+Service -> DB: 21. UPDATE posts SET status = 'HIDDEN' WHERE id = :postId
+Service -> DB: 22. UPDATE post_reports SET status = 'RESOLVED' WHERE id = :reportId
+DB -->> Service: 23. Thành công
+Controller -->> UI: 24. Bài viết bị gỡ khỏi bảng tin sinh viên
+@enduml

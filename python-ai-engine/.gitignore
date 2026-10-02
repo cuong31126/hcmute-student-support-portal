@@ -1,0 +1,20 @@
+# Secrets
+.env
+*.env.local
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Data
+data/chroma_db/*
+!data/chroma_db/.gitkeep
+data/markdown_docs/*
+!data/markdown_docs/.gitkeep
+
+# Virtualenv
+venv/
+.venv/
+env/

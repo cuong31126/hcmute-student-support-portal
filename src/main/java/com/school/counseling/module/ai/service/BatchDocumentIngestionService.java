@@ -5,6 +5,11 @@ import com.school.counseling.module.ai.entity.KnowledgeChunk;
 import com.school.counseling.module.ai.entity.KnowledgeDocument;
 import com.school.counseling.module.ai.repository.KnowledgeChunkRepository;
 import com.school.counseling.module.ai.repository.KnowledgeDocumentRepository;
+import com.school.counseling.module.auth.entity.User;
+import com.school.counseling.module.auth.repository.UserRepository;
+import com.school.counseling.module.feed.entity.Post;
+import com.school.counseling.module.feed.entity.PostAttachment;
+import com.school.counseling.module.feed.repository.PostRepository;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +38,17 @@ public class BatchDocumentIngestionService {
     private final KnowledgeChunkRepository chunkRepository;
     private final GeminiApiClient geminiApiClient;
     private final RagKnowledgeService ragKnowledgeService;
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+
+    @Getter
+    @Builder
+    public static class CampaignFeedSummary {
+        private int totalPublished;
+        private int totalSkipped;
+        @Builder.Default
+        private List<String> publishedTitles = new ArrayList<>();
+    }
 
     @Getter
     @Builder
@@ -45,6 +61,97 @@ public class BatchDocumentIngestionService {
         private long totalExecutionTimeMs;
         @Builder.Default
         private List<String> errorMessages = new ArrayList<>();
+    }
+
+    /**
+     * Chiến dịch đăng tải toàn bộ công văn quy chế chính thức lên Bảng tin (Feed Announcements)
+     */
+    @Transactional
+    public CampaignFeedSummary publishAllDocumentsToFeedCampaign(User currentStaffOrAdmin) {
+        List<KnowledgeDocument> activeDocs = documentRepository.findAll();
+        int published = 0;
+        int skipped = 0;
+        List<String> publishedTitles = new ArrayList<>();
+
+        User author = currentStaffOrAdmin;
+        if (author == null && userRepository != null) {
+            author = userRepository.findAll().stream()
+                    .filter(u -> u.getRole() != null && ("ROLE_ADMIN".equalsIgnoreCase(u.getRole().getName()) || "ROLE_STAFF".equalsIgnoreCase(u.getRole().getName())))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        for (KnowledgeDocument doc : activeDocs) {
+            if (!Boolean.TRUE.equals(doc.getIsActive())) {
+                continue;
+            }
+
+            String postTitle = "[CÔNG VĂN QUY CHẾ] " + doc.getTitle();
+            if (postTitle.length() > 255) {
+                postTitle = postTitle.substring(0, 252) + "...";
+            }
+
+            // Kiểm tra chống trùng lặp: nếu đã đăng bài viết có tiêu đề này rồi thì bỏ qua
+            if (postRepository.existsByTitle(postTitle)) {
+                skipped++;
+                continue;
+            }
+
+            // Xây dựng nội dung bài đăng học đường trang trọng
+            StringBuilder content = new StringBuilder();
+            content.append("🏛️ **THÔNG BÁO VỀ CÔNG VĂN / QUY CHẾ HỌC VỤ CHÍNH THỨC**\n\n");
+            content.append("- **Tên văn bản:** ").append(doc.getTitle()).append("\n");
+            if (doc.getDocumentCode() != null && !doc.getDocumentCode().isBlank()) {
+                content.append("- **Số hiệu công văn:** ").append(doc.getDocumentCode()).append("\n");
+            }
+            if (doc.getEffectiveYear() != null) {
+                content.append("- **Năm hiệu lực:** ").append(doc.getEffectiveYear()).append("\n");
+            }
+            if (doc.getCategory() != null && !doc.getCategory().isBlank()) {
+                content.append("- **Phân loại:** ").append(doc.getCategory()).append("\n");
+            }
+            if (doc.getPageCount() != null && doc.getPageCount() > 0) {
+                content.append("- **Quy mô:** ").append(doc.getPageCount()).append(" trang văn bản\n");
+            }
+            content.append("\nQuy định trên được ban hành và áp dụng chính thức tại Trường Đại học Sư phạm Kỹ thuật TP.HCM (HCMUTE). ");
+            content.append("Sinh viên vui lòng tải về hoặc mở file đính kèm dưới đây để nắm rõ quyền lợi và nghĩa vụ học vụ.\n\n");
+            content.append("*Mọi thắc mắc liên quan có thể hỏi trực tiếp AI Trợ lý ảo QAUTE hoặc gửi Phiếu hỗ trợ (Ticket).*");
+
+            boolean isPinned = doc.getEffectiveYear() != null && doc.getEffectiveYear() >= 2026;
+
+            Post post = Post.builder()
+                    .title(postTitle)
+                    .content(content.toString())
+                    .postType("OFFICIAL_ANNOUNCEMENT")
+                    .status("APPROVED")
+                    .author(author)
+                    .isPinned(isPinned)
+                    .build();
+
+            // Đính kèm file PDF gốc vào bài viết
+            if (doc.getFilePath() != null && !doc.getFilePath().isBlank()) {
+                PostAttachment attachment = PostAttachment.builder()
+                        .post(post)
+                        .fileName(doc.getFileName() != null ? doc.getFileName() : (doc.getTitle() + ".pdf"))
+                        .fileUrl(doc.getFilePath())
+                        .fileType("PDF")
+                        .fileSize(doc.getFileSize() != null ? doc.getFileSize() : 0L)
+                        .sourceType("DIRECT_UPLOAD")
+                        .build();
+                post.addAttachment(attachment);
+            }
+
+            postRepository.save(post);
+            published++;
+            publishedTitles.add(doc.getTitle());
+        }
+
+        log.info("[Feed Campaign] Đã đăng tải {} công văn lên Bảng tin (bỏ qua {} công văn trùng lặp)", published, skipped);
+        return CampaignFeedSummary.builder()
+                .totalPublished(published)
+                .totalSkipped(skipped)
+                .publishedTitles(publishedTitles)
+                .build();
     }
 
     /**

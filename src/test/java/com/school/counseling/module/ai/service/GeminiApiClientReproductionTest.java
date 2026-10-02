@@ -35,7 +35,7 @@ class GeminiApiClientReproductionTest {
         // Inject mock RestClient và API Key
         ReflectionTestUtils.setField(client, "restClient", restClientBuilder.build());
         ReflectionTestUtils.setField(client, "apiKey", "test-api-key-123");
-        ReflectionTestUtils.setField(client, "chatModel", "gemini-2.5-flash");
+        ReflectionTestUtils.setField(client, "chatModel", "gemini-1.5-flash");
 
         String error503Json = """
                 {
@@ -47,14 +47,14 @@ class GeminiApiClientReproductionTest {
                 }
                 """;
 
-        // Model chính gemini-2.5-flash bị 503 (sẽ retry 3 lần)
-        mockServer.expect(ExpectedCount.times(3), requestTo(containsString("gemini-2.5-flash:generateContent")))
+        // Model chính gemini-1.5-flash bị 503 (sẽ retry 3 lần)
+        mockServer.expect(ExpectedCount.times(3), requestTo(containsString("gemini-1.5-flash:generateContent")))
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(error503Json));
 
-        // Lần sau (Kỳ vọng): Hệ thống tự động fallback gọi sang model dự phòng gemini-2.0-flash-lite và thành công
+        // Lần sau (Kỳ vọng): Hệ thống tự động fallback gọi sang model dự phòng gemini-2.0-flash và thành công
         String successJson = """
                 {
                   "candidates": [
@@ -70,7 +70,7 @@ class GeminiApiClientReproductionTest {
                   ]
                 }
                 """;
-        mockServer.expect(requestTo(containsString("gemini-2.0-flash-lite:generateContent")))
+        mockServer.expect(requestTo(containsString("gemini-2.0-flash:generateContent")))
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withSuccess(successJson, MediaType.APPLICATION_JSON));
 
@@ -97,9 +97,9 @@ class GeminiApiClientReproductionTest {
         ReflectionTestUtils.setField(client, "apiKey", "test-api-key-123");
 
         // Cả 2 model đều trả về lỗi 503 (retry 3 lần mỗi model)
-        mockServer.expect(ExpectedCount.times(3), requestTo(containsString("gemini-2.5-flash:generateContent")))
+        mockServer.expect(ExpectedCount.times(3), requestTo(containsString("gemini-1.5-flash:generateContent")))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
-        mockServer.expect(ExpectedCount.times(3), requestTo(containsString("gemini-2.0-flash-lite:generateContent")))
+        mockServer.expect(ExpectedCount.times(3), requestTo(containsString("gemini-2.0-flash:generateContent")))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
         String ragSystemPrompt = """

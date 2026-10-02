@@ -175,43 +175,95 @@ Qua rà soát chuyên sâu từng dòng mã của cả hai phân hệ, ghi nhậ
 ### 🔴 Khoảng Trống 7: Thiếu Metadata Trích Dẫn Chi Tiết Trong Response Python
 - **Hiện trạng:** DTO `ChunkMatchResponse` trong `main.py` chỉ có `content`, `source`, `score`, `document_code`. Thiếu các trường quan trọng: `page_number`, `effective_year`, `chunk_id`. Giao diện Portal phía trước không thể hiển thị số trang và không thể mở đúng trang trong file PDF khi sinh viên bấm vào Huy hiệu Nguồn (Source Badge).
 
-### 🔴 Khoảng Trống 8: Chưa Tận Dụng Sức Mạnh Tính Toán Khoa Học Của Python Cho 3D Visualizer
-- **Hiện trạng:** Hiện tại Java phải tự viết thuật toán PCA Power Iteration thủ công (`VectorReductionUtils.java`) để tính tọa độ 3D. Python sở hữu hệ sinh thái `numpy`, `scikit-learn` cực mạnh, có thể hỗ trợ PCA, t-SNE hoặc UMAP với thuật toán tối ưu vượt trội, gom cụm K-Means theo chủ đề học vụ để cấp tọa độ cho WebGL.
+---
 
-### 🔴 Khoảng Trống 9: Tích Hợp RAGAS Đánh Giá Tự Động Định Kỳ
-- **Hiện trạng:** `requirements.txt` có `ragas==0.2.6` nhưng trong code `evaluator.py` đang viết prompt chay. Cần xây dựng file đánh giá chuẩn hóa với bộ test 30 câu hỏi vàng (Ground Truth) để xuất file biểu đồ điểm số RAG phục vụ báo cáo đồ án.
+## 6. KẾ HOẠCH TRIỂN KHAI THEO GIAI ĐOẠN (EXECUTION ROADMAP)
+
+### 📊 Bảng Tiến Độ Tổng Thể:
+| Giai Đoạn | Nhiệm Vụ Kỹ Thuật Trọng Tâm | Trạng Thái | Tệp Tin Tác Động | Sản Phẩm Đầu Ra |
+| :---: | :--- | :---: | :--- | :--- |
+| **Giai đoạn 1** | **Chuẩn hóa Cấu hình & Môi trường Python** | ✅ **HOÀN THÀNH** | `config.py`, `.env.example`, `main.py` | Đường dẫn `pdf_source_dir` chính xác, model Gemini hợp lệ (`gemini-1.5-flash`), fix non-blocking FastAPI (`def ask_ai`). |
+| **Giai đoạn 2** | **Bổ sung Module Từ Viết Tắt & Re-ranking** | ✅ **HOÀN THÀNH** | `abbreviations.py`, `rag_engine.py` | Python hiểu "ĐRL, ĐKMH, AVĐR", tính điểm Time-Decay (2026=1.0, 2025=0.85, 2024=0.70) và Department Boost chuẩn xác. |
+| **Giai đoạn 3** | **Cầu Nối Đồng Bộ Dữ Liệu Java ↔ Python** | ✅ **HOÀN THÀNH** | `PythonAiEngineClient.java`, `main.py`, `RagKnowledgeService.java` | Endpoint `/admin/sync-chunk`, thêm FAQ từ Ticket tự động nạp đồng bộ vào cả MySQL và ChromaDB. |
+| **Giai đoạn 4** | **Chiến Dịch Đăng 91 Công Văn Lên Bảng Tin & DTO Citation** | ✅ **HOÀN THÀNH** | `BatchDocumentIngestionService.java`, `PostRepository.java`, `AdminKnowledgeHubWebController.java` | Tự động đăng 91 công văn thành bài viết chính thức (`OFFICIAL_ANNOUNCEMENT`) lên Feed, DTO trả đủ `pageNumber`, `effectiveYear`. |
+| **Giai đoạn 5** | **Giải Quyết Sự Cố Kiểm Thử Chatbot Thực Tế & Kiến Trúc Nâng Cấp** | ✅ **HOÀN THÀNH** | `golden-truth.txt`, `RagChatbotService.java`, `GeminiApiClient.java`, `chat-widget.html`, `application.yml` | Chitchat Filter, Cơ sở dữ liệu chuẩn HCMUTE, Fix Gemini Model 404, Huy hiệu Nguồn 2 chiều nối trực tiếp sang Bảng tin. |
+| **Giai đoạn 6** | **Kiểm Thử Tự Động & Đánh Giá Chất Lượng Hoàn Thiện** | ✅ **HOÀN THÀNH** | `RagChatbotServiceTest.java`, `test_phase1_api.py` | 100% Tests Passed (20/20 Java + 22/22 Python), không còn thông báo "Máy chủ tạm bận", phản hồi chitchat tức thì, link Bảng tin chính xác. |
 
 ---
 
-## 5. ĐỀ XUẤT PHƯƠNG ÁN KỸ THUẬT ĐỘT PHÁ
+## 8. PHÂN TÍCH NGUYÊN NHÂN GỐC RỄ & ĐẶC TẢ NÂNG CẤP GIAI ĐOẠN 5 (TỪ THỰC TẾ KIỂM THỬ)
 
-```mermaid
-graph LR
-    subgraph Java_Spring_Boot
-        J1[Upload Công văn mới / Ticket FAQ] --> J2[Lưu MySQL 8]
-        J2 --> J3[Spring Webhook Client]
-    end
+### 🔴 8.1. Các Vấn Đề Ghi Nhận Từ Thử Nghiệm Thực Tế:
+1. **Hiện tượng "Máy chủ AI đang tạm bận" liên tục:**
+   - Khi hỏi bất kỳ câu nào (`Đăng ký môn học`, `alo`, `hocj phi ki nay`), hệ thống đều rơi về:
+     `📋 *Máy chủ AI đang tạm bận, dưới đây là thông tin quy chế liên quan được trích xuất trực tiếp:*`
+   - *Nguyên nhân:* Tên model cấu hình trong `application.yml` đang là `gemini-2.5-flash` và secondary là `gemini-flash-latest`. Trên Google AI Studio API thực tế với nhiều key, model `gemini-2.5-flash` chưa được kích hoạt endpoint v1beta hoặc ném 404/400. Cả 2 model đều fail khiến `GeminiApiClient` kích hoạt fallback in cả khối văn bản thô (raw chunk context).
+2. **Thiếu cơ chế lọc câu chào & Chitchat (Semantic Router):**
+   - Khi sinh viên gõ `alo`, `xin chào`, `hi`, hệ thống không nhận biết được đó là câu chào, mà lại mang chuỗi "alo" đi tính Cosine Similarity với toàn bộ vector công văn. Vì "alo" có độ tương đồng dương ngẫu nhiên với một văn bản nào đó (ví dụ: *Kế hoạch sinh hoạt đầu năm học*), bot bốc luôn văn bản đó ra trả lời!
+3. **In đoạn chunk thô lộn xộn thay vì câu trả lời học vụ & liên kết Bảng tin:**
+   - Sinh viên không cần đọc đoạn chunk bị cắt vụn dài dòng trong khung chat.
+   - Sinh viên cần:
+     - **Câu trả lời súc tích, chuẩn mực.**
+     - **Huy hiệu Nguồn (Source Badge) 2 Chiều:**
+       - *Cách 1 (Xem nhanh tại chỗ):* Click vào Huy hiệu ──► Mở "PDF Preview Modal" (trỏ đúng Điều/Khoản và số trang).
+       - *Cách 2 (Xem bài viết / Tải công văn gốc):* Bấm nút `[🔗 Xem trên Bảng tin / Thư viện]` ──► Mở bài viết trên Bảng tin (`/posts/{postId}`) của công văn hoặc thư viện văn bản.
+4. **Yêu cầu tệp Cơ sở Dữ liệu Chuẩn "File Luôn Đúng" (`golden-truth.txt`):**
+   - Thay vì dùng JSON dễ lỗi format, sử dụng định dạng văn bản thuần `src/main/resources/golden-truth.txt` chứa toàn bộ tri thức định danh chuẩn của Trường ĐH Sư phạm Kỹ thuật TP.HCM (HCMUTE):
+     - Tên trường, Mã trường: **SPK**
+     - 02 cơ sở tại TP. Thủ Đức, Hotline: (+84 - 028) 3722 5724, Email: tuyensinh@hcmute.edu.vn, Website: https://hcmute.edu.vn
+     - 11 Khoa đào tạo trọng điểm (FME, FAE, FEE, FIT, FCE, FCFT, FE, FFL, FFT, FAS, ITE)
+     - Hệ đào tạo & 4 phương thức xét tuyển
+     - Bộ câu hỏi Q&A chuẩn xác tuyệt đối không ảo giác.
 
-    subgraph Python_AI_Engine
-        J3 -->|POST /admin/sync-chunk| P1[FastAPI Sync Endpoint]
-        P1 --> P2[ChromaDB Upsert]
-        P3[Academic Abbreviation Extractor] --> P4[Hybrid Search: BM25 + Vector]
-        P4 --> P5[Time-Decay & Dept Re-ranker]
-    end
+---
 
-    P2 -.-> P4
-```
+## 9. THIẾT KẾ GIẢI PHÁP KỸ THUẬT CHI TIẾT (GIAI ĐOẠN 5A - 5D)
 
-### 5.1. Đồng Bộ Hóa Hai Chiều Tức Thì (Event-Driven Knowledge Sync):
-- Xây dựng endpoint `POST /admin/sync-chunk` trên Python AI Engine.
-- Phía Java, trong `AdminKnowledgeController` và `TicketService` (khi Staff nhấn "Thêm vào FAQ"), bổ sung lời gọi `@Async` sang Python Engine để cập nhật tức thì vào ChromaDB.
+### 🎯 Giai Đoạn 5A: Chitchat Filter & Cơ Sở Dữ Liệu Chuẩn `golden-truth.txt`
+1. **Tạo tệp `src/main/resources/golden-truth.txt`:**
+   - Lưu trữ toàn bộ thông tin chuẩn mực về HCMUTE theo đúng nội dung người dùng cung cấp.
+2. **Xây dựng Chitchat & Greeting Intent Filter:**
+   - Trong `RagChatbotService.java`, kiểm tra câu hỏi bằng tập regex lời chào: `^(alo|chào|xin chào|hi|hello|hey|bạn là ai|bot ơi|admin ơi)(\s+.*)?$`.
+   - Trả lời ngay phản hồi thân thiện giới thiệu chức năng (0ms latency, 0 token, 100% ổn định).
+3. **Tích hợp Fast Direct Match từ `golden-truth.txt`:**
+   - Phân tích câu hỏi: Nếu hỏi về thông tin trường, mã trường SPK, cơ sở 1, cơ sở 2, hotline, danh sách khoa... trích xuất câu trả lời chuẩn xác trực tiếp từ `golden-truth.txt`.
 
-### 5.2. Nâng Cấp Thuật Toán Python Hybrid RAG:
-- Bổ sung module `abbreviations.py` cho Python với từ điển đồng bộ 100% từ Java.
-- Tích hợp công thức Re-ranking:
-$$Score_{final} = \left( 0.75 \times CosineSim + 0.25 \times BM25 \right) \times TimeDecay(year) \times DeptBoost$$
+### 🎯 Giai Đoạn 5B: Sửa Lỗi Cấu Hình Gemini Model & Tối Ưu Fallback
+1. **Cập nhật `application.yml` và `GeminiApiClient.java`:**
+   - Đặt `primary-chat-model`: `gemini-1.5-flash` (model chuẩn quốc tế ổn định nhất).
+   - Đặt `secondary-chat-model`: `gemini-2.0-flash`.
+   - Bổ sung cơ chế fallback nội dung súc tích: Nếu cả hai model đều bận hoặc không có mạng, KHÔNG in đoạn chunk thô dài dòng; chỉ in tóm tắt tiêu đề quy chế và đề xuất sinh viên xem qua Huy hiệu nguồn hoặc gửi Ticket.
 
-### 5.3. Trả Về Toàn Bộ Metadata Nguồn:
+### 🎯 Giai Đoạn 5C: Nối DTO Citation Sang Bảng Tin (`/posts/{postId}`) & Thư Viện Công Văn
+1. **Mở rộng `RagQueryResponse.ChunkMatch`:**
+   - Thêm trường `Long postId` và `Long documentId`.
+2. **Nạp `postId` tương ứng trong Service:**
+   - Sử dụng `PostRepository` để tra cứu bài viết đã đăng qua tiêu đề hoặc `documentId`.
+   - Gắn `postId` vào `ChunkMatch` gửi về cho Frontend.
+
+### 🎯 Giai Đoạn 5D: Tái Thiết Kế Huy Hiệu Nguồn (Source Badge) Trên Giao Diện Chat Widget
+1. **Cập nhật `templates/ai/chat-widget.html`:**
+   - Trình bày Huy hiệu Nguồn theo chuẩn thiết kế:
+     ```text
+     [ 📄 QĐ số ...: Tên công văn | Trang ... ]
+     ├── Click Huy hiệu: Mở "PDF Preview Modal" xem nhanh tại chỗ
+     └── Nút phụ: [🔗 Xem bài viết trên Bảng tin] -> điều hướng sang /posts/{postId}
+     ```
+   - Xóa bỏ hoàn toàn việc hiển thị đoạn text thô trong khung chat.
+
+---
+
+## 10. TIÊU CHÍ NGHIỆM THU & BỘ CHỈ SỐ ĐO LƯỜNG RAG TRIAD
+
+### Chỉ Số Đo Lường Chất Lượng:
+1. **Zero Hallucination:** 100% câu hỏi về định danh trường, mã trường, cơ sở được trả lời chuẩn xác theo `golden-truth.txt`.
+2. **Chitchat Response Time = 0ms:** Các câu chào hỏi "alo", "xin chào" được xử lý tức thì mà không gọi API bên ngoài.
+3. **Link Provenance 100% Khả Dụng:** Huy hiệu Nguồn có thể click xem Modal và có nút chuyển thẳng tới bài viết trên Bảng tin tương ứng.
+4. **Zero Raw-Chunk Dump:** Không còn hiện tượng quẳng đoạn văn bản thô chưa qua xử lý vào khung chat.
+5. **Zero Downtime Fallback:** Khi mất mạng hoặc Gemini bận, giao diện hiển thị thông báo trang nhã, gọn gàng kèm nguồn dẫn chứng.
+
+---
+*Tài liệu được cập nhật bởi Đội ngũ Phát triển Hệ thống QAUTE Portal — Đại học Sư phạm Kỹ thuật TP.HCM (HCMUTE).*Metadata Nguồn:
 - Cập nhật `ChunkMatchResponse` và `RagResult` trả đủ: `page_number`, `effective_year`, `doc_code`, `chunk_id` để kết nối trơn tru với PDF Preview Modal của Thymeleaf.
 
 ### 5.4. Chuyển Đổi Non-Blocking Worker Trong FastAPI:

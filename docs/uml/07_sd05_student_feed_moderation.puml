@@ -1,0 +1,36 @@
+@startuml
+autonumber
+actor "Sinh Viên" as Student
+participant "Feed UI" as UI
+participant "FeedRestController" as Controller
+participant "PostService" as Service
+database "MySQL 8 Database" as DB
+actor "Cán Bộ Kiểm Duyệt" as Staff
+
+Student -> UI: 1. Soạn bài viết thảo luận: "Tìm bạn cùng nhóm đồ án CNTT"
+UI -> Controller: 2. POST /api/v1/feed/posts
+Controller -> Service: 3. submitStudentPost(postDto, studentId)
+
+Service -> DB: 4. INSERT INTO posts (author_id, content, status='PENDING_APPROVAL', post_type='STUDENT_DISCUSSION')
+DB -->> Service: 5. Lưu thành công bản ghi
+Service -->> Controller: 6. PostDto (status PENDING_APPROVAL)
+Controller -->> UI: 7. Thông báo: "Bài viết đang chờ Cán bộ kiểm duyệt"
+UI -->> Student: 8. Hiển thị bài viết ở chế độ chờ duyệt (chỉ tác giả thấy)
+
+' Cán bộ kiểm duyệt
+Staff -> UI: 9. Truy cập trang /staff/moderation/pending-posts
+UI -> Controller: 10. GET /staff/moderation/pending-posts
+Controller -> Service: 11. getPendingPosts()
+Service -> DB: 12. SELECT * FROM posts WHERE status = 'PENDING_APPROVAL'
+DB -->> Service: 13. Danh sách bài viết chờ duyệt
+Service -->> Controller: 14. List<PostDto>
+Controller -->> UI: 15. Hiển thị danh sách kiểm duyệt
+
+Staff -> UI: 16. Bấm "Phê duyệt" (Approve)
+UI -> Controller: 17. POST /staff/moderation/posts/{id}/approve
+Controller -> Service: 18. approvePost(postId, staffId)
+Service -> DB: 19. UPDATE posts SET status = 'APPROVED', approved_by = :staffId, updated_at = now()
+DB -->> Service: 20. Thành công
+Service -->> Controller: 21. Thành công
+Controller -->> UI: 22. Bài viết được công khai lên Dòng thời gian chung
+@enduml

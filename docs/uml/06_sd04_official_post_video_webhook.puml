@@ -1,0 +1,38 @@
+@startuml
+autonumber
+actor "Cán Bộ Quản Trị / Phòng" as Staff
+participant "Official Feed UI" as UI
+participant "PostController" as Controller
+participant "PostService" as Service
+participant "FileStorageService" as Storage
+database "MySQL 8 Database" as DB
+participant "Node.js Video Microservice" as NodeMicro
+
+Staff -> UI: 1. Soạn bài viết Bảng tin, chọn đính kèm PDF & bấm "Đăng bài"
+UI -> Controller: 2. POST /staff/posts/create (title, content, MultipartFile)
+Controller -> Service: 3. createOfficialPost(dto, files)
+
+Service -> Storage: 4. Lưu tệp công văn PDF vào thư mục upload an toàn
+Storage -->> Service: 5. Trả về file_url và file_type
+Service -> DB: 6. INSERT INTO posts (type='OFFICIAL_ANNOUNCEMENT', status='APPROVED')
+Service -> DB: 7. INSERT INTO post_attachments (file_url, file_name, file_size)
+DB -->> Service: 8. Hoàn tất lưu trữ
+Service -->> Controller: 9. PostResponseDto
+Controller -->> UI: 10. Bài viết hiển thị ngay lập tức trên Bảng tin
+
+' Quy trình Webhook tự động nhận Video MP4 kết xuất
+Note over NodeMicro, Service: Microservice Node.js hoàn thành render Video tổng kết
+NodeMicro -> Controller: 11. POST /api/v1/integration/video-webhook
+note right of NodeMicro: Headers: X-Webhook-Secret, X-Signature-SHA256\nPayload: {postId: 102, videoUrl: 'https://cdn.../video.mp4'}
+
+Controller -> Controller: 12. Xác thực chữ ký HMAC SHA-256 an toàn
+alt Chữ ký hợp lệ
+    Controller -> Service: 13. attachRenderedVideo(postId, videoUrl)
+    Service -> DB: 14. INSERT INTO post_attachments (post_id, file_url, file_type='VIDEO_MP4')
+    DB -->> Service: 15. Thành công
+    Service -->> Controller: 16. Trả về kết quả
+    Controller -->> NodeMicro: 17. HTTP 200 OK: {"status": "SUCCESS"}
+else Chữ ký không hợp lệ
+    Controller -->> NodeMicro: 18. HTTP 401 Unauthorized: Chữ ký giả mạo
+end
+@enduml

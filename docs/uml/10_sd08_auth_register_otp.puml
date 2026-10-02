@@ -1,0 +1,46 @@
+@startuml
+autonumber
+actor "Sinh Viên" as Student
+participant "Màn Hình Đăng Ký" as UI
+participant "AuthRestController" as Controller
+participant "UserService" as Service
+participant "OtpService" as Otp
+participant "AsyncEmailService" as Mail
+database "MySQL 8 Database" as DB
+
+Student -> UI: 1. Nhập Username, Password, Họ tên, Email trường (@student.hcmute.edu.vn)
+UI -> Controller: 2. POST /api/v1/auth/register (RegisterRequestDto)
+Controller -> Service: 3. registerInitialStudent(dto)
+
+Service -> DB: 4. Kiểm tra Username hoặc Email đã tồn tại chưa?
+alt Đã tồn tại
+    DB -->> Service: 5a. Trả về bản ghi trùng khớp
+    Service -->> Controller: 6a. Ném UserAlreadyExistsException
+    Controller -->> UI: 7a. Báo lỗi: "Tên đăng nhập hoặc Email đã tồn tại!"
+else Hợp lệ
+    Service -> DB: 8. INSERT INTO users (username, password_hash, status='PENDING_ACTIVATION', role_id=1)
+    Service -> Otp: 9. generateOtp(email, purpose='REGISTRATION')
+    Otp -> DB: 10. INSERT INTO otp_tokens (email, otp_code='829104', expired_at=now()+5min)
+    Otp -> Mail: 11. sendRegistrationOtpEmailAsync(email, '829104')
+    Mail -->> Student: 12. Hòm thư nhận email chứa mã OTP 6 số
+    Service -->> Controller: 13. Đăng ký bước 1 thành công
+    Controller -->> UI: 14. Chuyển sang màn hình nhập mã OTP
+end
+
+' Bước xác thực OTP
+Student -> UI: 15. Nhập mã OTP '829104' & Bấm "Kích hoạt"
+UI -> Controller: 16. POST /api/v1/auth/verify-otp (email, otp_code)
+Controller -> Otp: 17. verifyOtp(email, otp_code)
+Otp -> DB: 18. SELECT * FROM otp_tokens WHERE email=:email AND otp_code=:code AND is_used=false
+alt OTP hợp lệ & Chưa quá 5 phút
+    DB -->> Otp: 19a. Bản ghi hợp lệ
+    Otp -> DB: 20a. UPDATE otp_tokens SET is_used=true
+    Otp -> DB: 21a. UPDATE users SET status='ACTIVE' WHERE email=:email
+    Otp -->> Controller: 22a. Xác thực thành công
+    Controller -->> UI: 23a. Thông báo: "Kích hoạt tài khoản thành công! Mời đăng nhập."
+else OTP sai hoặc quá hạn
+    DB -->> Otp: 19b. Không tìm thấy bản ghi hợp lệ
+    Otp -->> Controller: 20b. Ném InvalidOtpException
+    Controller -->> UI: 21b. Báo lỗi: "Mã OTP không hợp lệ hoặc đã hết hạn!"
+end
+@enduml

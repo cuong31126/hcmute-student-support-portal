@@ -24,6 +24,9 @@
 
         <!-- Action Buttons -->
         <div class="d-flex flex-wrap align-items-center gap-2">
+            <button id="btn-publish-feed" class="btn btn-outline-primary btn-sm fw-bold shadow-xs px-3">
+                <i class="bi bi-megaphone-fill me-1.5"></i>Đăng 91 Công Văn Lên Bảng Tin
+            </button>
             <button id="btn-batch-ingest" class="btn btn-crimson btn-sm fw-bold shadow-xs px-3">
                 <i class="bi bi-cloud-arrow-down-fill me-1.5"></i>Quét & Nạp 91 Công Văn (Batch Ingest)
             </button>
@@ -194,6 +197,39 @@
                     showToast('Lỗi mạng hoặc máy chủ không phản hồi: ' + e.message, false);
                     btnBatch.disabled = false;
                     btnBatch.innerHTML = '<i class="bi bi-cloud-arrow-down-fill me-1.5"></i>Quét & Nạp 91 Công Văn (Batch Ingest)';
+                }
+            });
+        }
+
+        // Kích hoạt Chiến dịch Đăng 91 Công văn lên Bảng tin
+        const btnFeed = document.getElementById('btn-publish-feed');
+        if (btnFeed) {
+            btnFeed.addEventListener('click', async function () {
+                if (!confirm('Hệ thống sẽ chuyển hóa các công văn quy chế đang kích hoạt thành bài viết Thông báo chính thức trên Bảng tin sinh viên. Bạn có chắc chắn muốn tiến hành?')) {
+                    return;
+                }
+
+                btnFeed.disabled = true;
+                btnFeed.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang đăng lên Bảng tin...';
+
+                try {
+                    const response = await fetch('/admin/knowledge/campaign/publish-feed', {
+                        method: 'POST'
+                    });
+                    const res = await response.json();
+
+                    if (res.success) {
+                        showToast(res.message || 'Đã hoàn tất đăng công văn lên Bảng tin!', true);
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast(res.message || 'Lỗi khi đăng lên Bảng tin', false);
+                        btnFeed.disabled = false;
+                        btnFeed.innerHTML = '<i class="bi bi-megaphone-fill me-1.5"></i>Đăng 91 Công Văn Lên Bảng Tin';
+                    }
+                } catch (e) {
+                    showToast('Lỗi kết nối: ' + e.message, false);
+                    btnFeed.disabled = false;
+                    btnFeed.innerHTML = '<i class="bi bi-megaphone-fill me-1.5"></i>Đăng 91 Công Văn Lên Bảng Tin';
                 }
             });
         }

@@ -7,6 +7,10 @@ import com.school.counseling.module.ai.repository.KnowledgeChunkRepository;
 import com.school.counseling.module.ai.repository.KnowledgeDocumentRepository;
 import com.school.counseling.module.ai.service.BatchDocumentIngestionService;
 import com.school.counseling.module.ai.service.RagKnowledgeService;
+import com.school.counseling.module.auth.entity.User;
+import com.school.counseling.module.auth.repository.UserRepository;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
@@ -34,6 +38,7 @@ public class AdminKnowledgeHubWebController {
     private final KnowledgeChunkRepository chunkRepository;
     private final BatchDocumentIngestionService batchIngestionService;
     private final RagKnowledgeService ragKnowledgeService;
+    private final UserRepository userRepository;
 
     @GetMapping
     public String index() {
@@ -75,6 +80,31 @@ public class AdminKnowledgeHubWebController {
         } catch (Exception e) {
             log.error("[Admin Knowledge Hub] Loi Batch Ingestion: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(ApiResponse.error("Thất bại khi nạp kho công văn: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * API kích hoạt chiến dịch đăng tải toàn bộ công văn quy chế lên Bảng tin sinh viên
+     */
+    @PostMapping("/campaign/publish-feed")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<BatchDocumentIngestionService.CampaignFeedSummary>> triggerPublishFeedCampaign(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        try {
+            log.info("[Admin Knowledge Hub] Kích hoạt chiến dịch đăng công văn lên Bảng tin bởi user: {}",
+                    userDetails != null ? userDetails.getUsername() : "SYSTEM");
+            User author = null;
+            if (userDetails != null && userRepository != null) {
+                author = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
+            }
+            var result = batchIngestionService.publishAllDocumentsToFeedCampaign(author);
+            String msg = String.format("Chiến dịch hoàn tất! Đã đăng %d công văn mới lên Bảng tin (bỏ qua %d công văn đã có).",
+                    result.getTotalPublished(), result.getTotalSkipped());
+            return ResponseEntity.ok(ApiResponse.success(result, msg));
+        } catch (Exception e) {
+            log.error("[Admin Knowledge Hub] Lỗi khi đăng công văn lên Bảng tin: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("Thất bại khi đăng công văn lên Bảng tin: " + e.getMessage()));
         }
     }
 

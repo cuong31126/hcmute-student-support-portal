@@ -1,0 +1,32 @@
+@startuml
+autonumber
+actor "Người Dùng (SV / Guest)" as User
+participant "Giao Diện Portal" as UI
+participant "TicketRestController" as Controller
+participant "TicketService" as Service
+participant "SlaEngineService" as SLA
+database "MySQL 8 Database" as DB
+participant "AsyncEmailService" as Mail
+
+User -> UI: 1. Nhấn nút "Chuyển thành Ticket gửi Thầy/Cô"
+UI -> UI: 2. Mở Modal: Điền Tiêu đề, Khoa phụ trách, Mức ưu tiên (URGENT)
+User -> UI: 3. Bấm "Xác nhận gửi Ticket"
+UI -> Controller: 4. POST /api/v1/tickets/convert-from-chat
+Controller -> Service: 5. createTicketFromChat(dto)
+
+Service -> SLA: 6. calculateSlaDeadline(Priority.URGENT)
+SLA -->> Service: 7. Trả về due_date = now() + 24 giờ
+
+Service -> DB: 8. INSERT INTO tickets (code, title, status='OPEN', due_date, dept_id, ...)
+DB -->> Service: 9. Trả về Ticket ID mới sinh
+
+Service -> DB: 10. INSERT INTO ticket_messages (lưu các tin nhắn từ phiên chat)
+DB -->> Service: 11. Lưu thành công
+
+Service -> Mail: 12. sendTicketCreatedNotificationAsync(ticket)
+note right of Mail: Gửi email ngầm (@Async)\nkhông làm nghẽn phản hồi HTTP
+
+Service -->> Controller: 13. Trả về TicketResponseDto (Mã TK-20261002-XXXX)
+Controller -->> UI: 14. HTTP 201 Created kèm dữ liệu Ticket
+UI -->> User: 15. Hiển thị thông báo thành công và Hạn chót xử lý cam kết
+@enduml

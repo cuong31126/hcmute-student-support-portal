@@ -74,4 +74,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findPostsByAuthorId(@Param("authorId") Long authorId, Pageable pageable);
 
     long countByStatusAndIsDeletedFalse(String status);
+
+    boolean existsByTitle(String title);
+
+    Optional<Post> findFirstByTitleContainingAndIsDeletedFalse(String title);
 }

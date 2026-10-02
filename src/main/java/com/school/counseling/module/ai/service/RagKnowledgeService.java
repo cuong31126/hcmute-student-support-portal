@@ -27,13 +27,16 @@ import java.util.stream.Collectors;
 @Service
 public class RagKnowledgeService {
 
-    private static final double TIER_1_CONFIDENCE_THRESHOLD = 0.75;
+    private static final double TIER_1_CONFIDENCE_THRESHOLD = 0.60;
     private static final double DEPARTMENT_BOOST_FACTOR = 1.25;
 
     private final KnowledgeChunkRepository chunkRepository;
     private final KnowledgeDocumentRepository documentRepository;
     private final GeminiApiClient geminiApiClient;
     private final com.school.counseling.module.ticket.repository.TicketRepository ticketRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private PythonAiEngineClient pythonAiEngineClient;
 
     private final List<KnowledgeChunk> inMemoryChunks = new CopyOnWriteArrayList<>();
     private volatile VectorReductionUtils.PcaModel pcaModel;
@@ -137,7 +140,7 @@ public class RagKnowledgeService {
 
         tier1Matches.sort((a, b) -> Double.compare(b.score, a.score));
 
-        // Nếu Tầng 1 có kết quả tốt (>= 0.75) -> DỪNG QUÉT, lấy ngay Tầng 1
+        // Nếu Tầng 1 có kết quả tốt (>= 0.60) -> DỪNG QUÉT, lấy ngay Tầng 1 Công văn chính thức
         if (!tier1Matches.isEmpty() && tier1Matches.get(0).score >= TIER_1_CONFIDENCE_THRESHOLD) {
             List<KnowledgeChunkMatchDto> matches = tier1Matches.stream()
                     .limit(3)
@@ -183,10 +186,36 @@ public class RagKnowledgeService {
 
         tier2Matches.sort((a, b) -> Double.compare(b.score, a.score));
 
+        // NGUYÊN TẮC ƯU TIÊN CÔNG VĂN: Nếu Tầng 1 có kết quả (>= 0.50) và điểm số Tầng 1 >= Tầng 2 -> Luôn chọn Tầng 1
+        if (!tier1Matches.isEmpty() && tier1Matches.get(0).score >= 0.50
+                && (tier2Matches.isEmpty() || tier1Matches.get(0).score >= tier2Matches.get(0).score)) {
+            List<KnowledgeChunkMatchDto> matches = tier1Matches.stream()
+                    .limit(3)
+                    .map(this::mapToMatchDto)
+                    .collect(Collectors.toList());
+
+            long elapsed = System.currentTimeMillis() - startTime;
+            return RagQueryResponse.builder()
+                    .primarySourceType("REGULATION")
+                    .needsHistoricalWarning(false)
+                    .confidenceScore(tier1Matches.get(0).score)
+                    .executionTimeMs(elapsed)
+                    .matchedChunks(matches)
+                    .build();
+        }
+
         List<KnowledgeChunkMatchDto> matches = tier2Matches.stream()
                 .limit(3)
                 .map(this::mapToMatchDto)
                 .collect(Collectors.toList());
+
+        // Nếu rơi xuống Tầng 2 nhưng Tầng 1 có công văn liên quan (>= 0.45) -> Ghép công văn vào đầu trích dẫn làm căn cứ pháp lý
+        if (!tier1Matches.isEmpty() && tier1Matches.get(0).score >= 0.45) {
+            matches.add(0, mapToMatchDto(tier1Matches.get(0)));
+            if (matches.size() > 3) {
+                matches = matches.subList(0, 3);
+            }
+        }
 
         double bestScore = tier2Matches.isEmpty() ? 0.0 : tier2Matches.get(0).score;
         long elapsed = System.currentTimeMillis() - startTime;
@@ -494,6 +523,20 @@ public class RagKnowledgeService {
         // Đồng bộ lại RAM Cache
         reloadVectorCache();
 
+        // Đồng bộ bất đồng bộ sang Python ChromaDB (nếu bật)
+        if (pythonAiEngineClient != null && pythonAiEngineClient.isPythonAiEnabled()) {
+            Long deptId = ticket.getDepartment() != null ? ticket.getDepartment().getId() : null;
+            pythonAiEngineClient.syncChunkToPythonEngineAsync(
+                    "ticket_" + ticket.getId(),
+                    fullContent,
+                    "FAQ_CHAT",
+                    ticket.getTicketCode(),
+                    1,
+                    java.time.Year.now().getValue(),
+                    deptId
+            );
+        }
+
         log.info("[Human-in-the-loop] Da nap thanh cong Ticket #{} vao kho tri thuc AI!", ticket.getTicketCode());
         return chunk;
     }
@@ -502,10 +545,16 @@ public class RagKnowledgeService {
         String deptName = sc.chunk.getDepartment() != null ? sc.chunk.getDepartment().getName() : "Toàn trường";
         String docCode = sc.chunk.getDocument() != null ? sc.chunk.getDocument().getDocumentCode() : null;
         String filePath = sc.chunk.getDocument() != null ? sc.chunk.getDocument().getFilePath() : null;
+        String officialTitle = (sc.chunk.getDocument() != null && sc.chunk.getDocument().getTitle() != null && !sc.chunk.getDocument().getTitle().isBlank())
+                ? sc.chunk.getDocument().getTitle()
+                : sc.chunk.getTitle();
+
+        Long docId = sc.chunk.getDocument() != null ? sc.chunk.getDocument().getId() : null;
 
         return KnowledgeChunkMatchDto.builder()
                 .id(sc.chunk.getId())
-                .title(sc.chunk.getTitle())
+                .documentId(docId)
+                .title(officialTitle)
                 .content(sc.chunk.getContent())                 // injectedContent — cho debug/preview modal
                 .rawContent(sc.chunk.getRawContent())           // plain text — cho LLM context (BR-02)
                 .sourceType(sc.chunk.getSourceType())

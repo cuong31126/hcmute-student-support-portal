@@ -1,0 +1,83 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 12
+
+actor "Khách Vãng Lai / Thí Sinh\n(GUEST)" as Guest
+actor "Sinh Viên Chính Quy\n(ROLE_STUDENT)" as Student
+actor "Cán Bộ Khoa / Phòng\n(ROLE_STAFF)" as Staff
+actor "Quản Trị Viên\n(ROLE_ADMIN)" as Admin
+
+rectangle "QAUTE Portal System" {
+    package "Phân Hệ 1: Xác Thực & Tài Khoản" {
+        usecase "UC01: Đăng Ký Tài Khoản (Email OTP)" as UC01
+        usecase "UC02: Đăng Nhập & Phân Quyền" as UC02
+        usecase "UC03: Quản Lý Hồ Sơ Cá Nhân" as UC03
+    }
+
+    package "Phân Hệ 2: Trợ Lý AI RAG & FAQ" {
+        usecase "UC04: Hỏi Đáp AI Tra Cứu Quy Chế" as UC04
+        usecase "UC05: Quản Trị Tri Thức PDF & Vector" as UC05
+    }
+
+    package "Phân Hệ 3: Quản Lý Ticket & SLA" {
+        usecase "UC06: Gửi Yêu Cầu Hỗ Trợ (Tạo Ticket)" as UC06
+        usecase "UC07: Chuyển Hội Thoại Thành Ticket" as UC07
+        usecase "UC08: Tiếp Nhận & Xử Lý Ticket (Theo Khoa)" as UC08
+        usecase "UC09: Đánh Giá Mức Độ Hài Lòng (CSAT)" as UC09
+    }
+
+    package "Phân Hệ 4: Bảng Tin & Diễn Đàn Sinh Viên" {
+        usecase "UC10: Đăng Thông Báo Kèm Video/Tài Liệu" as UC10
+        usecase "UC11: Đăng Bài Diễn Đàn (Chờ Duyệt)" as UC11
+        usecase "UC12: Kiểm Duyệt Bài Viết Diễn Đàn" as UC12
+        usecase "UC13: Tương Tác Like, Comment & Báo Cáo" as UC13
+        usecase "UC14: Xử Lý Báo Cáo Vi Phạm" as UC14
+    }
+
+    package "Phân Hệ 5: Báo Cáo & Quản Trị Hệ Thống" {
+        usecase "UC15: Thống Kê Tuân Thủ Hạn Chót SLA" as UC15
+        usecase "UC16: Quản Lý Người Dùng & Khoa/Phòng" as UC16
+    }
+}
+
+' Quan hệ Guest
+Guest --> UC04
+Guest --> UC06
+Guest --> UC07
+Guest --> UC09
+
+' Quan hệ Student
+Student --> UC01
+Student --> UC02
+Student --> UC03
+Student --> UC04
+Student --> UC06
+Student --> UC07
+Student --> UC09
+Student --> UC11
+Student --> UC13
+
+' Quan hệ Staff
+Staff --> UC02
+Staff --> UC08
+Staff --> UC10
+Staff --> UC12
+Staff --> UC14
+
+' Quan hệ Admin
+Admin --> UC02
+Admin --> UC05
+Admin --> UC08
+Admin --> UC10
+Admin --> UC12
+Admin --> UC14
+Admin --> UC15
+Admin --> UC16
+
+' Quan hệ Include / Extend nội bộ
+UC07 ..> UC04 : <<extend>>
+UC06 ..> UC08 : <<trigger>>
+UC13 ..> UC14 : <<trigger report>>
+@enduml

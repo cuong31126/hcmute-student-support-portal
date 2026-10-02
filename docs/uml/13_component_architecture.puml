@@ -1,0 +1,77 @@
+@startuml
+skinparam componentStyle rectangle
+skinparam defaultFontName "Arial"
+
+node "Tầng Client (Trình Duyệt Người Dùng)" {
+    [Web Browser: Thymeleaf + Bootstrap 5] as ClientUI
+    [Chat Widget Nổi Góc Phải (Vanilla JS)] as ChatWidget
+}
+
+node "Cụm Máy Chủ Ứng Dụng (Spring Boot 3.3 - Port 8080)" {
+    package "Tầng Bảo Mật & Lọc (Security)" {
+        [Spring Security 6 FilterChain] as Security
+        [Department Scope Interceptor] as DeptFilter
+    }
+
+    package "Tầng Nghiệp Vụ Cốt Lõi (Core Business)" {
+        [Ticket & SLA Engine Service] as TicketService
+        [Feed & Moderation Service] as FeedService
+        [Async Email Dispatcher] as MailService
+        [Node.js Video Webhook Controller] as WebhookCtrl
+    }
+
+    package "Phân Hệ AI Java (Java RAG Engine)" {
+        [RagChatbotService (Central Router)] as CentralRouter
+        [In-Memory Vector Cache (RAM CPU)] as MemoryCache
+        [Academic Abbreviation Utils] as AbbrUtils
+        [Deterministic Rule Fallback] as RuleFallback
+    }
+
+    package "Tích Hợp Python Engine" {
+        [PythonAiEngineClient (RestClient)] as PyClient
+    }
+}
+
+node "Phân Hệ Python AI Engine (FastAPI - Port 8001)" {
+    [FastAPI Controller (:8001)] as FastApiApp
+    [ChromaDB Local Vector DB] as ChromaStore
+    [Parent-Child Document Chunker] as Chunker
+    [RAG Triad Evaluator (LLM Judge)] as Evaluator
+}
+
+cloud "Dịch Vụ Đám Mây Ngoài (Cloud Providers)" {
+    [Google Gemini 2.5 Flash & Embedding API] as GeminiCloud
+    [Node.js Video Render Microservice] as NodeService
+    [SMTP Server (Google Mail)] as SmtpServer
+}
+
+database "Hệ Quản Trị Cơ Sở Dữ Liệu" {
+    database "MySQL 8 Database\n(InnoDB UTF8MB4)" as MySQL
+}
+
+' Kết nối luồng
+ClientUI --> Security : HTTPS Request
+ChatWidget --> CentralRouter : POST /api/v1/ai/chat
+
+Security --> DeptFilter
+DeptFilter --> TicketService
+DeptFilter --> FeedService
+
+TicketService --> MySQL : ACID Queries
+TicketService --> MailService : Event Trigger
+MailService --> SmtpServer : Async SMTP (Port 587)
+NodeService --> WebhookCtrl : POST Video Webhook (HMAC-SHA256)
+
+CentralRouter --> PyClient : Khi app.python-ai.enabled = true
+PyClient --> FastApiApp : HTTP REST (127.0.0.1:8001)
+FastApiApp --> ChromaStore : Dense Cosine Query
+FastApiApp --> GeminiCloud : RAG Context + Prompt
+
+CentralRouter --> MemoryCache : Fallback nội bộ trên RAM
+CentralRouter --> AbbrUtils : Chuẩn hóa từ viết tắt
+CentralRouter --> GeminiCloud : Trực tiếp khi Java RAG
+CentralRouter --> RuleFallback : Khi mất mạng / Hết Quota
+
+CentralRouter --> MySQL : Đọc FAQ & Công văn
+FeedService --> MySQL
+@enduml

@@ -164,39 +164,67 @@
                         // Định dạng nội dung câu trả lời
                         answerHtml += `<div class="ai-text-content">${formatAiResponse(rawAnswer)}</div>`;
 
-                        // Hiển thị nguồn tài liệu trích dẫn minh bạch từ kho RAG
+                        // Hiển thị nguồn tài liệu trích dẫn minh bạch từ kho RAG (Huy hiệu Nguồn)
                         if (ragData.matchedChunks && ragData.matchedChunks.length > 0) {
-                            answerHtml += `<div class="mt-2 pt-2 border-top"><small class="text-muted fw-bold d-block mb-1" style="font-size: 11px;"><i class="bi bi-shield-check text-success me-1"></i>Căn cứ công văn pháp lý (Provenance):</small><div class="d-flex flex-column gap-1.5">`;
+                            answerHtml += `<div class="mt-2 pt-2 border-top"><small class="text-muted fw-bold d-block mb-1.5" style="font-size: 11px;"><i class="bi bi-shield-check text-success me-1"></i>Căn cứ công văn pháp lý (Huy hiệu Nguồn):</small><div class="d-flex flex-column gap-2">`;
                             ragData.matchedChunks.slice(0, 3).forEach((chunk, cIdx) => {
                                 const isReg = chunk.sourceType === 'REGULATION';
-                                const badgeClass = isReg ? 'bg-danger bg-opacity-10 text-danger border-danger border-opacity-25' : 'bg-light text-secondary border';
-                                const icon = isReg ? '📄' : '💬';
                                 const code = chunk.documentCode ? `[${chunk.documentCode}] ` : '';
-                                const page = chunk.pageNumber ? ` - Trang ${chunk.pageNumber}` : '';
-                                const article = chunk.articleHeader ? ` (${chunk.articleHeader})` : '';
+                                const page = chunk.pageNumber ? ` • Trang ${chunk.pageNumber}` : '';
+                                const article = chunk.articleHeader ? `${chunk.articleHeader}` : 'Điều khoản quy định';
 
                                 // Lưu dữ liệu vào data attributes để modal đọc
                                 const safeTitle = escapeHtml(chunk.title || 'Công văn quy chế');
                                 const safeCode = escapeHtml(chunk.documentCode || 'Đang cập nhật');
-                                const safeArticle = escapeHtml(chunk.articleHeader || 'Điều khoản');
+                                const safeArticle = escapeHtml(article);
                                 const safeContent = escapeHtml(chunk.content || '');
+                                const postId = chunk.postId;
+                                const docId = chunk.documentId;
+
+                                // Nút liên kết sang Bảng tin hoặc Thư viện văn bản
+                                let feedBtnHtml = '';
+                                if (postId) {
+                                    feedBtnHtml = `<a href="/posts/${postId}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2 fw-semibold text-decoration-none shadow-none" style="font-size: 10px; white-space: nowrap;"><i class="bi bi-newspaper me-1"></i>Xem trên Bảng tin</a>`;
+                                } else if (docId) {
+                                    feedBtnHtml = `<a href="/admin/knowledge/documents" target="_blank" class="btn btn-xs btn-outline-secondary py-0 px-2 fw-semibold text-decoration-none shadow-none" style="font-size: 10px; white-space: nowrap;"><i class="bi bi-archive me-1"></i>Thư viện</a>`;
+                                }
 
                                 answerHtml += `
-                                    <div class="d-flex align-items-center justify-content-between p-1.5 rounded ${badgeClass} border small" style="font-size: 11px;">
-                                        <div class="text-truncate me-2">
-                                            <span class="fw-semibold">${icon} ${code}${safeTitle}</span>
-                                            <span class="text-muted" style="font-size: 10px;">${page}${article}</span>
+                                    <div class="p-2 rounded bg-light border small shadow-2xs" style="font-size: 11px; background-color: #f8fafc;">
+                                        <!-- Dòng 1: Huy hiệu Nguồn (Click mở PDF Preview Modal trực tiếp) -->
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <button type="button" class="btn btn-link p-0 text-start text-dark fw-bold text-decoration-none btn-preview-chunk d-flex align-items-center text-truncate me-2"
+                                                    data-title="${safeTitle}"
+                                                    data-code="${safeCode}"
+                                                    data-year="${chunk.effectiveYear || 2026}"
+                                                    data-page="${chunk.pageNumber || 1}"
+                                                    data-article="${safeArticle}"
+                                                    data-content="${safeContent}"
+                                                    data-post-id="${postId || ''}"
+                                                    title="Click để mở xem nhanh công văn">
+                                                <span class="badge bg-danger text-white me-1.5" style="font-size: 9px; padding: 2px 5px;"><i class="bi bi-file-earmark-pdf me-0.5"></i>CÔNG VĂN</span>
+                                                <span class="text-truncate text-primary" style="color: var(--crimson, #A51C30) !important;">${code}${safeTitle}</span>
+                                            </button>
+                                            <span class="badge bg-white text-muted border" style="font-size: 9px;">${chunk.pageNumber ? 'Trang ' + chunk.pageNumber : '2026'}</span>
                                         </div>
-                                        <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1.5 fw-semibold btn-preview-chunk"
-                                                data-title="${safeTitle}"
-                                                data-code="${safeCode}"
-                                                data-year="${chunk.effectiveYear || 2026}"
-                                                data-page="${chunk.pageNumber || 1}"
-                                                data-article="${safeArticle}"
-                                                data-content="${safeContent}"
-                                                style="font-size: 10px; white-space: nowrap;">
-                                            <i class="bi bi-eye me-1"></i>Xem trích dẫn
-                                        </button>
+                                        <!-- Dòng 2: Điều khoản & Nút hành động 2 chiều -->
+                                        <div class="d-flex align-items-center justify-content-between text-muted" style="font-size: 10px;">
+                                            <div class="text-truncate me-2">${safeArticle}${page}</div>
+                                            <div class="d-flex gap-1 flex-shrink-0">
+                                                <button type="button" class="btn btn-xs btn-outline-danger py-0 px-2 fw-semibold btn-preview-chunk shadow-none"
+                                                        data-title="${safeTitle}"
+                                                        data-code="${safeCode}"
+                                                        data-year="${chunk.effectiveYear || 2026}"
+                                                        data-page="${chunk.pageNumber || 1}"
+                                                        data-article="${safeArticle}"
+                                                        data-content="${safeContent}"
+                                                        data-post-id="${postId || ''}"
+                                                        style="font-size: 10px; white-space: nowrap;">
+                                                    <i class="bi bi-eye me-1"></i>Xem nhanh
+                                                </button>
+                                                ${feedBtnHtml}
+                                            </div>
+                                        </div>
                                     </div>
                                 `;
                             });
@@ -305,6 +333,7 @@
                 const page = btn.getAttribute('data-page');
                 const article = btn.getAttribute('data-article');
                 const content = btn.getAttribute('data-content');
+                const postId = btn.getAttribute('data-post-id');
 
                 document.getElementById('modal-pdf-title').textContent = title;
                 document.getElementById('modal-pdf-code').textContent = code;
@@ -312,6 +341,16 @@
                 document.getElementById('modal-pdf-page').textContent = 'Trang ' + page;
                 document.getElementById('modal-pdf-article').textContent = article;
                 document.getElementById('modal-pdf-content').textContent = content;
+
+                const feedLink = document.getElementById('modal-pdf-feed-link');
+                if (feedLink) {
+                    if (postId && postId.trim() !== '') {
+                        feedLink.href = '/posts/' + postId;
+                        feedLink.style.display = 'inline-flex';
+                    } else {
+                        feedLink.style.display = 'none';
+                    }
+                }
 
                 const modalEl = document.getElementById('aiPdfPreviewModal');
                 if (modalEl && typeof bootstrap !== 'undefined') {
@@ -361,9 +400,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between">
+                <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between align-items-center">
                     <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Đoạn trích được AI sử dụng làm căn cứ trả lời, đảm bảo tính trung thực 100%.</small>
-                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Đóng</button>
+                    <div class="d-flex gap-2">
+                        <a id="modal-pdf-feed-link" href="#" target="_blank" class="btn btn-outline-primary btn-sm px-3 shadow-none" style="display: none;">
+                            <i class="bi bi-newspaper me-1"></i>Xem bài viết trên Bảng tin
+                        </a>
+                        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Đóng</button>
+                    </div>
                 </div>
             </div>
         </div>

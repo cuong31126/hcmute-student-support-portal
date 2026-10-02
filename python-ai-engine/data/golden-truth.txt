@@ -1,0 +1,77 @@
+# CƠ SỞ DỮ LIỆU CHUẨN: TRƯỜNG ĐẠI HỌC SƯ PHẠM KỸ THUẬT THÀNH PHỐ HỒ CHÍ MINH (HCMUTE)
+
+## 1. THÔNG TIN ĐỊNH DANH VÀ TỔNG QUAN (METADATA)
+* **Tên chính thức:** Trường Đại học Sư phạm Kỹ thuật Thành phố Hồ Chí Minh
+* **Tên tiếng Anh:** Ho Chi Minh City University of Technology and Education
+* **Tên viết tắt:** HCMUTE / SPKT
+* **Loại hình trường:** Đại học công lập
+* **Năm thành lập:** 1962 (Tiền thân là Ban Cao đẳng Sư phạm Kĩ thuật)
+* **Cơ quan chủ quản:** Bộ Giáo dục và Đào tạo Việt Nam
+* **Khẩu hiệu (Slogan):** "Nhân bản - Sáng tạo - Hội nhập"
+* **Hệ thống quản lý chất lượng:** Đạt chuẩn kiểm định chất lượng giáo dục quốc tế theo tiêu chuẩn AUN-QA (Mạng lưới các trường đại học Đông Nam Á) và HCÉRES (Pháp).
+
+---
+
+## 2. THÔNG TIN LIÊN HỆ CHÍNH THỨC
+
+| Danh mục | Thông tin chi tiết |
+| :--- | :--- |
+| **Trụ sở chính** | Số 1 Võ Văn Ngân, Phường Linh Chiểu, Thành phố Thủ Đức, Thành phố Hồ Chí Minh, Việt Nam |
+| **Cơ sở 2** | Số 484 Lê Văn Việt, Phường Tăng Nhơn Phú A, Thành phố Thủ Đức, Thành phố Hồ Chí Minh, Việt Nam |
+| **Hotline tuyển sinh** | (+84 - 028) 3722 5724 |
+| **Email hỗ trợ** | tuyensinh@hcmute.edu.vn |
+| **Website chính thức**| https://hcmute.edu.vn |
+
+---
+
+## 3. CƠ CẤU TỔ CHỨC VÀ CÁC KHOA ĐÀO TẠO
+HCMUTE hiện tại bao gồm các Khoa đào tạo chuyên môn trọng điểm sau:
+
+* **Khoa Cơ khí Chế tạo máy (FME):** Đào tạo Chế tạo máy, Công nghệ Kỹ thuật Cơ khí, Robot và Trí tuệ nhân tạo.
+* **Khoa Cơ khí Động lực (FAE):** Đào tạo Công nghệ Kỹ thuật Ô tô, Nhiệt lạnh, Kỹ thuật Hàng không.
+* **Khoa Điện - Điện tử (FEE):** Đào tạo Kỹ thuật Điện, Điện tử Viễn thông, Tự động hóa, Kỹ thuật Y sinh.
+* **Khoa Công nghệ Thông tin (FIT):** Đào tạo Khoa học Máy tính, Kỹ thuật Dữ liệu, Công nghệ Phần mềm, An toàn Thông tin.
+* **Khoa Xây dựng (FCE):** Đào tạo Kỹ thuật Xây dựng, Xây dựng Công trình Giao thông, Quản lý Xây dựng.
+* **Khoa Công nghệ Hóa học và Thực phẩm (FCFT):** Đào tạo Công nghệ Thực phẩm, Kỹ thuật Hóa học, Công nghệ Môi trường.
+* **Khoa Kinh tế (FE):** Đào tạo Quản trị Kinh doanh, Kế toán, Thương mại Điện tử, Logistics và Quản lý Chuỗi cung ứng.
+* **Khoa Ngoại ngữ (FFL):** Đào tạo Ngôn ngữ Anh, Sư phạm Tiếng Anh.
+* **Khoa Thời trang và Du lịch (FFT):** Đào tạo Công nghệ May, Thiết kế Thời trang, Quản trị Nhà hàng & Dịch vụ Ăn uống.
+* **Khoa Khoa học Ứng dụng (FAS):** Đào tạo Kỹ thuật Gỗ, Thiết kế Đồ họa.
+* **Viện Sư phạm Kỹ thuật (ITE):** Đào tạo khối ngành Sư phạm Kỹ thuật và nghiệp vụ sư phạm.
+
+---
+
+## 4. HỆ THỐNG BẬC ĐÀO TẠO VÀ CHƯƠNG TRÌNH HỌC
+HCMUTE tổ chức đào tạo đa bậc từ Đại học đến Sau đại học:
+
+### 4.1. Hệ đại học
+* **Chương trình Đại trà:** Giảng dạy hoàn toàn bằng tiếng Việt theo khung chương trình chuẩn quốc gia.
+* **Chương trình Chất lượng cao (CLC):** Giảng dạy bằng tiếng Việt kết hợp tiếng Anh tăng cường, quy mô lớp học nhỏ, cơ sở vật chất ưu tiên.
+* **Chương trình tiếng Anh toàn phần:** Toàn bộ giáo trình và bài giảng chuyên ngành sử dụng 100% tiếng Anh.
+* **Chương trình Liên kết Quốc tế:** Hợp tác cấp bằng với các trường đại học uy tín tại Anh, Mỹ, Úc, Hàn Quốc.
+
+### 4.2. Hệ sau đại học
+* **Đào tạo Thạc sĩ:** Các ngành kỹ thuật và quản lý.
+* **Đào tạo Tiến sĩ:** Các ngành kỹ thuật mũi nhọn như Cơ khí, Điện - Điện tử, Công nghệ Thông tin.
+
+---
+
+## 5. DỮ LIỆU CÂU HỎI THƯỜNG GẶP (Q&A FOR RAG EMBEDDING)
+
+### Q: Mã trường của Trường Đại học Sư phạm Kỹ thuật TP.HCM khi đăng ký nguyện vọng là gì?
+**A:** Mã trường chính thức của HCMUTE là **SPK**. Người học cần dùng mã này khi đăng ký xét tuyển trên hệ thống của Bộ Giáo dục và Đào tạo.
+
+### Q: Trường HCMUTE có bao nhiêu cơ sở và địa chỉ ở đâu?
+**A:** Trường có **02 cơ sở**, đều nằm tại Thành phố Thủ Đức, TP.HCM:
+* Cơ sở 1 (Trụ sở chính): Số 1 Võ Văn Ngân, Phường Linh Chiểu.
+* Cơ sở 2: Số 484 Lê Văn Việt, Phường Tăng Nhơn Phú A.
+
+### Q: Các phương thức xét tuyển chính của trường HCMUTE bao gồm những gì?
+**A:** Hằng năm, trường áp dụng các phương thức tuyển sinh chủ ngạch bao gồm:
+1. Xét tuyển dựa trên kết quả kỳ thi Tốt nghiệp THPT.
+2. Xét tuyển bằng học bạ THPT (Điểm trung bình 5 học kỳ hoặc 6 học kỳ tùy năm).
+3. Xét tuyển dựa trên kết quả kỳ thi Đánh giá năng lực của Đại học Quốc gia TP.HCM.
+4. Xét tuyển thẳng và ưu tiên xét tuyển theo quy chế của Bộ GD&ĐT và quy định riêng của trường (học sinh giỏi trường chuyên, chứng chỉ quốc tế như IELTS, SAT).
+
+### Q: Điểm khác biệt lớn nhất trong định hướng đào tạo của HCMUTE là gì?
+**A:** Đúng như tên gọi "Sư phạm Kỹ thuật", định hướng cốt lõi của trường là **ứng dụng thực hành**. Sinh viên không chỉ được học sâu về lý thuyết kỹ thuật mà còn được rèn luyện kỹ năng thực hành xưởng, tư duy thiết kế hệ thống và năng lực sư phạm kỹ nghệ/truyền đạt công nghệ.

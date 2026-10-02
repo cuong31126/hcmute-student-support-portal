@@ -22,7 +22,9 @@ public class KnowledgeChunkMatchDto {
     private String departmentName;
     private Double similarityScore;
 
-    // Các trường phục vụ Provenance & PDF Preview Modal
+    // Các trường phục vụ Provenance, PDF Preview Modal & Bảng tin
+    private Long documentId;
+    private Long postId;
     private Integer pageNumber;
     private String articleHeader;
     private String documentCode;

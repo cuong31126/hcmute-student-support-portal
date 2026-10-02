@@ -1,0 +1,47 @@
+@startuml
+start
+:Sinh viên / Thí sinh gửi câu hỏi lên Cổng;
+:Hệ thống kiểm tra bộ đệm Cache nội bộ;
+
+if (Tìm thấy câu hỏi tương tự trong Cache?) then (Có - Độ khớp cao)
+    :Trả lời tức thì (< 5ms);
+    stop
+else (Không)
+    :Quét Vector In-Memory trên RAM & FAQ;
+    if (Độ tương đồng Cosine >= 0.70?) then (Tìm thấy căn cứ quy chế)
+        :Gemini Flash tổng hợp câu trả lời;
+        :Hiển thị văn bản trích dẫn nguồn;
+        :Hỏi mức độ hài lòng của Sinh viên;
+        if (Sinh viên đã thỏa mãn?) then (Có)
+            stop
+        else (Chưa thỏa mãn)
+            :Bấm nút "Chuyển thành Ticket";
+        endif
+    else (Không tìm thấy tài liệu phù hợp)
+        :AI phản hồi lịch sự không đủ cơ sở;
+        :Kích hoạt Modal "Chuyển gửi Thầy/Cô tiếp nhận";
+    endif
+endif
+
+:Người dùng chọn Khoa/Phòng và Mức ưu tiên (URGENT / MEDIUM / LOW);
+:Hệ thống tính toán hạn chót SLA do Động cơ SLA quy định;
+:Lưu Ticket ở trạng thái OPEN;
+:Gửi Email xác nhận mã Ticket và Token tra cứu cho Sinh viên;
+
+:Ticket xuất hiện trên Dashboard của Khoa/Phòng phụ trách;
+:Cán bộ Khoa bấm "Tiếp nhận xử lý" (Atomic Claim);
+:Trạng thái Ticket chuyển sang IN_PROGRESS;
+
+:Cán bộ tra cứu quy định & Soạn thảo giải đáp chính thức;
+:Cán bộ nhấn "Đã giải quyết" (RESOLVED);
+:Hệ thống tự động gửi Email kết quả giải đáp kèm Link đánh giá CSAT;
+
+:Sinh viên nhận kết quả & Đánh giá chất lượng phục vụ (1-5 sao);
+if (Có khiếu nại thêm trong vòng 72 giờ?) then (Có)
+    :Tái mở Ticket để Cán bộ hỗ trợ tiếp;
+else (Không có phản hồi thêm)
+    :Hệ thống tự động chuyển sang trạng thái CLOSED;
+endif
+
+stop
+@enduml

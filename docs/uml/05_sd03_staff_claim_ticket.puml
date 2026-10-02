@@ -1,0 +1,43 @@
+@startuml
+autonumber
+actor "Cán Bộ Khoa / Phòng" as Staff
+participant "Staff Ticket View" as UI
+participant "StaffTicketController" as Controller
+participant "TicketService" as Service
+database "MySQL 8 Database" as DB
+participant "AsyncEmailService" as Mail
+actor "Sinh Viên" as Student
+
+Staff -> UI: 1. Truy cập /staff/tickets
+UI -> Controller: 2. GET /staff/tickets (phiên Cán bộ có dept_id = 4)
+Controller -> Service: 3. getTicketsByDepartment(deptId=4)
+Service -> DB: 4. SELECT * FROM tickets WHERE department_id = 4 AND is_deleted = false
+DB -->> Service: 5. Danh sách Tickets của Khoa
+Service -->> Controller: 6. Trả về List<TicketDto>
+Controller -->> UI: 7. Render danh sách kèm Badge SLA (Còn hạn, Quá hạn)
+
+Staff -> UI: 8. Chọn Ticket OPEN và bấm "Tiếp nhận xử lý" (Claim)
+UI -> Controller: 9. POST /staff/tickets/{id}/claim
+Controller -> Service: 10. claimTicket(ticketId, currentStaffId)
+
+Service -> DB: 11. Atomic UPDATE tickets SET assigned_staff_id = :staffId, status = 'IN_PROGRESS' WHERE id = :id AND status = 'OPEN'
+alt Số dòng cập nhật = 1 (Thành công)
+    DB -->> Service: 12a. Cập nhật thành công 1 bản ghi
+    Service -> Mail: 13a. Gửi email thông báo cho Sinh viên: "Ticket đã được tiếp nhận"
+    Service -->> Controller: 14a. Trả về TicketDto mới
+    Controller -->> UI: 15a. Cập nhật trạng thái IN_PROGRESS trên giao diện
+else Số dòng cập nhật = 0 (Tranh chấp - Đã có người khác nhận)
+    DB -->> Service: 12b. 0 row affected
+    Service -->> Controller: 13b. Ném TicketAlreadyClaimedException
+    Controller -->> UI: 14b. HTTP 409 Conflict: "Ticket đã được đồng nghiệp tiếp nhận!"
+end
+
+' Bước giải quyết Ticket
+Staff -> UI: 16. Nhập câu trả lời hướng dẫn & Bấm "Hoàn thành giải quyết"
+UI -> Controller: 17. POST /staff/tickets/{id}/resolve (solution_text)
+Controller -> Service: 18. resolveTicket(ticketId, solution_text)
+Service -> DB: 19. UPDATE tickets SET status = 'RESOLVED', resolved_at = now()
+Service -> Mail: 20. sendResolutionEmailAsync(studentEmail, csatLink)
+Mail -->> Student: 21. Hòm thư nhận kết quả giải đáp và link đánh giá sao
+Controller -->> UI: 22. Thông báo hoàn tất giải quyết Ticket
+@enduml

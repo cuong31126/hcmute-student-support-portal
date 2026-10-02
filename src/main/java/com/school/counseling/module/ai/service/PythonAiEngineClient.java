@@ -55,6 +55,26 @@ public class PythonAiEngineClient {
      */
     public record PythonChatRequest(String question, Long department_id, boolean evaluate) {}
 
+    public record PythonChunkMatch(
+            String content,
+            String source,
+            double score,
+            String document_code,
+            Integer page_number,
+            Integer effective_year,
+            String chunk_id
+    ) {}
+
+    public record PythonSyncChunkRequest(
+            String chunk_id,
+            String content,
+            String source,
+            String document_code,
+            Integer page_number,
+            Integer effective_year,
+            Long department_id
+    ) {}
+
     /**
      * DTO nội bộ cho response nhận từ Python.
      * Các field tương thích với ChatResponse Pydantic model của FastAPI.
@@ -70,7 +90,8 @@ public class PythonAiEngineClient {
             Integer faithfulness_score,
             Integer context_relevance_score,
             Integer answer_relevance_score,
-            String eval_review
+            String eval_review,
+            java.util.List<PythonChunkMatch> matched_chunks
     ) {}
 
     /**
@@ -147,5 +168,26 @@ public class PythonAiEngineClient {
 
     public String getPythonBaseUrl() {
         return pythonBaseUrl;
+    }
+
+    /**
+     * Đồng bộ bất đồng bộ một chunk sang kho ChromaDB của Python AI Engine
+     */
+    @org.springframework.scheduling.annotation.Async("aiTaskExecutor")
+    public void syncChunkToPythonEngineAsync(String chunkId, String content, String source, String docCode, Integer pageNumber, Integer effectiveYear, Long departmentId) {
+        if (!pythonAiEnabled) return;
+        try {
+            var client = RestClient.builder().baseUrl(pythonBaseUrl).build();
+            var payload = new PythonSyncChunkRequest(chunkId, content, source, docCode, pageNumber, effectiveYear, departmentId);
+            client.post()
+                    .uri("/admin/sync-chunk")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("[PythonAI] Đã đồng bộ chunk '{}' sang Python ChromaDB thành công", chunkId);
+        } catch (Exception e) {
+            log.warn("[PythonAI] Không thể đồng bộ chunk '{}' sang Python: {}", chunkId, e.getMessage());
+        }
     }
 }
