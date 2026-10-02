@@ -28,6 +28,8 @@ tmp/
 *.bak
 *.swp
 *~.nib
+~$*
+~$*.docx
 local.properties
 .settings/
 .loadpath

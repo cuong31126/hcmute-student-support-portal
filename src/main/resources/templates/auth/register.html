@@ -56,6 +56,15 @@
             padding: 3.5rem;
             color: #ffffff;
             overflow: hidden;
+            background-color: #0f172a; /* Fallback dark background chống lỗi nền trắng */
+        }
+
+        .academic-badge {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
         }
 
         .auth-slide {
@@ -194,16 +203,17 @@
     <!-- Cột Trái: Slideshow Cảnh Quan Trường HCMUTE -->
     <div class="auth-visual-col">
         <!-- Slide 1: hero2.webp -->
-        <div class="auth-slide active" id="auth-slide-0" style="background-image: url('/images/hero2.webp');"></div>
+        <div class="auth-slide active" id="auth-slide-0" th:style="'background-image: url(' + @{/images/hero2.webp} + ');'"></div>
         <!-- Slide 2: hero1.webp -->
-        <div class="auth-slide" id="auth-slide-1" style="background-image: url('/images/hero1.webp');"></div>
+        <div class="auth-slide" id="auth-slide-1" th:style="'background-image: url(' + @{/images/hero1.webp} + ');'"></div>
 
         <div class="auth-visual-overlay"></div>
 
         <div class="auth-visual-content">
-            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-20 text-white backdrop-blur mb-3 shadow-xs">
-                <i class="bi bi-mortarboard-fill"></i>
-                <span class="small fw-semibold letter-spacing-1 text-uppercase" style="font-size: 0.78rem;">Đại Học Sư Phạm Kỹ Thuật TP.HCM</span>
+            <!-- Academic Prestige Badge (Khắc phục lỗi nền trắng chữ trắng) -->
+            <div class="academic-badge d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill mb-3">
+                <i class="bi bi-mortarboard-fill" style="color: #60a5fa;"></i>
+                <span class="small fw-semibold text-uppercase text-white" style="font-size: 0.82rem; letter-spacing: 1.2px;">Đại Học Sư Phạm Kỹ Thuật TP.HCM</span>
             </div>
             <h1 class="display-6 fw-bold font-serif mb-2 text-white" style="line-height: 1.25; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
                 GIA NHẬP CỘNG ĐỒNG QAUTE

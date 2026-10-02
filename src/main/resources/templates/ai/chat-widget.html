@@ -11,21 +11,21 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background-color: var(--crimson, #A51C30);
+            background-color: #0F172A;
             color: #ffffff;
             border: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 6px 20px rgba(165, 28, 48, 0.45);
+            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.45);
             cursor: pointer;
             z-index: 1050;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .ai-pulse-btn:hover {
             transform: scale(1.08) translateY(-3px);
-            background-color: var(--dark-crimson, #8a1525);
-            box-shadow: 0 10px 25px rgba(165, 28, 48, 0.6);
+            background-color: #1E293B;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.6);
         }
         .ai-pulse-btn::before {
             content: '';
@@ -37,9 +37,9 @@
             animation: ai-pulse 2s infinite;
         }
         @keyframes ai-pulse {
-            0% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(165, 28, 48, 0.7); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 14px rgba(165, 28, 48, 0); }
-            100% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(165, 28, 48, 0); }
+            0% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(30, 58, 138, 0.6); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 14px rgba(30, 58, 138, 0); }
+            100% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(30, 58, 138, 0); }
         }
     </style>
 
@@ -53,7 +53,7 @@
          style="position: fixed; bottom: 95px; right: 25px; width: 385px; max-width: calc(100vw - 40px); height: 520px; z-index: 1050; border-radius: 14px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.2) !important;">
         
         <!-- Header -->
-        <div class="card-header text-white d-flex align-items-center justify-content-between py-3 px-3" style="background: linear-gradient(135deg, #8a1525 0%, #A51C30 100%);">
+        <div class="card-header text-white d-flex align-items-center justify-content-between py-3 px-3" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);">
             <div class="d-flex align-items-center gap-2">
                 <div class="bg-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                     <i class="bi bi-robot text-crimson fs-6"></i>
@@ -301,7 +301,7 @@
                     ? 'rounded p-2 text-white bg-primary small shadow-sm' 
                     : 'rounded p-2 text-dark bg-white border small shadow-sm ai-message-bubble';
                 bubble.style.maxWidth = '85%';
-                if (sender === 'user') bubble.style.backgroundColor = 'var(--crimson, #A51C30)';
+                if (sender === 'user') bubble.style.backgroundColor = '#1D4ED8';
                 bubble.innerHTML = htmlContent;
                 div.appendChild(bubble);
                 messagesContainer.appendChild(div);
@@ -365,7 +365,7 @@
     <div class="modal fade" id="aiPdfPreviewModal" tabindex="-1" aria-labelledby="aiPdfPreviewModalLabel" aria-hidden="true" style="z-index: 1100;">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg rounded-3">
-                <div class="modal-header text-white" style="background: linear-gradient(135deg, var(--crimson, #A51C30) 0%, #8a1525 100%);">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-file-earmark-pdf-fill fs-4 text-warning"></i>
                         <div>
