@@ -16,10 +16,18 @@ public class PostReportResponseDto {
     private String reason;
     private String details;
     private String status;
+    private String actionTaken;
+    private String resolvedByName;
     private LocalDateTime createdAt;
     private LocalDateTime resolvedAt;
 
-    public record PostSummary(Long id, String title, String content, AuthorSummary author) {}
+    public record PostSummary(Long id, String title, String content, String status, AuthorSummary author) {
+        // Overloaded constructor for backwards compatibility in tests
+        public PostSummary(Long id, String title, String content, AuthorSummary author) {
+            this(id, title, content, "APPROVED", author);
+        }
+    }
     public record AuthorSummary(Long id, String fullName, String email) {}
     public record ReporterSummary(Long id, String fullName, String email) {}
 }
+

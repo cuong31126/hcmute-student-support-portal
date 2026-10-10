@@ -11,6 +11,16 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+/**
+ * Entity bảng attachments (Tệp đính kèm trong hệ thống).
+ *
+ * ⚠️ LƯU Ý BÀN GIAO MÃ NGUỒN (CODE HANDOVER WARNING):
+ * Dù nằm trong package `module.chat.entity`, class này ĐANG ĐƯỢC DÙNG CHÍNH THỨC bởi:
+ * 1. Module Ticket: `ticket` (Ticket.java) và `ticketHistory` (TicketHistory.java).
+ * 2. Lưu trữ tệp minh chứng khi sinh viên gửi Ticket tại /tickets/create.
+ * 3. Tuyệt đối KHÔNG XÓA file này nếu chưa di chuyển (refactor) sang package `module.ticket.entity`.
+ * Xem chi tiết tại: docs/requirements/chat_module_and_ticketing_architecture_guide.md
+ */
 @Getter
 @Setter
 @NoArgsConstructor

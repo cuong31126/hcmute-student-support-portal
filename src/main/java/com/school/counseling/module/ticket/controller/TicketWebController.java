@@ -2,7 +2,6 @@ package com.school.counseling.module.ticket.controller;
 
 import com.school.counseling.common.util.SecurityUtils;
 import com.school.counseling.module.auth.repository.DepartmentRepository;
-import com.school.counseling.module.notification.service.EmailAsyncService;
 import com.school.counseling.module.ticket.dto.CreateTicketRequest;
 import com.school.counseling.module.ticket.dto.TicketReplyRequest;
 import com.school.counseling.module.ticket.dto.TicketResponseDto;
@@ -27,9 +26,9 @@ public class TicketWebController {
 
     private final TicketService ticketService;
     private final DepartmentRepository departmentRepository;
-    private final EmailAsyncService emailAsyncService;
 
     @GetMapping("/create")
+    @PreAuthorize("isAuthenticated()")
     public String createTicketPage(@RequestParam(value = "title", required = false, defaultValue = "") String title, Model model) {
         model.addAttribute("departments", departmentRepository.findByIsActiveTrue());
         model.addAttribute("initialTitle", title);
@@ -37,6 +36,7 @@ public class TicketWebController {
     }
 
     @PostMapping("/create")
+    @PreAuthorize("isAuthenticated()")
     public String handleCreateTicket(
             @Valid @ModelAttribute CreateTicketRequest request,
             BindingResult bindingResult,
@@ -52,18 +52,6 @@ public class TicketWebController {
 
         Long currentUserId = SecurityUtils.getCurrentUserId().orElse(null);
         TicketResponseDto created = ticketService.createTicket(request, currentUserId, files);
-
-        // Gửi email xác nhận bất đồng bộ
-        String recipientEmail = created.getGuestEmail();
-        if (recipientEmail == null && currentUserId != null) {
-            SecurityUtils.getCurrentUserPrincipal().ifPresent(u -> {
-                String trackingUrl = "http://localhost:8080/tickets/detail/" + created.getId();
-                emailAsyncService.sendTicketCreatedEmail(u.getEmail(), u.getFullName(), created.getTicketCode(), created.getTitle(), created.getPriority(), created.getDueDate(), trackingUrl);
-            });
-        } else if (recipientEmail != null) {
-            String trackingUrl = "http://localhost:8080/tickets/guest-track?token=" + created.getGuestToken();
-            emailAsyncService.sendTicketCreatedEmail(recipientEmail, created.getGuestName(), created.getTicketCode(), created.getTitle(), created.getPriority(), created.getDueDate(), trackingUrl);
-        }
 
         if (created.getGuestToken() != null) {
             redirectAttributes.addFlashAttribute("successMessage", "Yêu cầu đã được gửi thành công! Mã tra cứu: " + created.getTicketCode());
@@ -122,6 +110,9 @@ public class TicketWebController {
         TicketResponseDto ticket = ticketService.getTicketById(ticketId);
         Long currentUserId = SecurityUtils.getCurrentUserId().orElse(null);
         boolean isStaffOrAdmin = SecurityUtils.hasAnyRole("ROLE_STAFF", "ROLE_ADMIN");
+        if (isStaffOrAdmin) {
+            ticketService.markStaffSeen(ticketId, currentUserId);
+        }
         model.addAttribute("ticket", ticket);
         model.addAttribute("currentUserId", currentUserId);
         model.addAttribute("isStaffOrAdmin", isStaffOrAdmin);
@@ -132,15 +123,18 @@ public class TicketWebController {
     @PreAuthorize("@deptSecurity.canAccessTicket(#ticketId)")
     public String handleReplyTicket(
             @PathVariable Long ticketId,
-            @RequestParam("content") String content,
-            @RequestParam(value = "files", required = false) List<MultipartFile> files,
-            RedirectAttributes redirectAttributes) {
+            @RequestParam(value = "content", required = false) String content,
+            @RequestParam(value = "files", required = false) List<MultipartFile> files) {
 
-        Long responderId = SecurityUtils.getCurrentUserId().orElse(null);
-        TicketReplyRequest request = TicketReplyRequest.builder().content(content).build();
-        ticketService.replyTicket(ticketId, request, responderId, files);
+        String safeContent = content != null ? content.trim() : "";
+        boolean hasFiles = files != null && files.stream().anyMatch(f -> f != null && !f.isEmpty());
 
-        redirectAttributes.addFlashAttribute("successMessage", "Phản hồi đã được ghi nhận thành công!");
+        if (!safeContent.isEmpty() || hasFiles) {
+            Long responderId = SecurityUtils.getCurrentUserId().orElse(null);
+            TicketReplyRequest request = TicketReplyRequest.builder().content(safeContent).build();
+            ticketService.replyTicket(ticketId, request, responderId, files);
+        }
+
         return "redirect:/tickets/detail/" + ticketId;
     }
 
@@ -149,12 +143,28 @@ public class TicketWebController {
     public String handleCloseTicket(
             @PathVariable Long ticketId,
             @RequestParam(value = "rating", required = false, defaultValue = "5") Integer rating,
+            @RequestParam(value = "feedback", required = false) String feedback,
             RedirectAttributes redirectAttributes) {
 
         Long currentUserId = SecurityUtils.getCurrentUserId().orElse(null);
-        ticketService.closeTicket(ticketId, currentUserId, rating);
+        ticketService.closeTicket(ticketId, currentUserId, rating, feedback);
 
-        redirectAttributes.addFlashAttribute("successMessage", "Cảm ơn bạn đã đánh giá và xác nhận đóng yêu cầu!");
+        redirectAttributes.addFlashAttribute("successMessage", "Cảm ơn bạn đã gửi đánh giá hài lòng CSAT và xác nhận đóng yêu cầu!");
+        return "redirect:/tickets/detail/" + ticketId;
+    }
+
+    @PostMapping("/{ticketId}/rate")
+    @PreAuthorize("@deptSecurity.canAccessTicket(#ticketId)")
+    public String handleRateTicket(
+            @PathVariable Long ticketId,
+            @RequestParam(value = "rating") Integer rating,
+            @RequestParam(value = "feedback", required = false) String feedback,
+            RedirectAttributes redirectAttributes) {
+
+        Long currentUserId = SecurityUtils.getCurrentUserId().orElse(null);
+        ticketService.rateTicket(ticketId, currentUserId, rating, feedback);
+
+        redirectAttributes.addFlashAttribute("successMessage", "Đã ghi nhận đánh giá hài lòng CSAT (" + rating + " sao). Cảm ơn ý kiến đóng góp của bạn!");
         return "redirect:/tickets/detail/" + ticketId;
     }
 }

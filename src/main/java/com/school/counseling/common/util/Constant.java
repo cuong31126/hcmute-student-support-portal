@@ -6,11 +6,12 @@ import java.io.File;
  * Hằng số cấu hình hệ thống (Tương thích với giáo trình & bài tập lớn STS)
  */
 public final class Constant {
-    private Constant() {}
+    private Constant() {
+    }
 
     // Thư mục lưu trữ ảnh và file upload cục bộ trên máy tính
-    public static final String DIR = "C:" + File.separator + "upload";
-    
+    public static final String DIR = "D:" + File.separator + "portal" + File.separator + "upload";
+
     // Các thư mục con
     public static final String DIR_IMAGES = DIR + File.separator + "images";
     public static final String DIR_DOCUMENTS = DIR + File.separator + "documents";

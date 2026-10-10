@@ -1,3 +1,8 @@
+/*
+ * =========================================================================================
+ * TÍNH NĂNG ĐÃ LOẠI BỎ THEO YÊU CẦU: MICROSERVICE NODE.JS VIDEO GENERATOR
+ * Toàn bộ mã nguồn dưới đây được chuyển về dạng chú thích (commented out) và vô hiệu hóa.
+ * =========================================================================================
 package com.school.counseling.module.integration.service;
 
 import com.school.counseling.module.feed.entity.Post;
@@ -24,9 +29,7 @@ public class VideoIntegrationService {
     @Value("${app.integration.callback-base-url:http://localhost:8080}")
     private String callbackBaseUrl;
 
-    /**
-     * Gửi yêu cầu sinh video tóm tắt 40s bất đồng bộ sang Microservice Node.js
-     */
+    // Gửi yêu cầu sinh video tóm tắt 40s bất đồng bộ sang Microservice Node.js
     @Async
     public void requestVideoGeneration(Post post) {
         if (post == null || post.getId() == null) {
@@ -51,3 +54,5 @@ public class VideoIntegrationService {
         }
     }
 }
+*/
+

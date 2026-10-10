@@ -10,8 +10,7 @@ Hướng dẫn sử dụng:
 --- BƯỚC 1: CHẨN ĐOÁN NGUYÊN NHÂN GỐC RỄ & VIẾT TEST TÁI HIỆN LỖI ---
 Bạn là Senior Debugging Engineer. Hãy kích hoạt quy trình từ skill `.agents/skills/diagnosing-bugs` và đối chiếu với tài liệu trong `docs/`.
 
-Mô tả lỗi gặp phải:
-[Dán chi tiết lỗi: Stack trace, mã lỗi HTTP 403/500, log server, hành vi thực tế vs hành vi kỳ vọng]
+
 
 QUY TẮC BẮT BUỘC: TUYỆT ĐỐI KHÔNG ĐOÁN MÒ HOẶC SỬA CODE BỪA BÃI TRƯỚC KHI TÌM RA BẰNG CHỨNG.
 
@@ -19,7 +18,7 @@ Yêu cầu thực hiện:
 1. Tái hiện lại chuỗi sự kiện dẫn đến lỗi (Execution trace).
 2. Đọc code liên quan và chỉ ra chính xác DÒNG CODE và NGUYÊN NHÂN GỐC RỄ (Root Cause) gây ra lỗi (NullPointer, LazyInitializationException, vi phạm Foreign Key, sai Security Filter, Transaction Rollback...).
 3. Đánh giá phạm vi ảnh hưởng: Lỗi này có ảnh hưởng đến các màn hình/API khác hay không?
-4. Viết 1 bài Reproduction Test (Unit/Integration Test) mô phỏng lỗi. Bài test này BẮT BUỘC PHẢI FAILED (Red) trên code hiện tại để chứng minh lỗi tồn tại.
+
 5. Trình bày phân tích nguyên nhân và phương án khắc phục để tôi xác nhận trước khi sửa code.
 
 

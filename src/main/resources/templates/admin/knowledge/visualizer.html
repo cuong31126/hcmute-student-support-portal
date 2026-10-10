@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
 <head>
-    <title>3D Vector Space & Similarity Visualizer - QAUTE Portal</title>
+    <title>2D Vector Space & Similarity Visualizer - QAUTE Portal</title>
 </head>
 <body>
 <div th:fragment="content">
@@ -11,20 +11,88 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;"></div>
 
+    <style>
+        /* ===== Quy chuẩn CSS Fullscreen Workspace & Graph Zoom ===== */
+        :root {
+            --border: #e2e8f0;
+            --primary: #a51c30; /* Harvard Crimson */
+            --primary-dark: #801424;
+            --muted: #64748b;
+        }
+
+        .graph-zoom-wrap { position: relative; }
+        .graph-zoom-btn {
+            position: absolute; top: 12px; right: 12px; z-index: 30;
+            width: 34px; height: 34px; padding: 0;
+            font-size: 15px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255, 255, 255, 0.94); color: #334155;
+            border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+        }
+        .graph-zoom-btn:hover {
+            background: #fff;
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: scale(1.05);
+        }
+        .graph-zoom-fs {
+            position: fixed !important; inset: 0 !important; z-index: 1099 !important;
+            background: #090d16 !important; padding: 12px !important;
+            width: 100vw !important; height: 100vh !important;
+            border-radius: 0 !important;
+        }
+        .graph-zoom-fs .rb-graph,
+        .graph-zoom-fs #viz-net {
+            height: 100% !important; width: 100% !important; margin: 0 !important;
+        }
+        .graph-zoom-fs .graph-zoom-btn { top: 20px; right: 20px; }
+        body.graph-zoom-lock { overflow: hidden !important; }
+
+        /* Fullscreen guided build = workspace: legend / hint / thanh nút / form nổi */
+        .graph-zoom-fs .rb-graph-legend {
+            display: flex !important; align-items: center; gap: 8px; flex-wrap: wrap;
+            position: absolute; top: 20px; left: 24px; z-index: 25; margin: 0;
+            background: rgba(255, 255, 255, 0.96); border: 1px solid var(--border);
+            border-radius: 8px; padding: 8px 14px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+        }
+        .graph-zoom-fs .rb-rel-hint {
+            display: block !important;
+            position: absolute; top: 68px; left: 24px; z-index: 25;
+            max-width: 440px; margin: 0;
+            background: #eef2ff; border-left: 3px solid #4f46e5;
+            border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: 500; color: #3730a3;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        }
+        .graph-zoom-fs .rb-graph-bar {
+            display: block !important;
+            position: absolute; bottom: 20px; left: 24px; z-index: 25; margin: 0;
+            background: rgba(255, 255, 255, 0.96); border: 1px solid var(--border);
+            border-radius: 8px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+        .graph-zoom-fs .rb-form-box {
+            position: absolute; top: 64px; right: 24px; z-index: 25; margin: 0;
+            width: 420px; max-height: calc(100% - 96px); overflow-y: auto;
+            background: #fff; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+            border-radius: 10px; border: 1px solid var(--border);
+        }
+    </style>
+
     <!-- Header Section -->
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="badge bg-danger px-2.5 py-1 text-uppercase fw-semibold" style="letter-spacing: 0.5px;">TENSOR SPACE VISUALIZER</span>
-                <span class="text-muted small">| PCA 3D Dimensionality Reduction (768-D &rarr; 3-D)</span>
+                <span class="badge bg-danger px-2.5 py-1 text-uppercase fw-semibold" style="letter-spacing: 0.5px;">VECTOR CLUSTER VISUALIZER</span>
+                <span class="text-muted small">| Phân Bố Ngữ Nghĩa 2D & Quản Trị Nhiễu Tri Thức AI</span>
             </div>
-            <h3 class="fw-bold text-dark mb-0 font-serif">Mô Hình 3D Không Gian Dữ Liệu & Khoảng Cách Ngữ Nghĩa</h3>
-            <p class="text-muted small mb-0 mt-1">Biểu diễn đám mây vector công văn HCMUTE trong không gian 3 chiều và mô phỏng trực quan truy vấn Cosine Similarity</p>
+            <h3 class="fw-bold text-dark mb-0">Mô Hình Phân Bố Vector Dữ Liệu & Khoảng Cách Ngữ Nghĩa</h3>
+            <p class="text-muted small mb-0 mt-1">Trực quan hóa đám mây vector công văn HCMUTE dạng 2D phẳng, biểu diễn các node hạt tròn 3D và chẩn đoán tài liệu gây nhiễu</p>
         </div>
 
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-dark px-3 py-2 fs-6 fw-normal">
-                <i class="bi bi-cpu me-1 text-success"></i><span id="active-nodes-count">Đang tải...</span> vector nodes
+                <i class="bi bi-diagram-2 me-1 text-success"></i><span id="active-nodes-count">Đang tải...</span> vector nodes
             </span>
         </div>
     </div>
@@ -34,16 +102,16 @@
         <!-- Cột Trái: Khung Thử Nghiệm Truy Vấn & Kết Quả Top Chunks -->
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm rounded-3 bg-white p-3 mb-3">
-                <h6 class="fw-bold font-serif text-dark mb-2"><i class="bi bi-search me-1.5 text-danger"></i>Thử Nghiệm Truy Vấn Ngữ Nghĩa</h6>
-                <p class="text-muted small mb-3">Gõ câu hỏi để mô hình tính toán Query Vector, chiếu điểm Đỏ vào không gian 3D và vẽ đường nối Top matches.</p>
+                <h6 class="fw-bold text-dark mb-2">Thử Nghiệm Truy Vấn Ngữ Nghĩa</h6>
+                <p class="text-muted small mb-3">Nhập câu hỏi học vụ để hệ thống tính toán Query Vector, chiếu điểm Đỏ vào không gian và vẽ đường nối Top matches.</p>
 
                 <form id="search-form">
                     <div class="mb-2">
                         <input type="text" id="query-input" class="form-control form-control-sm"
-                               placeholder="Ví dụ: Rớt môn có được xét học bổng không?" value="Học bổng khuyến khích cần điều kiện gì?">
+                               placeholder="Ví dụ: Học bổng khuyến khích cần điều kiện gì?" value="Học bổng khuyến khích cần điều kiện gì?">
                     </div>
-                    <button type="submit" id="btn-search" class="btn btn-crimson btn-sm w-100 fw-bold shadow-xs">
-                        <i class="bi bi-play-circle-fill me-1"></i>Chiếu Query Lên Không Gian 3D
+                    <button type="submit" id="btn-search" class="btn btn-primary btn-sm w-100 fw-semibold shadow-xs">
+                        Chiếu Query Lên Đồ Thị
                     </button>
                 </form>
             </div>
@@ -51,7 +119,7 @@
             <!-- Top Chunks Match Card -->
             <div class="card border-0 shadow-sm rounded-3 bg-white p-3 mb-3">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h6 class="fw-bold font-serif text-dark mb-0"><i class="bi bi-bullseye me-1.5 text-success"></i>Top Đoạn Văn Bản Gần Nhất</h6>
+                    <h6 class="fw-bold text-dark mb-0">Top Đoạn Văn Bản Khớp Nhất</h6>
                     <span id="search-time" class="badge bg-light text-muted border">0 ms</span>
                 </div>
                 <div id="top-matches-container" class="small text-muted">
@@ -59,72 +127,151 @@
                 </div>
             </div>
 
-            <!-- Legend Card -->
+            <!-- Legend Card (Normal Mode) -->
             <div class="card border-0 shadow-sm rounded-3 bg-white p-3">
-                <h6 class="fw-bold font-serif text-dark mb-2"><i class="bi bi-palette me-1.5 text-primary"></i>Chú Giải Màu Sắc Không Gian</h6>
+                <h6 class="fw-bold text-dark mb-2">Chú Giải Màu Sắc Node 3D</h6>
                 <div class="d-flex flex-column gap-2 small">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="rounded-circle d-inline-block" style="width: 14px; height: 14px; background-color: #ef4444;"></span>
+                        <span class="rounded-circle d-inline-block shadow-xs" style="width: 14px; height: 14px; background: radial-gradient(circle at 35% 35%, #fff, #ef4444 60%, #991b1b);"></span>
                         <span class="fw-semibold text-danger">Điểm Đỏ:</span> <span>Query Vector câu hỏi vừa nhập</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="rounded-circle d-inline-block" style="width: 14px; height: 14px; background-color: #4ade80;"></span>
+                        <span class="rounded-circle d-inline-block shadow-xs" style="width: 14px; height: 14px; background: radial-gradient(circle at 35% 35%, #fff, #4ade80 60%, #166534);"></span>
                         <span class="fw-semibold text-success">Điểm Xanh Lục:</span> <span>Công văn chính thức năm 2026 (Ưu tiên)</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="rounded-circle d-inline-block" style="width: 14px; height: 14px; background-color: #60a5fa;"></span>
+                        <span class="rounded-circle d-inline-block shadow-xs" style="width: 14px; height: 14px; background: radial-gradient(circle at 35% 35%, #fff, #60a5fa 60%, #1e40af);"></span>
                         <span class="fw-semibold text-primary">Điểm Xanh Dương:</span> <span>Công văn năm 2024 - 2025</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="rounded-circle d-inline-block" style="width: 14px; height: 14px; background-color: #facc15;"></span>
-                        <span class="fw-semibold text-warning">Điểm Vàng:</span> <span>FAQ tinh tuyển & lịch sử tư vấn</span>
+                        <span class="rounded-circle d-inline-block shadow-xs" style="width: 14px; height: 14px; background: radial-gradient(circle at 35% 35%, #fff, #facc15 60%, #854d0e);"></span>
+                        <span class="fw-semibold text-warning">Điểm Vàng:</span> <span>FAQ tinh tuyển & Golden Truth</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="rounded-circle d-inline-block" style="width: 14px; height: 14px; background-color: #94a3b8;"></span>
-                        <span class="fw-semibold text-secondary">Điểm Xám:</span> <span>Văn bản lỗi thời / đã bị vô hiệu hóa</span>
+                        <span class="rounded-circle d-inline-block shadow-xs" style="width: 14px; height: 14px; background: radial-gradient(circle at 35% 35%, #fff, #94a3b8 60%, #475569);"></span>
+                        <span class="fw-semibold text-secondary">Điểm Xám:</span> <span>Văn bản lỗi thời / Đã tắt (Vô hiệu hóa)</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Cột Phải: Canvas Không Gian 3D WebGL -->
+        <!-- Cột Phải: Canvas Đồ Thị 2D (Các node hình tròn 3D & Fullscreen Zoom) -->
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-3 bg-dark overflow-hidden position-relative" style="height: 600px;">
-                <div id="3d-graph-container" style="width: 100%; height: 100%;"></div>
+            <div id="graph-zoom-container" class="graph-zoom-wrap card border-0 shadow-sm rounded-3 bg-dark overflow-hidden position-relative" style="height: 560px;">
+                <!-- Nút Phóng To Toàn Màn Hình -->
+                <button type="button" id="btn-zoom-fs" class="graph-zoom-btn" title="Phóng to toàn màn hình">
+                    <i class="bi bi-arrows-fullscreen" id="zoom-icon"></i>
+                </button>
 
-                <!-- Overlay Controls -->
-                <div class="position-absolute bottom-0 start-0 p-3 text-white-50 small bg-black bg-opacity-50 rounded-top-end" style="backdrop-filter: blur(4px);">
-                    <div><i class="bi bi-mouse me-1"></i>Chuột trái: Xoay không gian 360° | Chuột phải: Di chuyển | Cuộn: Phóng to / Thu nhỏ</div>
-                    <div><i class="bi bi-cursor-fill me-1"></i>Nhấp vào hạt vector để xem chi tiết nội dung Điều/Khoản</div>
+                <!-- Fullscreen Floating Legend -->
+                <div class="rb-graph-legend d-none">
+                    <span class="fw-bold text-dark me-1"><i class="bi bi-diagram-3 me-1 text-primary"></i>Phân bố:</span>
+                    <span class="badge bg-danger">Query Đỏ</span>
+                    <span class="badge bg-success">Quy chế 2026</span>
+                    <span class="badge bg-primary">Công văn 24-25</span>
+                    <span class="badge bg-warning text-dark">FAQ / Golden Truth</span>
+                    <span class="badge bg-secondary">Vô hiệu hóa</span>
                 </div>
+
+                <!-- Fullscreen Floating Hint -->
+                <div class="rb-rel-hint d-none">
+                    <i class="bi bi-info-circle me-1"></i> Rê chuột để rung nhẹ hạt, click để xem trích đoạn và tắt nhiễu AI. Cuộn chuột để zoom.
+                </div>
+
+                <!-- Fullscreen Floating Action Bar -->
+                <div class="rb-graph-bar d-none">
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-dark bg-white shadow-xs fw-semibold" id="btn-fit-view" title="Căn giữa toàn bộ đồ thị">
+                            <i class="bi bi-aspect-ratio me-1 text-primary"></i> Căn giữa
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-dark bg-white shadow-xs" id="btn-zoom-in" title="Phóng to (+)">
+                            <i class="bi bi-zoom-in"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-dark bg-white shadow-xs" id="btn-zoom-out" title="Thu nhỏ (-)">
+                            <i class="bi bi-zoom-out"></i>
+                        </button>
+                        <span class="text-muted small ms-2"><span id="fs-nodes-count">0</span> nodes</span>
+                    </div>
+                </div>
+
+                <!-- 2D Canvas Container -->
+                <div id="viz-net" class="rb-graph" style="width: 100%; height: 100%;"></div>
 
                 <!-- Loading Spinner -->
                 <div id="graph-loading" class="position-absolute top-50 start-50 translate-middle text-center text-white">
                     <div class="spinner-border text-danger mb-2" role="status"></div>
-                    <div class="small fw-semibold">Đang khởi tạo không gian vector 3D WebGL...</div>
+                    <div class="small fw-semibold">Đang nạp không gian vector từ cơ sở dữ liệu...</div>
+                </div>
+
+                <!-- Fullscreen Floating Form Box (Chunk Inspector) -->
+                <div id="fs-node-detail-card" class="rb-form-box card border-0 p-3 d-none">
+                    <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark" id="fs-node-detail-title">Tiêu đề đoạn trích</h6>
+                            <small class="text-muted" id="fs-node-detail-article">Điều khoản quy chế</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-success" id="fs-node-detail-badge">Năm 2026</span>
+                            <button type="button" class="btn-close ms-2" onclick="closeFsDetailCard()" aria-label="Close"></button>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-light rounded text-dark small mb-3" id="fs-node-detail-content" style="max-height: 200px; overflow-y: auto; white-space: pre-wrap;">
+                        Nội dung chi tiết đoạn trích...
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                        <span class="badge bg-primary" id="fs-node-detail-status-badge">Đang hoạt động</span>
+                        <button type="button" class="btn btn-outline-danger btn-sm" id="btn-toggle-chunk-fs" onclick="handleToggleChunk()">
+                            Vô hiệu hóa (Tắt nhiễu)
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Modal / Card Chi Tiết Đoạn Chunk Được Chọn -->
+            <!-- Card Chẩn Đoán Đoạn Trích & Quản Trị Nhiễu ở Chế Độ Thường (Normal Mode) -->
             <div id="node-detail-card" class="card border-0 shadow-sm rounded-3 bg-white p-3 mt-3 d-none">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h6 class="fw-bold mb-0 text-dark" id="node-detail-title">Tiêu đề đoạn trích</h6>
-                    <span class="badge bg-danger" id="node-detail-badge">Năm 2026</span>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark" id="node-detail-title">Tiêu đề đoạn trích</h6>
+                        <small class="text-muted" id="node-detail-article">Điều khoản quy chế</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success" id="node-detail-badge">Năm 2026</span>
+                        <span class="badge bg-primary" id="node-detail-status-badge">Đang hoạt động</span>
+                    </div>
                 </div>
-                <div class="small text-secondary mb-2" id="node-detail-article">Điều 5. Mức thu học phí</div>
-                <div class="p-2.5 bg-light rounded text-dark small" id="node-detail-content" style="max-height: 120px; overflow-y: auto;">
-                    Nội dung chi tiết...
+
+                <div class="p-3 bg-light rounded text-dark small mb-3" id="node-detail-content" style="max-height: 160px; overflow-y: auto; white-space: pre-wrap; font-family: inherit;">
+                    Nội dung chi tiết đoạn trích...
+                </div>
+
+                <!-- Action Buttons: Toggle Active / Disable Noise -->
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                    <small class="text-muted" id="node-detail-coords">Tọa độ 2D: (0, 0)</small>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-toggle-chunk" onclick="handleToggleChunk()">
+                            Vô hiệu hóa (Tắt nhiễu)
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- 3D Force Graph WebGL Library -->
-<script src="https://unpkg.com/3d-force-graph"></script>
+    <!-- 2D Force Graph Library với Fallback CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/force-graph@1.43.5/dist/force-graph.min.js"></script>
+    <script>
+        if (typeof ForceGraph === 'undefined') {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://unpkg.com/force-graph@1.43.5/dist/force-graph.min.js';
+            document.head.appendChild(fallbackScript);
+        }
+    </script>
 <script th:inline="javascript">
     document.addEventListener('DOMContentLoaded', () => {
-        const container = document.getElementById('3d-graph-container');
+        const container = document.getElementById('viz-net');
+        const zoomContainer = document.getElementById('graph-zoom-container');
+        const btnZoomFs = document.getElementById('btn-zoom-fs');
+        const zoomIcon = document.getElementById('zoom-icon');
         const loading = document.getElementById('graph-loading');
         const form = document.getElementById('search-form');
         const queryInput = document.getElementById('query-input');
@@ -132,55 +279,386 @@
         const topMatchesContainer = document.getElementById('top-matches-container');
         const searchTimeBadge = document.getElementById('search-time');
         const activeNodesBadge = document.getElementById('active-nodes-count');
+        const fsNodesCount = document.getElementById('fs-nodes-count');
 
+        // Detail elements (Normal mode)
         const detailCard = document.getElementById('node-detail-card');
         const detailTitle = document.getElementById('node-detail-title');
         const detailBadge = document.getElementById('node-detail-badge');
+        const detailStatusBadge = document.getElementById('node-detail-status-badge');
         const detailArticle = document.getElementById('node-detail-article');
         const detailContent = document.getElementById('node-detail-content');
+        const detailCoords = document.getElementById('node-detail-coords');
+        const btnToggleChunk = document.getElementById('btn-toggle-chunk');
+
+        // Detail elements (Fullscreen mode)
+        const fsDetailCard = document.getElementById('fs-node-detail-card');
+        const fsDetailTitle = document.getElementById('fs-node-detail-title');
+        const fsDetailBadge = document.getElementById('fs-node-detail-badge');
+        const fsDetailStatusBadge = document.getElementById('fs-node-detail-status-badge');
+        const fsDetailArticle = document.getElementById('fs-node-detail-article');
+        const fsDetailContent = document.getElementById('fs-node-detail-content');
+        const btnToggleChunkFs = document.getElementById('btn-toggle-chunk-fs');
 
         let graph = null;
+        let selectedNode = null;
+        let hoveredNode = null;
+        let currentGraphData = { nodes: [], links: [] };
 
-        // Khởi tạo đồ thị 3D WebGL
+        // Helper đổi màu tối cho viền bóng đổ 3D
+        function shadeColor(color, percent) {
+            if (!color || !color.startsWith('#') || color.length < 7) return '#1e293b';
+            let R = parseInt(color.substring(1, 3), 16);
+            let G = parseInt(color.substring(3, 5), 16);
+            let B = parseInt(color.substring(5, 7), 16);
+
+            R = Math.min(255, Math.max(0, parseInt(R * (100 + percent) / 100)));
+            G = Math.min(255, Math.max(0, parseInt(G * (100 + percent) / 100)));
+            B = Math.min(255, Math.max(0, parseInt(B * (100 + percent) / 100)));
+
+            const RR = (R.toString(16).length === 1) ? "0" + R.toString(16) : R.toString(16);
+            const GG = (G.toString(16).length === 1) ? "0" + G.toString(16) : G.toString(16);
+            const BB = (B.toString(16).length === 1) ? "0" + B.toString(16) : B.toString(16);
+
+            return "#" + RR + GG + BB;
+        }
+
+        // Biến nhịp thời gian phục vụ hiệu ứng rung động nhẹ khi hover
+        let hoverTime = 0;
+        function updateHoverTick() {
+            hoverTime += 0.22;
+            requestAnimationFrame(updateHoverTick);
+        }
+        requestAnimationFrame(updateHoverTick);
+
+        // Khởi tạo đồ thị 2D Force Graph với các node hình tròn 3D
         function initGraph(data) {
-            if (!graph) {
-                graph = ForceGraph3D()(container)
-                    .backgroundColor('#0f172a')
-                    .nodeLabel(node => `<b>${node.name}</b><br/>Nhóm: ${node.group}<br/>Tọa độ: (${node.x}, ${node.y}, ${node.z})`)
-                    .nodeColor(node => node.color || '#4ade80')
-                    .nodeVal(node => node.val || 6)
-                    .nodeResolution(16)
-                    .linkColor(link => link.color || '#ef4444')
-                    .linkWidth(link => 2)
-                    .linkDirectionalParticles(2)
-                    .linkDirectionalParticleSpeed(0.006)
-                    .linkDirectionalParticleWidth(2.5)
-                    .onNodeClick(node => {
-                        showNodeDetail(node);
-                    });
-            }
-
-            graph.graphData({
-                nodes: data.nodes || [],
-                links: data.links || []
-            });
-
+            currentGraphData = data;
+            hoveredNode = null;
             if (data.nodes) {
                 activeNodesBadge.textContent = data.nodes.length;
+                if (fsNodesCount) fsNodesCount.textContent = data.nodes.length;
             }
 
-            loading.classList.add('d-none');
+            if (typeof ForceGraph === 'undefined') {
+                console.warn('ForceGraph chưa sẵn sàng, render giao diện fallback...');
+                renderCanvasFallback(container, data);
+                loading.classList.add('d-none');
+                return;
+            }
+
+            try {
+                if (!graph) {
+                    graph = ForceGraph()(container)
+                        .backgroundColor('#090d16')
+                        .d3AlphaDecay(0.02)
+                        .d3VelocityDecay(0.25)
+                        .nodeRelSize(7)
+                        .nodeVal(node => node.val || (node.id === 'query-red' ? 14 : 8))
+                        .nodeCanvasObject((node, ctx, globalScale) => {
+                            const isHovered = (node === hoveredNode);
+                            const isSelected = (node === selectedNode);
+                            const baseR = (node.val || (node.id === 'query-red' ? 13 : 7.5));
+
+                            // 1. Hiệu ứng rung động nhẹ nhàng khi di chuột vào (Subtle Micro-Vibration & Pulse)
+                            let r = baseR;
+                            if (isHovered) {
+                                const vib = 1.30 + Math.sin(hoverTime * 2.2) * 0.08 + Math.sin(hoverTime * 5.5) * 0.03;
+                                r = baseR * vib;
+
+                                // Vòng hào quang phát sáng rung nhẹ quanh viên bi
+                                ctx.save();
+                                ctx.beginPath();
+                                ctx.arc(node.x, node.y, r * 1.35, 0, 2 * Math.PI, false);
+                                ctx.fillStyle = (node.color || '#4ade80') + '33';
+                                ctx.fill();
+                                ctx.restore();
+                            } else if (isSelected) {
+                                r = baseR * 1.2;
+                                ctx.save();
+                                ctx.beginPath();
+                                ctx.arc(node.x, node.y, r * 1.35, 0, 2 * Math.PI, false);
+                                ctx.strokeStyle = '#ffffff';
+                                ctx.lineWidth = 2 / globalScale;
+                                ctx.stroke();
+                                ctx.restore();
+                            }
+
+                            // 2. Vẽ hình tròn 3D (3D Glossy Sphere Ball) với Radial Gradient & Drop Shadow
+                            const nodeColor = node.color || '#4ade80';
+                            const grad = ctx.createRadialGradient(
+                                node.x - r * 0.35, node.y - r * 0.35, r * 0.08,
+                                node.x, node.y, r
+                            );
+                            grad.addColorStop(0, '#ffffff'); // Đốm sáng phản chiếu 3D góc trên-trái
+                            grad.addColorStop(0.22, nodeColor);
+                            grad.addColorStop(0.82, nodeColor);
+                            grad.addColorStop(1, shadeColor(nodeColor, -35)); // Vành tối tạo độ sâu khối cầu 3D
+
+                            ctx.save();
+                            ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+                            ctx.shadowBlur = 6;
+                            ctx.shadowOffsetY = 2;
+
+                            ctx.beginPath();
+                            ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
+                            ctx.fillStyle = grad;
+                            ctx.fill();
+                            ctx.restore();
+
+                            // 3. Hiển thị nhãn khi phóng to hoặc khi hover
+                            if (globalScale > 1.2 || isHovered || node.id === 'query-red') {
+                                const label = node.name || '';
+                                const fontSize = Math.max(9, Math.min(13, 12 / globalScale));
+                                ctx.font = `${(isHovered || node.id === 'query-red') ? 'bold ' : ''}${fontSize}px Inter, sans-serif`;
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'top';
+                                ctx.fillStyle = '#ffffff';
+                                const shortText = label.length > 22 ? label.slice(0, 20) + '...' : label;
+                                ctx.fillText(shortText, node.x, node.y + r + 3);
+                            }
+                        })
+                        .nodePointerAreaPaint((node, color, ctx) => {
+                            const r = (node.val || 8) * 1.5;
+                            ctx.beginPath();
+                            ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
+                            ctx.fillStyle = color;
+                            ctx.fill();
+                        })
+                        .linkColor(link => {
+                            const isQuery = link.color === '#ef4444' || link.similarity;
+                            return isQuery ? 'rgba(239, 68, 68, 0.9)' : (link.color || 'rgba(74, 222, 128, 0.3)');
+                        })
+                        .linkWidth(link => {
+                            const isQuery = link.color === '#ef4444' || link.similarity;
+                            return isQuery ? 2.5 : 1.1;
+                        })
+                        .linkDirectionalParticles(link => {
+                            const isQuery = link.color === '#ef4444' || link.similarity;
+                            return isQuery ? 4 : 2;
+                        })
+                        .linkDirectionalParticleSpeed(link => {
+                            const isQuery = link.color === '#ef4444' || link.similarity;
+                            return isQuery ? 0.015 : 0.005;
+                        })
+                        .linkDirectionalParticleWidth(link => {
+                            const isQuery = link.color === '#ef4444' || link.similarity;
+                            return isQuery ? 3.0 : 1.5;
+                        })
+                        .linkDirectionalParticleColor(link => link.color || '#4ade80')
+                        .onNodeHover(node => {
+                            container.style.cursor = node ? 'pointer' : null;
+                            hoveredNode = node;
+                        })
+                        .onNodeClick(node => {
+                            showNodeDetail(node);
+                            if (node.x != null && node.y != null) {
+                                graph.centerAt(node.x, node.y, 600);
+                                graph.zoom(2.0, 600);
+                            }
+                        });
+                }
+
+                graph.graphData({
+                    nodes: data.nodes || [],
+                    links: data.links || []
+                });
+
+                // Căn chỉnh khung nhìn vừa vặn toàn bộ các node
+                setTimeout(() => {
+                    if (graph && graph.zoomToFit) {
+                        graph.zoomToFit(800, 30);
+                    }
+                }, 300);
+
+                loading.classList.add('d-none');
+            } catch (err) {
+                console.error('Lỗi khi render 2D Graph:', err);
+                renderCanvasFallback(container, data);
+                loading.classList.add('d-none');
+            }
         }
 
+        // Hiển thị chi tiết node trên bảng chẩn đoán
         function showNodeDetail(node) {
+            selectedNode = node;
+            const isFs = zoomContainer.classList.contains('graph-zoom-fs');
+
+            // Cập nhật thẻ Normal mode
             detailCard.classList.remove('d-none');
-            detailTitle.textContent = node.name || 'Chi tiết';
-            detailBadge.textContent = node.group || 'Thông tin';
-            detailArticle.textContent = node.article || 'Không có tiêu đề điều khoản';
-            detailContent.textContent = `Tọa độ không gian ngữ nghĩa PCA: X = ${node.x}, Y = ${node.y}, Z = ${node.z}.`;
+            detailTitle.textContent = node.name || 'Chi tiết đoạn trích';
+            detailBadge.textContent = node.year ? 'Năm ' + node.year : (node.group || 'Công văn');
+            detailArticle.textContent = node.article || 'Trích đoạn văn bản';
+            
+            const rawContent = node.content && node.content.trim() !== '' ? node.content : 'Không có nội dung chi tiết.';
+            detailContent.textContent = rawContent;
+            detailCoords.textContent = `Tọa độ 2D: (${Math.round(node.x || 0)}, ${Math.round(node.y || 0)})`;
+
+            // Cập nhật thẻ Fullscreen mode
+            if (fsDetailCard) {
+                fsDetailCard.classList.remove('d-none');
+                fsDetailTitle.textContent = node.name || 'Chi tiết đoạn trích';
+                fsDetailBadge.textContent = node.year ? 'Năm ' + node.year : (node.group || 'Công văn');
+                fsDetailArticle.textContent = node.article || 'Trích đoạn văn bản';
+                fsDetailContent.textContent = rawContent;
+            }
+
+            if (node.id === 'query-red') {
+                btnToggleChunk.classList.add('d-none');
+                detailStatusBadge.textContent = 'Query Vector';
+                detailStatusBadge.className = 'badge bg-danger';
+                if (btnToggleChunkFs) btnToggleChunkFs.classList.add('d-none');
+                if (fsDetailStatusBadge) {
+                    fsDetailStatusBadge.textContent = 'Query Vector';
+                    fsDetailStatusBadge.className = 'badge bg-danger';
+                }
+            } else {
+                btnToggleChunk.classList.remove('d-none');
+                if (btnToggleChunkFs) btnToggleChunkFs.classList.remove('d-none');
+                const isActive = node.isActive !== false;
+                if (isActive) {
+                    detailStatusBadge.textContent = 'Đang hoạt động';
+                    detailStatusBadge.className = 'badge bg-success';
+                    btnToggleChunk.textContent = 'Vô hiệu hóa (Tắt nhiễu)';
+                    btnToggleChunk.className = 'btn btn-outline-danger btn-sm';
+                    if (fsDetailStatusBadge) {
+                        fsDetailStatusBadge.textContent = 'Đang hoạt động';
+                        fsDetailStatusBadge.className = 'badge bg-success';
+                    }
+                    if (btnToggleChunkFs) {
+                        btnToggleChunkFs.textContent = 'Vô hiệu hóa (Tắt nhiễu)';
+                        btnToggleChunkFs.className = 'btn btn-outline-danger btn-sm';
+                    }
+                } else {
+                    detailStatusBadge.textContent = 'Đã tắt / Lỗi thời';
+                    detailStatusBadge.className = 'badge bg-secondary';
+                    btnToggleChunk.textContent = 'Kích hoạt lại';
+                    btnToggleChunk.className = 'btn btn-outline-success btn-sm';
+                    if (fsDetailStatusBadge) {
+                        fsDetailStatusBadge.textContent = 'Đã tắt / Lỗi thời';
+                        fsDetailStatusBadge.className = 'badge bg-secondary';
+                    }
+                    if (btnToggleChunkFs) {
+                        btnToggleChunkFs.textContent = 'Kích hoạt lại';
+                        btnToggleChunkFs.className = 'btn btn-outline-success btn-sm';
+                    }
+                }
+            }
         }
 
-        // Tải dữ liệu ban đầu
+        window.closeFsDetailCard = function() {
+            if (fsDetailCard) fsDetailCard.classList.add('d-none');
+        };
+
+        window.handleToggleChunk = async function() {
+            if (!selectedNode || !selectedNode.chunkId) return;
+            const chunkId = selectedNode.chunkId;
+
+            btnToggleChunk.disabled = true;
+            btnToggleChunk.textContent = 'Đang xử lý...';
+            if (btnToggleChunkFs) {
+                btnToggleChunkFs.disabled = true;
+                btnToggleChunkFs.textContent = 'Đang xử lý...';
+            }
+
+            try {
+                const res = await fetch(`/admin/knowledge/api/chunks/${chunkId}/toggle-active`, {
+                    method: 'POST'
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    selectedNode.isActive = result.data;
+                    selectedNode.color = result.data ? '#4ade80' : '#94a3b8';
+                    selectedNode.group = result.data ? 'Công văn 2026' : 'Lỗi thời / Tắt';
+                    showNodeDetail(selectedNode);
+
+                    if (graph) {
+                        graph.graphData(currentGraphData);
+                    }
+                } else {
+                    alert('Lỗi: ' + (result.message || 'Không thể cập nhật trạng thái'));
+                }
+            } catch (e) {
+                alert('Lỗi kết nối máy chủ: ' + e.message);
+            } finally {
+                btnToggleChunk.disabled = false;
+                if (btnToggleChunkFs) btnToggleChunkFs.disabled = false;
+            }
+        };
+
+        // Fallback nhẹ nếu chưa nạp được thư viện Canvas
+        function renderCanvasFallback(container, data) {
+            container.innerHTML = `
+                <div class="d-flex flex-column align-items-center justify-content-center h-100 text-white p-4">
+                    <h5 class="fw-bold mb-2">Đã nạp thành công ${data.nodes ? data.nodes.length : 0} Vector Nodes</h5>
+                    <p class="small text-white-50 text-center mb-3">Không gian vector phẳng 2D đồng bộ 100% dữ liệu thực từ MySQL.</p>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center" style="max-height: 200px; overflow-y: auto;">
+                        ${(data.nodes || []).slice(0, 30).map(n => `
+                            <button type="button" class="btn btn-sm text-white text-truncate" 
+                                    style="background-color: ${n.color}; max-width: 200px; font-size: 0.75rem;" 
+                                    onclick='window.selectNodeById("${n.id}")'>
+                                ${n.name || n.id}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        window.selectNodeById = function(nodeId) {
+            const node = (currentGraphData.nodes || []).find(n => n.id === nodeId);
+            if (node) {
+                showNodeDetail(node);
+                if (graph && node.x != null && node.y != null) {
+                    graph.centerAt(node.x, node.y, 600);
+                    graph.zoom(2.2, 600);
+                }
+            }
+        };
+
+        // Fullscreen Toggle
+        btnZoomFs.addEventListener('click', () => {
+            const isFs = zoomContainer.classList.toggle('graph-zoom-fs');
+            document.body.classList.toggle('graph-zoom-lock', isFs);
+
+            if (isFs) {
+                btnZoomFs.title = 'Thu nhỏ (Thoát toàn màn hình)';
+                zoomIcon.className = 'bi bi-fullscreen-exit';
+            } else {
+                btnZoomFs.title = 'Phóng to toàn màn hình';
+                zoomIcon.className = 'bi bi-arrows-fullscreen';
+                if (fsDetailCard) fsDetailCard.classList.add('d-none');
+            }
+
+            setTimeout(() => {
+                if (graph) {
+                    const w = isFs ? window.innerWidth : zoomContainer.clientWidth;
+                    const h = isFs ? window.innerHeight : 560;
+                    graph.width(w).height(h).zoomToFit(400, 30);
+                }
+            }, 100);
+        });
+
+        // Thoát fullscreen bằng phím ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && zoomContainer.classList.contains('graph-zoom-fs')) {
+                btnZoomFs.click();
+            }
+        });
+
+        // Floating Action Bar Buttons
+        document.getElementById('btn-fit-view')?.addEventListener('click', () => {
+            if (graph) graph.zoomToFit(600, 30);
+        });
+        document.getElementById('btn-zoom-in')?.addEventListener('click', () => {
+            if (graph) graph.zoom(graph.zoom() * 1.35, 300);
+        });
+        document.getElementById('btn-zoom-out')?.addEventListener('click', () => {
+            if (graph) graph.zoom(graph.zoom() / 1.35, 300);
+        });
+
+        // Tải dữ liệu từ Backend
         async function loadGraphData(query = '') {
             const start = performance.now();
             try {
@@ -192,18 +670,20 @@
                     initGraph(json.data);
                     const elapsed = Math.round(performance.now() - start);
                     searchTimeBadge.textContent = `${elapsed} ms`;
-
-                    // Cập nhật Top matches ở cột trái nếu có links
                     renderTopMatches(json.data);
                 }
             } catch (e) {
-                console.error('Lỗi khi tải dữ liệu 3D:', e);
-                loading.innerHTML = '<span class="text-danger">Không thể nạp dữ liệu không gian 3D</span>';
+                console.error('Lỗi khi tải dữ liệu vector:', e);
+                loading.innerHTML = '<span class="text-danger">Không thể nạp dữ liệu không gian vector</span>';
             }
         }
 
         function renderTopMatches(data) {
-            const links = data.links || [];
+            const links = (data.links || []).filter(l => {
+                const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                return sourceId === 'query-red';
+            });
+
             if (links.length === 0) {
                 topMatchesContainer.innerHTML = '<p class="text-center py-3 text-muted mb-0">Không có liên kết tương đồng nào.</p>';
                 return;
@@ -211,18 +691,22 @@
 
             let html = '<div class="list-group list-group-flush">';
             links.forEach((l, idx) => {
-                const targetNode = data.nodes.find(n => n.id === l.target);
-                const title = targetNode ? targetNode.name : l.target;
+                const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                const targetNode = data.nodes.find(n => n.id === targetId);
+                const title = targetNode ? targetNode.name : targetId;
                 const sim = l.similarity ? (l.similarity * 100).toFixed(1) + '%' : 'Rất cao';
+                const isGolden = targetNode && (targetNode.sourceType === 'GOLDEN_TRUTH' || (targetNode.group && targetNode.group.includes('Golden')));
 
                 html += `
-                    <div class="list-group-item px-0 py-2 border-0 border-bottom">
+                    <div class="list-group-item px-0 py-2 border-0 border-bottom" onclick='window.selectNodeById("${targetId}")' style="cursor: pointer;">
                         <div class="d-flex align-items-center justify-content-between mb-1">
-                            <span class="badge bg-danger">Top ${idx + 1}</span>
+                            <span class="badge ${isGolden ? 'bg-warning text-dark fw-bold' : 'bg-danger'}">
+                                ${isGolden ? '<i class="bi bi-star-fill text-dark me-1"></i>Golden Truth (Top 1)' : 'Top ' + (idx + 1)}
+                            </span>
                             <span class="text-success fw-bold">Cosine: ${sim}</span>
                         </div>
                         <div class="fw-semibold text-dark text-truncate">${title}</div>
-                        <small class="text-muted">${targetNode ? targetNode.article : ''}</small>
+                        <small class="text-muted d-block text-truncate">${targetNode ? targetNode.article : ''}</small>
                     </div>
                 `;
             });
@@ -237,17 +721,18 @@
             if (!q) return;
 
             btnSearch.disabled = true;
-            btnSearch.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang tính vector...';
+            btnSearch.textContent = 'Đang tính vector...';
 
             loadGraphData(q).finally(() => {
                 btnSearch.disabled = false;
-                btnSearch.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i>Chiếu Query Lên Không Gian 3D';
+                btnSearch.textContent = 'Chiếu Query Lên Đồ Thị';
             });
         });
 
-        // Khởi động nạp dữ liệu
+        // Khởi động nạp dữ liệu thực tế
         loadGraphData('Học bổng khuyến khích cần điều kiện gì?');
     });
 </script>
+</div>
 </body>
 </html>

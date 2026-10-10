@@ -34,6 +34,30 @@ public class TicketSummaryDto {
 
     private String creatorOrGuestName;   // Creator fullName hoặc guestName nếu không đăng nhập
     private String assignedStaffName;    // Null nếu chưa được cán bộ tiếp nhận
+    private Boolean hasStudentReply;     // True nếu có tin nhắn mới từ sinh viên chưa xem
+    private Integer rating;              // Đánh giá CSAT (1-5 sao)
+
+    public TicketSummaryDto(Long id, String ticketCode, String title,
+                            Long departmentId, String departmentName,
+                            String status, String priority, LocalDateTime dueDate, LocalDateTime createdAt,
+                            String creatorOrGuestName, String assignedStaffName) {
+        this(id, ticketCode, title, departmentId, departmentName, status, priority, dueDate, createdAt, creatorOrGuestName, assignedStaffName, false, null);
+    }
+
+    public TicketSummaryDto(Long id, String ticketCode, String title,
+                            Long departmentId, String departmentName,
+                            String status, String priority, LocalDateTime dueDate, LocalDateTime createdAt,
+                            String creatorOrGuestName, String assignedStaffName, Boolean hasStudentReply) {
+        this(id, ticketCode, title, departmentId, departmentName, status, priority, dueDate, createdAt, creatorOrGuestName, assignedStaffName, hasStudentReply, null);
+    }
+
+    public boolean isHasStudentReply() {
+        return Boolean.TRUE.equals(hasStudentReply);
+    }
+
+    public boolean getHasStudentReply() {
+        return Boolean.TRUE.equals(hasStudentReply);
+    }
 
     public boolean isOverdue() {
         return dueDate != null

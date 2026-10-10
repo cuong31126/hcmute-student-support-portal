@@ -17,7 +17,17 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunk, 
 
     List<KnowledgeChunk> findByDocumentId(Long documentId);
 
+    @org.springframework.transaction.annotation.Transactional
     @Modifying
     @Query("UPDATE KnowledgeChunk c SET c.isActive = false WHERE c.document.id = :documentId")
     void deactivateByDocumentId(@Param("documentId") Long documentId);
+
+    @org.springframework.transaction.annotation.Transactional
+    @Modifying
+    @Query("DELETE FROM KnowledgeChunk c WHERE c.sourceType = 'REGULATION'")
+    void deleteAllRegulationChunks();
+
+    long countBySourceType(String sourceType);
+
+    List<KnowledgeChunk> findBySourceType(String sourceType);
 }

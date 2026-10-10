@@ -64,14 +64,14 @@ public class RagChatRestController {
 
         // Giao tác vụ cho aiTaskExecutor (non-blocking): Tomcat worker được giải phóng ngay
         CompletableFuture.supplyAsync(
-                () -> ragChatbotService.ask(request.getQuestion(), request.getDepartmentId())
+                () -> ragChatbotService.ask(request.getQuestion(), request.getDepartmentId(), null, request.getEngine())
         ).orTimeout(12, java.util.concurrent.TimeUnit.SECONDS)
          .whenComplete((response, ex) -> {
              if (ex != null) {
                  if (ex instanceof TimeoutException) {
-                     log.warn("[AI Timeout CompletableFuture] Gemini API khong phan hoi sau 12s, kich hoat Fallback.");
+                     log.warn("[AI Timeout CompletableFuture] AI Engine '{}' khong phan hoi sau 12s, kich hoat Fallback.", request.getEngine());
                  } else {
-                     log.error("[AI Error] Loi xu ly cau hoi AI: {}", ex.getMessage(), ex);
+                     log.error("[AI Error] Loi xu ly cau hoi AI (Engine '{}'): {}", request.getEngine(), ex.getMessage(), ex);
                  }
                  deferredResult.setResult(buildFallbackResponse());
              } else {

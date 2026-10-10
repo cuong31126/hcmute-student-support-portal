@@ -78,6 +78,9 @@ public class Ticket extends BaseEntity {
     @Column(name = "priority", length = 20, nullable = false)
     private String priority = "MEDIUM"; // LOW, MEDIUM, HIGH, URGENT
 
+    @Column(name = "topic_category", length = 150)
+    private String topicCategory;
+
     @Builder.Default
     @Column(name = "status", length = 30, nullable = false)
     private String status = "OPEN"; // OPEN, IN_PROGRESS, WAITING_STUDENT, RESOLVED, CLOSED, OVERDUE
@@ -94,6 +97,10 @@ public class Ticket extends BaseEntity {
 
     @Column(name = "rating")
     private Integer rating; // 1 - 5 sao
+
+    @Builder.Default
+    @Column(name = "has_student_reply")
+    private Boolean hasStudentReply = false;
 
     @Builder.Default
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

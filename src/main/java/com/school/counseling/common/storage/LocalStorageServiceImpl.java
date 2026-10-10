@@ -17,6 +17,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Objects;
 import java.util.UUID;
 
+// file thực thi chi tiết bản hợp đồng 
 @Slf4j
 @Service("localStorageService")
 public class LocalStorageServiceImpl implements IStorageService {
@@ -48,7 +49,8 @@ public class LocalStorageServiceImpl implements IStorageService {
                 targetDir = Constant.DIR_IMAGES;
             } else if ("videos".equalsIgnoreCase(folder) || "MP4".equalsIgnoreCase(fileType)) {
                 targetDir = Constant.DIR_VIDEOS;
-            } else if ("documents".equalsIgnoreCase(folder) || "PDF".equalsIgnoreCase(fileType) || "DOCX".equalsIgnoreCase(fileType) || "XLSX".equalsIgnoreCase(fileType)) {
+            } else if ("documents".equalsIgnoreCase(folder) || "PDF".equalsIgnoreCase(fileType)
+                    || "DOCX".equalsIgnoreCase(fileType) || "XLSX".equalsIgnoreCase(fileType)) {
                 targetDir = Constant.DIR_DOCUMENTS;
             }
 
@@ -77,12 +79,16 @@ public class LocalStorageServiceImpl implements IStorageService {
 
     @Override
     public boolean deleteFile(String fileName) {
-        if (!StringUtils.hasText(fileName)) return false;
+        if (!StringUtils.hasText(fileName))
+            return false;
         try {
             File file = new File(Constant.DIR_IMAGES, fileName);
-            if (!file.exists()) file = new File(Constant.DIR_DOCUMENTS, fileName);
-            if (!file.exists()) file = new File(Constant.DIR_VIDEOS, fileName);
-            if (!file.exists()) file = new File(Constant.DIR, fileName);
+            if (!file.exists())
+                file = new File(Constant.DIR_DOCUMENTS, fileName);
+            if (!file.exists())
+                file = new File(Constant.DIR_VIDEOS, fileName);
+            if (!file.exists())
+                file = new File(Constant.DIR, fileName);
 
             return file.exists() && file.delete();
         } catch (Exception e) {
@@ -99,15 +105,23 @@ public class LocalStorageServiceImpl implements IStorageService {
         return "/documents/" + fileName;
     }
 
+    // dua vao kq soi ruot cua apache tikea de gan nhan file chuan
     private String resolveFileType(String mimeType, String filename) {
-        if (mimeType.startsWith("image/")) return "IMAGE";
-        if (mimeType.equals("application/pdf")) return "PDF";
-        if (mimeType.equals("video/mp4")) return "MP4";
-        if (mimeType.contains("word") || filename.endsWith(".docx") || filename.endsWith(".doc")) return "DOCX";
-        if (mimeType.contains("excel") || mimeType.contains("spreadsheet") || filename.endsWith(".xlsx") || filename.endsWith(".xls")) return "XLSX";
+        if (mimeType.startsWith("image/"))
+            return "IMAGE";
+        if (mimeType.equals("application/pdf"))
+            return "PDF";
+        if (mimeType.equals("video/mp4"))
+            return "MP4";
+        if (mimeType.contains("word") || filename.endsWith(".docx") || filename.endsWith(".doc"))
+            return "DOCX";
+        if (mimeType.contains("excel") || mimeType.contains("spreadsheet") || filename.endsWith(".xlsx")
+                || filename.endsWith(".xls"))
+            return "XLSX";
         return "DOCUMENT";
     }
 
+    // catws lay phan duoi mo rong cua file sau dau cham cuoi cung
     private String getExtension(String filename) {
         int dotIndex = filename.lastIndexOf('.');
         return (dotIndex > 0 && dotIndex < filename.length() - 1) ? filename.substring(dotIndex + 1) : "";

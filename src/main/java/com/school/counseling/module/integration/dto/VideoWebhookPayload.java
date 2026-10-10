@@ -1,3 +1,8 @@
+/*
+ * =========================================================================================
+ * TÍNH NĂNG ĐÃ LOẠI BỎ THEO YÊU CẦU: MICROSERVICE NODE.JS VIDEO GENERATOR DTO
+ * Toàn bộ mã nguồn dưới đây được chuyển về dạng chú thích (commented out) và vô hiệu hóa.
+ * =========================================================================================
 package com.school.counseling.module.integration.dto;
 
 import jakarta.validation.constraints.NotBlank;
@@ -23,3 +28,5 @@ public class VideoWebhookPayload {
 
     private String errorMessage;
 }
+*/
+

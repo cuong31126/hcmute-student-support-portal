@@ -94,6 +94,20 @@ public class PythonAiEngineClient {
             java.util.List<PythonChunkMatch> matched_chunks
     ) {}
 
+    public record PythonTicketClassifyRequest(String title, String description) {}
+
+    public record PythonTicketClassifyResponse(
+            String department_code,
+            String department_name,
+            String priority,
+            String sentiment,
+            double confidence_score,
+            String summary,
+            String suggested_action,
+            java.util.List<String> key_indicators,
+            String classified_by
+    ) {}
+
     /**
      * Gọi Python AI Engine để trả lời câu hỏi học vụ.
      *
@@ -142,6 +156,52 @@ public class PythonAiEngineClient {
     }
 
     /**
+     * Gọi Python AI Engine để phân tích và phân loại Ticket (Department, Priority, Sentiment, Action).
+     *
+     * @param title       Tiêu đề ticket
+     * @param description Nội dung chi tiết ticket
+     * @return PythonTicketClassifyResponse hoặc null nếu Python Engine không khả dụng/tắt
+     */
+    public PythonTicketClassifyResponse classifyTicket(String title, String description) {
+        if (!pythonAiEnabled) {
+            log.debug("[PythonAI] Python Engine bị tắt. Bỏ qua phân loại AI.");
+            return null;
+        }
+
+        try {
+            var requestFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+            requestFactory.setConnectTimeout(Duration.ofMillis(connectTimeoutMs));
+            requestFactory.setReadTimeout(Duration.ofMillis(readTimeoutMs));
+
+            var client = RestClient.builder()
+                    .baseUrl(pythonBaseUrl)
+                    .requestFactory(requestFactory)
+                    .build();
+
+            var requestBody = new PythonTicketClassifyRequest(title, description);
+
+            String rawJson = client.post()
+                    .uri("/ai/classify-ticket")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .body(String.class);
+
+            PythonTicketClassifyResponse response = objectMapper.readValue(rawJson, PythonTicketClassifyResponse.class);
+            log.info("[PythonAI] ✅ Phân loại Ticket thành công: dept={}, priority={}, confidence={:.2f}",
+                    response.department_code(), response.priority(), response.confidence_score());
+            return response;
+
+        } catch (RestClientException e) {
+            log.warn("[PythonAI] ⚠️ Python Engine không khả dụng khi phân loại ticket ({}). Fallback quy tắc nội bộ.", e.getMessage());
+            return null;
+        } catch (Exception e) {
+            log.error("[PythonAI] ❌ Lỗi không mong đợi khi phân loại ticket: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
      * Kiểm tra Python AI Engine còn sống không.
      * Spring Boot gọi định kỳ hoặc khi startup.
      */
@@ -175,7 +235,7 @@ public class PythonAiEngineClient {
      */
     @org.springframework.scheduling.annotation.Async("aiTaskExecutor")
     public void syncChunkToPythonEngineAsync(String chunkId, String content, String source, String docCode, Integer pageNumber, Integer effectiveYear, Long departmentId) {
-        if (!pythonAiEnabled) return;
+        if (!pythonAiEnabled || !isHealthy()) return;
         try {
             var client = RestClient.builder().baseUrl(pythonBaseUrl).build();
             var payload = new PythonSyncChunkRequest(chunkId, content, source, docCode, pageNumber, effectiveYear, departmentId);
@@ -187,7 +247,7 @@ public class PythonAiEngineClient {
                     .toBodilessEntity();
             log.info("[PythonAI] Đã đồng bộ chunk '{}' sang Python ChromaDB thành công", chunkId);
         } catch (Exception e) {
-            log.warn("[PythonAI] Không thể đồng bộ chunk '{}' sang Python: {}", chunkId, e.getMessage());
+            log.debug("[PythonAI] Không thể đồng bộ chunk '{}' sang Python: {}", chunkId, e.getMessage());
         }
     }
 }

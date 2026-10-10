@@ -20,8 +20,8 @@ import com.school.counseling.module.feed.repository.CommentRepository;
 import com.school.counseling.module.feed.repository.PostAttachmentRepository;
 import com.school.counseling.module.feed.repository.PostReportRepository;
 import com.school.counseling.module.feed.repository.PostRepository;
-import com.school.counseling.module.integration.dto.VideoWebhookPayload;
-import com.school.counseling.module.integration.service.VideoIntegrationService;
+// import com.school.counseling.module.integration.dto.VideoWebhookPayload;
+// import com.school.counseling.module.integration.service.VideoIntegrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -47,7 +47,7 @@ public class PostService {
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
     private final IStorageService storageService;
-    private final VideoIntegrationService videoIntegrationService;
+    // private final VideoIntegrationService videoIntegrationService; // TÍNH NĂNG ĐÃ LOẠI BỎ THEO YÊU CẦU
 
     /**
      * Cán bộ đăng thông báo chính thức (qua REST API JSON)
@@ -96,8 +96,12 @@ public class PostService {
             department = author.getDepartment();
         }
 
+        // TÍNH NĂNG VIDEO GENERATOR (NODE.JS) ĐÃ LOẠI BỎ - CHUYỂN VỀ DẠNG CHÚ THÍCH
+        /*
         boolean isRequestVideo = request.isRequestVideo();
         String videoStatus = isRequestVideo ? "PROCESSING" : (request.getVideoUrl() != null ? "COMPLETED" : "NONE");
+        */
+        String videoStatus = (request.getVideoUrl() != null && !request.getVideoUrl().trim().isEmpty()) ? "COMPLETED" : "NONE";
 
         Post post = Post.builder()
                 .title(request.getTitle())
@@ -113,10 +117,12 @@ public class PostService {
 
         Post savedPost = postRepository.save(post);
 
-        // Kích hoạt Microservice Node.js dựng Video nếu được yêu cầu
+        /*
+        // Kích hoạt Microservice Node.js dựng Video nếu được yêu cầu (ĐÃ VÔ HIỆU HÓA)
         if (isRequestVideo) {
             videoIntegrationService.requestVideoGeneration(savedPost);
         }
+        */
 
         // Hỗ trợ đính kèm file URL đơn (tương thích API test/legacy)
         if (request.getFileUrl() != null && !request.getFileUrl().trim().isEmpty()) {
@@ -156,6 +162,75 @@ public class PostService {
         }
 
         return mapToDto(savedPost);
+    }
+
+    /**
+     * Cập nhật thông báo chính thức (Edit Official Post)
+     */
+    @Transactional
+    public PostResponseDto updateOfficialPost(
+            Long postId,
+            CreatePostRequest request,
+            MultipartFile videoFile,
+            List<MultipartFile> documentFiles,
+            User currentUser) {
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bài viết", "id", postId));
+
+        boolean isAdmin = currentUser != null && currentUser.getRole() != null && "ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole().getName());
+        boolean isAuthor = currentUser != null && post.getAuthor() != null && post.getAuthor().getId().equals(currentUser.getId());
+        if (!isAdmin && !isAuthor) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền chỉnh sửa bài viết này.");
+        }
+
+        post.setTitle(request.getTitle());
+        post.setContent(request.getContent());
+        if (request.getIsPinned() != null) {
+            post.setIsPinned(request.isPinned());
+        }
+
+        if (request.getDepartmentId() != null) {
+            Department department = departmentRepository.findById(request.getDepartmentId()).orElse(null);
+            if (department != null) {
+                post.setDepartment(department);
+            }
+        }
+
+        if (videoFile != null && !videoFile.isEmpty()) {
+            IStorageService.StorageResult videoResult = storageService.uploadFile(videoFile, "videos");
+            if (videoResult.isSuccess()) {
+                post.setVideoUrl(videoResult.publicUrl());
+                post.setVideoStatus("COMPLETED");
+            }
+        } else if (request.getVideoEmbedUrl() != null && !request.getVideoEmbedUrl().isBlank()) {
+            post.setVideoUrl(request.getVideoEmbedUrl().trim());
+            post.setVideoStatus("COMPLETED");
+        }
+
+        if (documentFiles != null && !documentFiles.isEmpty()) {
+            for (MultipartFile docFile : documentFiles) {
+                if (docFile != null && !docFile.isEmpty()) {
+                    IStorageService.StorageResult uploadResult = storageService.uploadFile(docFile, "documents");
+                    if (uploadResult.isSuccess()) {
+                        PostAttachment docAttachment = PostAttachment.builder()
+                                .post(post)
+                                .fileName(uploadResult.originalFileName())
+                                .fileUrl(uploadResult.publicUrl())
+                                .fileType(uploadResult.fileType() != null ? uploadResult.fileType().toUpperCase() : "DOCX")
+                                .fileSize(uploadResult.fileSizeBytes())
+                                .sourceType("DIRECT_UPLOAD")
+                                .build();
+                        attachmentRepository.save(docAttachment);
+                        post.addAttachment(docAttachment);
+                    }
+                }
+            }
+        }
+
+        post = postRepository.save(post);
+        log.info("Cập nhật bài viết #{} [{}] thành công", post.getId(), post.getTitle());
+        return mapToDto(post);
     }
 
     /**
@@ -353,16 +428,20 @@ public class PostService {
 
         Post post = report.getPost();
         if ("HIDE_POST".equalsIgnoreCase(action)) {
-            post.setStatus("HIDDEN");
-            postRepository.save(post);
+            if (post != null) {
+                post.setStatus("HIDDEN");
+                postRepository.save(post);
+            }
         } else if ("LOCK_USER".equalsIgnoreCase(action)) {
-            post.setStatus("HIDDEN");
-            postRepository.save(post);
-            User author = post.getAuthor();
-            if (author != null) {
-                author.setStatus("LOCKED");
-                userRepository.save(author);
-                log.warn("Tài khoản {} đã bị khóa do vi phạm nội dung nghiêm trọng", author.getUsername());
+            if (post != null) {
+                post.setStatus("HIDDEN");
+                postRepository.save(post);
+                User author = post.getAuthor();
+                if (author != null) {
+                    author.setStatus("LOCKED");
+                    userRepository.save(author);
+                    log.warn("Tài khoản {} đã bị khóa do vi phạm nội dung nghiêm trọng", author.getUsername());
+                }
             }
         }
 
@@ -373,9 +452,9 @@ public class PostService {
         postReportRepository.save(report);
     }
 
-    /**
+    /*
      * Tiếp nhận Webhook Callback từ Microservice Node.js sau khi render video xong
-     */
+     * (TÍNH NĂNG VIDEO GENERATOR ĐÃ LOẠI BỎ - CHUYỂN VỀ CHÚ THÍCH)
     @Transactional
     public void handleVideoWebhookCallback(VideoWebhookPayload payload) {
         log.info("Xử lý Webhook từ Node.js cho Post #{}, status: {}", payload.getPostId(), payload.getStatus());
@@ -406,6 +485,7 @@ public class PostService {
 
         postRepository.save(post);
     }
+    */
 
     /**
      * Lấy chi tiết bài viết kèm danh sách tệp đính kèm và video (Tự động tăng viewCount)
@@ -576,6 +656,31 @@ public class PostService {
         return postReportRepository.findReportsByStatus(status, pageable);
     }
 
+    /**
+     * Khôi phục / Bỏ ẩn bài viết bị báo cáo nhầm (Cán bộ / Admin)
+     */
+    @Transactional
+    public void unhidePost(Long reportId, User staff) {
+        PostReport report = postReportRepository.findById(reportId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy báo cáo ID: " + reportId));
+
+        Post post = report.getPost();
+        if (post != null) {
+            post.setStatus("APPROVED");
+            postRepository.save(post);
+            log.info("Cán bộ {} đã khôi phục bài viết ID: {}", staff.getUsername(), post.getId());
+        }
+
+        report.setActionTaken("RESTORED");
+        report.setResolvedBy(staff);
+        report.setResolvedAt(LocalDateTime.now());
+        postReportRepository.save(report);
+    }
+
+    public long countResolvedReports() {
+        return postReportRepository.countByStatus("RESOLVED");
+    }
+
     private PostReportResponseDto mapReportToDto(PostReport report) {
         PostReportResponseDto.PostSummary postSummary = null;
         if (report.getPost() != null) {
@@ -592,6 +697,7 @@ public class PostService {
                     p.getId(),
                     p.getTitle(),
                     p.getContent(),
+                    p.getStatus(),
                     authorSummary
             );
         }
@@ -605,6 +711,8 @@ public class PostService {
             );
         }
 
+        String resolvedByName = (report.getResolvedBy() != null) ? report.getResolvedBy().getFullName() : null;
+
         return PostReportResponseDto.builder()
                 .id(report.getId())
                 .post(postSummary)
@@ -612,6 +720,8 @@ public class PostService {
                 .reason(report.getReason())
                 .details(report.getDetails())
                 .status(report.getStatus())
+                .actionTaken(report.getActionTaken())
+                .resolvedByName(resolvedByName)
                 .createdAt(report.getCreatedAt())
                 .resolvedAt(report.getResolvedAt())
                 .build();
@@ -724,5 +834,19 @@ public class PostService {
                 .createdAt(cmt.getCreatedAt())
                 .replies(new ArrayList<>())
                 .build();
+    }
+
+    /**
+     * Ghim / Bỏ ghim bài viết (Pin / Unpin)
+     */
+    @Transactional
+    public boolean togglePinPost(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài viết id=" + postId));
+        boolean currentPin = Boolean.TRUE.equals(post.getIsPinned());
+        post.setIsPinned(!currentPin);
+        postRepository.save(post);
+        log.info("[PostService] Đã cập nhật trạng thái ghim bài viết id={}: {} -> {}", postId, currentPin, !currentPin);
+        return !currentPin;
     }
 }

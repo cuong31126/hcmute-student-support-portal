@@ -17,9 +17,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -29,7 +33,6 @@ import java.util.List;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class BatchDocumentIngestionService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -40,6 +43,26 @@ public class BatchDocumentIngestionService {
     private final RagKnowledgeService ragKnowledgeService;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final TransactionTemplate transactionTemplate;
+
+    public BatchDocumentIngestionService(
+            KnowledgeDocumentRepository documentRepository,
+            KnowledgeChunkRepository chunkRepository,
+            GeminiApiClient geminiApiClient,
+            RagKnowledgeService ragKnowledgeService,
+            PostRepository postRepository,
+            UserRepository userRepository,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+            PlatformTransactionManager transactionManager
+    ) {
+        this.documentRepository = documentRepository;
+        this.chunkRepository = chunkRepository;
+        this.geminiApiClient = geminiApiClient;
+        this.ragKnowledgeService = ragKnowledgeService;
+        this.postRepository = postRepository;
+        this.userRepository = userRepository;
+        this.transactionTemplate = transactionManager != null ? new TransactionTemplate(transactionManager) : null;
+    }
 
     @Getter
     @Builder
@@ -97,27 +120,23 @@ public class BatchDocumentIngestionService {
                 continue;
             }
 
-            // Xây dựng nội dung bài đăng học đường trang trọng
+            // Xây dựng nội dung tóm tắt học vụ tinh gọn
             StringBuilder content = new StringBuilder();
-            content.append("🏛️ **THÔNG BÁO VỀ CÔNG VĂN / QUY CHẾ HỌC VỤ CHÍNH THỨC**\n\n");
-            content.append("- **Tên văn bản:** ").append(doc.getTitle()).append("\n");
+            content.append("Văn bản quy chế / thông báo học vụ chính thức áp dụng tại Trường Đại học Sư phạm Kỹ thuật TP.HCM (HCMUTE).\n\n");
+            content.append("• Tên văn bản: ").append(doc.getTitle()).append("\n");
             if (doc.getDocumentCode() != null && !doc.getDocumentCode().isBlank()) {
-                content.append("- **Số hiệu công văn:** ").append(doc.getDocumentCode()).append("\n");
+                content.append("• Số hiệu công văn: ").append(doc.getDocumentCode()).append("\n");
             }
             if (doc.getEffectiveYear() != null) {
-                content.append("- **Năm hiệu lực:** ").append(doc.getEffectiveYear()).append("\n");
+                content.append("• Năm hiệu lực: ").append(doc.getEffectiveYear()).append("\n");
             }
             if (doc.getCategory() != null && !doc.getCategory().isBlank()) {
-                content.append("- **Phân loại:** ").append(doc.getCategory()).append("\n");
+                content.append("• Phân loại: ").append(doc.getCategory()).append("\n");
             }
             if (doc.getPageCount() != null && doc.getPageCount() > 0) {
-                content.append("- **Quy mô:** ").append(doc.getPageCount()).append(" trang văn bản\n");
+                content.append("• Quy mô: ").append(doc.getPageCount()).append(" trang văn bản\n");
             }
-            content.append("\nQuy định trên được ban hành và áp dụng chính thức tại Trường Đại học Sư phạm Kỹ thuật TP.HCM (HCMUTE). ");
-            content.append("Sinh viên vui lòng tải về hoặc mở file đính kèm dưới đây để nắm rõ quyền lợi và nghĩa vụ học vụ.\n\n");
-            content.append("*Mọi thắc mắc liên quan có thể hỏi trực tiếp AI Trợ lý ảo QAUTE hoặc gửi Phiếu hỗ trợ (Ticket).*");
-
-            boolean isPinned = doc.getEffectiveYear() != null && doc.getEffectiveYear() >= 2026;
+            content.append("\nSinh viên và Cán bộ có thể xem trực tiếp văn bản qua trình đọc PDF hoặc tải về tệp đính kèm bên dưới.");
 
             Post post = Post.builder()
                     .title(postTitle)
@@ -125,7 +144,7 @@ public class BatchDocumentIngestionService {
                     .postType("OFFICIAL_ANNOUNCEMENT")
                     .status("APPROVED")
                     .author(author)
-                    .isPinned(isPinned)
+                    .isPinned(false)
                     .build();
 
             // Đính kèm file PDF gốc vào bài viết
@@ -221,102 +240,181 @@ public class BatchDocumentIngestionService {
     }
 
     /**
-     * Nạp một file PDF đơn lẻ vào cơ sở dữ liệu
-     * @return Số lượng chunk được tạo (0 nếu tệp đã nạp và bị bỏ qua)
+     * Nạp một file PDF đơn lẻ vào cơ sở dữ liệu với Transaction độc lập
+     * @return Số lượng chunk được tạo (0 nếu tệp đã nạp và bị bỏ qua hoặc lỗi)
      */
-    @Transactional
-    public int ingestSingleDocument(File pdfFile, int effectiveYear) throws Exception {
+    public int ingestSingleDocument(File pdfFile, int effectiveYear) {
+        if (transactionTemplate != null) {
+            Integer result = transactionTemplate.execute(status -> {
+                try {
+                    return doIngestSingleDocument(pdfFile, effectiveYear);
+                } catch (Exception e) {
+                    log.error("[Batch Ingestion] Lỗi khi xử lý file {}: {}", pdfFile.getName(), e.getMessage());
+                    return 0;
+                }
+            });
+            return result != null ? result : 0;
+        } else {
+            try {
+                return doIngestSingleDocument(pdfFile, effectiveYear);
+            } catch (Exception e) {
+                log.error("[Batch Ingestion] Lỗi khi xử lý file {}: {}", pdfFile.getName(), e.getMessage());
+                return 0;
+            }
+        }
+    }
+
+    private int doIngestSingleDocument(File pdfFile, int effectiveYear) throws Exception {
         String canonicalPath = pdfFile.getCanonicalPath();
 
         // 1. Kiểm tra chống trùng lặp nếu đã nạp thành công
         if (documentRepository.existsByFilePath(canonicalPath)) {
             var existingDoc = documentRepository.findByFilePath(canonicalPath);
-            if (existingDoc.isPresent() && "COMPLETED".equals(existingDoc.get().getStatus())) {
-                log.debug("[Batch Ingestion] Bo qua file da ton tai: {}", pdfFile.getName());
+            if (existingDoc.isPresent() && "COMPLETED".equals(existingDoc.get().getStatus()) && existingDoc.get().getTotalChunks() != null && existingDoc.get().getTotalChunks() > 0) {
+                log.debug("[Batch Ingestion] Bỏ qua file đã hoàn thành: {}", pdfFile.getName());
                 return 0;
             }
         }
 
-        // 2. Trích xuất văn bản từng trang
-        List<PdfExtractorUtils.PageContent> pages = PdfExtractorUtils.extractPagesWithInfo(pdfFile);
-        if (pages.isEmpty()) {
-            throw new IllegalArgumentException("Không thể trích xuất văn bản số từ file PDF");
-        }
-
-        String firstPageText = pages.get(0).text();
-        String docCode = PdfExtractorUtils.extractDocumentCode(firstPageText);
-        String category = PdfExtractorUtils.detectCategory(pdfFile.getName(), firstPageText);
-        String cleanTitle = cleanDocumentTitle(pdfFile.getName());
-
-        // 3. Tạo hoặc cập nhật Document Entity
+        // 2. Chuẩn bị / cập nhật entity KnowledgeDocument
         KnowledgeDocument document = documentRepository.findByFilePath(canonicalPath)
                 .orElse(KnowledgeDocument.builder()
                         .fileName(pdfFile.getName())
                         .filePath(canonicalPath)
                         .build());
 
+        String cleanTitle = cleanDocumentTitle(pdfFile.getName());
+        if (cleanTitle.length() > 240) {
+            cleanTitle = cleanTitle.substring(0, 237) + "...";
+        }
         document.setTitle(cleanTitle);
-        document.setDocumentCode(docCode != null ? docCode : "Đang cập nhật");
         document.setEffectiveYear(effectiveYear);
-        document.setCategory(category);
         document.setFileSize(pdfFile.length());
-        document.setPageCount(pages.size());
-        document.setStatus("PROCESSING");
         document.setIsActive(true);
 
+        // 3. Trích xuất văn bản từng trang
+        List<PdfExtractorUtils.PageContent> pages;
+        try {
+            pages = PdfExtractorUtils.extractPagesWithInfo(pdfFile);
+        } catch (Exception ex) {
+            log.warn("[Batch Ingestion] Không thể bóc tách text từ file scan {}: {}", pdfFile.getName(), ex.getMessage());
+            pages = Collections.emptyList();
+        }
+
+        if (pages.isEmpty()) {
+            document.setStatus("FAILED");
+            document.setPageCount(0);
+            document.setTotalChunks(0);
+            document.setErrorMessage("Tệp PDF dạng ảnh chụp/quét (scanned image), không có lớp văn bản số.");
+            documentRepository.save(document);
+            return 0;
+        }
+
+        String firstPageText = pages.get(0).text();
+        String docCode = PdfExtractorUtils.extractDocumentCode(firstPageText);
+        if (docCode != null && docCode.length() > 90) {
+            docCode = docCode.substring(0, 87) + "...";
+        }
+        String category = PdfExtractorUtils.detectCategory(pdfFile.getName(), firstPageText);
+        if (category != null && category.length() > 45) {
+            category = category.substring(0, 42) + "...";
+        }
+
+        document.setDocumentCode(docCode != null ? docCode : "Đang cập nhật");
+        document.setCategory(category);
+        document.setPageCount(pages.size());
+        document.setStatus("PROCESSING");
         document = documentRepository.save(document);
 
         // 4. Phân mảnh có cấu trúc ngữ nghĩa
-        List<PdfExtractorUtils.StructuralChunk> structuralChunks = PdfExtractorUtils.chunkStructural(
-                pages,
-                cleanTitle,
-                docCode,
-                effectiveYear,
-                "HCMUTE"
-        );
+        try {
+            List<PdfExtractorUtils.StructuralChunk> structuralChunks = PdfExtractorUtils.chunkStructural(
+                    pages,
+                    cleanTitle,
+                    docCode,
+                    effectiveYear,
+                    "HCMUTE"
+            );
 
-        // Xóa các chunk cũ nếu nạp lại
-        chunkRepository.deactivateByDocumentId(document.getId());
+            if (structuralChunks.isEmpty()) {
+                document.setStatus("FAILED");
+                document.setTotalChunks(0);
+                document.setErrorMessage("Không bóc tách được phân đoạn (chunk) hợp lệ từ nội dung văn bản.");
+                documentRepository.save(document);
+                return 0;
+            }
 
-        List<KnowledgeChunk> chunksToSave = new ArrayList<>();
-        int chunkSeq = 1;
+            // Xóa các chunk cũ nếu nạp lại
+            chunkRepository.deactivateByDocumentId(document.getId());
 
-        for (PdfExtractorUtils.StructuralChunk sc : structuralChunks) {
-            // BR-03: embedding tạo từ injectedContent (có header ngữ cảnh) để tối đa hóa recall
-            float[] embedding = geminiApiClient.getEmbedding(sc.injectedContent());
-            String embeddingJson = OBJECT_MAPPER.writeValueAsString(embedding);
+            List<KnowledgeChunk> chunksToSave = new ArrayList<>();
+            int chunkSeq = 1;
 
-            KnowledgeChunk chunk = KnowledgeChunk.builder()
-                    .document(document)
-                    .title(cleanTitle + " - Trang " + sc.pageNumber() + " (#" + chunkSeq++ + ")")
-                    .content(sc.injectedContent())    // injectedContent — dùng cho debug/preview modal
-                    .rawContent(sc.rawContent())      // BR-01: plain text sạch — dùng cho LLM context
-                    .sourceType("REGULATION")
-                    .effectiveYear(effectiveYear)
-                    .priorityLevel(1)
-                    .pageNumber(sc.pageNumber())
-                    .articleHeader(sc.articleHeader())
-                    .embeddingJson(embeddingJson)
-                    .isActive(true)
-                    .isDeprecated(false)
-                    .build();
+            for (PdfExtractorUtils.StructuralChunk sc : structuralChunks) {
+                // Phòng vệ Rate Limit Gemini API (tránh lỗi 429 khi nạp hàng loạt)
+                try {
+                    Thread.sleep(35);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
 
-            chunk.setCachedEmbedding(embedding);
-            chunksToSave.add(chunk);
+                // BR-03: embedding tạo từ injectedContent (có header ngữ cảnh) để tối đa hóa recall
+                float[] embedding = geminiApiClient.getEmbedding(sc.injectedContent());
+                String embeddingJson = OBJECT_MAPPER.writeValueAsString(embedding);
+
+                String chunkTitle = cleanTitle + " - Trang " + sc.pageNumber() + " (#" + (chunkSeq++) + ")";
+                if (chunkTitle.length() > 240) {
+                    chunkTitle = chunkTitle.substring(0, 237) + "...";
+                }
+
+                String safeArticleHeader = sc.articleHeader();
+                if (safeArticleHeader != null && safeArticleHeader.length() > 240) {
+                    safeArticleHeader = safeArticleHeader.substring(0, 237) + "...";
+                }
+
+                KnowledgeChunk chunk = KnowledgeChunk.builder()
+                        .document(document)
+                        .title(chunkTitle)
+                        .content(sc.injectedContent())    // injectedContent — dùng cho debug/preview modal
+                        .rawContent(sc.rawContent())      // BR-01: plain text sạch — dùng cho LLM context
+                        .sourceType("REGULATION")
+                        .effectiveYear(effectiveYear)
+                        .priorityLevel(1)
+                        .pageNumber(sc.pageNumber())
+                        .articleHeader(safeArticleHeader)
+                        .embeddingJson(embeddingJson)
+                        .isActive(true)
+                        .isDeprecated(false)
+                        .build();
+
+                chunk.setCachedEmbedding(embedding);
+                chunksToSave.add(chunk);
+            }
+
+            chunkRepository.saveAll(chunksToSave);
+
+            // 5. Cập nhật trạng thái hoàn thành
+            document.setStatus("COMPLETED");
+            document.setTotalChunks(chunksToSave.size());
+            document.setErrorMessage(null);
+            documentRepository.save(document);
+
+            log.info("[Batch Ingestion] ✅ Đã nạp thành công '{}' ({}) - {} chunks",
+                    cleanTitle, docCode != null ? docCode : "No-Code", chunksToSave.size());
+
+            return chunksToSave.size();
+        } catch (Exception ex) {
+            log.error("[Batch Ingestion] ❌ Lỗi xử lý chunks cho tệp '{}': {}", pdfFile.getName(), ex.getMessage(), ex);
+            document.setStatus("FAILED");
+            String err = ex.getMessage();
+            if (err != null && err.length() > 490) {
+                err = err.substring(0, 487) + "...";
+            }
+            document.setErrorMessage(err != null ? err : "Lỗi khi lưu trữ chunks");
+            document.setTotalChunks(0);
+            documentRepository.save(document);
+            return 0;
         }
-
-        chunkRepository.saveAll(chunksToSave);
-
-        // 5. Cập nhật trạng thái hoàn thành
-        document.setStatus("COMPLETED");
-        document.setTotalChunks(chunksToSave.size());
-        document.setErrorMessage(null);
-        documentRepository.save(document);
-
-        log.info("[Batch Ingestion] Đã nạp thành công '{}' ({}) - {} chunks",
-                cleanTitle, docCode != null ? docCode : "No-Code", chunksToSave.size());
-
-        return chunksToSave.size();
     }
 
     private int parseYearFromFolderName(String folderName) {
@@ -325,6 +423,18 @@ public class BatchDocumentIngestionService {
             if (y >= 2000 && y <= 2050) return y;
         } catch (NumberFormatException ignored) {}
         return 2026;
+    }
+
+    /**
+     * Dọn sạch toàn bộ công văn và chunk PDF đã nạp để giải phóng dung lượng ổ đĩa
+     */
+    @Transactional
+    public void deleteAllRegulationDocuments() {
+        log.info("[Batch Ingestion] Đang xóa toàn bộ chunk công văn REGULATION khỏi Database...");
+        chunkRepository.deleteAllRegulationChunks();
+        documentRepository.deleteAll();
+        ragKnowledgeService.reloadVectorCache();
+        log.info("[Batch Ingestion] ✅ Đã giải phóng hoàn toàn kho công văn, đưa database về trạng thái siêu nhẹ!");
     }
 
     private String cleanDocumentTitle(String fileName) {

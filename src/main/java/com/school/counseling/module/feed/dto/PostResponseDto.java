@@ -70,15 +70,13 @@ public class PostResponseDto {
         if (!isYoutubeVideo()) return videoUrl;
         try {
             String url = videoUrl.trim();
-            if (url.contains("youtu.be/")) {
-                String id = url.substring(url.indexOf("youtu.be/") + 9);
-                if (id.contains("?")) id = id.substring(0, id.indexOf("?"));
-                return "https://www.youtube.com/embed/" + id;
-            }
-            if (url.contains("watch?v=")) {
-                String id = url.substring(url.indexOf("watch?v=") + 8);
-                if (id.contains("&")) id = id.substring(0, id.indexOf("&"));
-                return "https://www.youtube.com/embed/" + id;
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                    "(?:https?://)?(?:www\\.|m\\.)?(?:youtube\\.com/(?:watch\\?.*?v=|embed/|v/|shorts/)|youtu\\.be/)([a-zA-Z0-9_-]{11})",
+                    java.util.regex.Pattern.CASE_INSENSITIVE
+            );
+            java.util.regex.Matcher matcher = pattern.matcher(url);
+            if (matcher.find()) {
+                return "https://www.youtube.com/embed/" + matcher.group(1);
             }
             if (url.contains("/embed/")) {
                 return url;

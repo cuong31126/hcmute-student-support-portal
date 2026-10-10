@@ -16,8 +16,11 @@ import java.util.Map;
 
 /**
  * Xử lý ngoại lệ toàn cục cho toàn bộ hệ thống
+ * xuwr lys resst api , trar veef json 
+ * lang nghe toan bo cac loi ở các @RestController 
  */
 @Slf4j
+// hệ thống khởi động thấy @RestControlelrAdvice quét và tự nó tạo sẵn 1 object  là Spring Bean 
 @RestControllerAdvice(annotations = org.springframework.web.bind.annotation.RestController.class)
 public class GlobalExceptionHandler {
 
@@ -25,6 +28,7 @@ public class GlobalExceptionHandler {
      * Bắt lỗi Validation dữ liệu đầu vào (@Valid DTO)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
+    // bắt lỗi khi user nhập thiếu , hôm các ô sai thành 1 ds chi tiết gửi về 
     public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
@@ -33,9 +37,9 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        log.warn("Lỗi xác thực dữ liệu đầu vào: {}", errors);
+        log.warn("Loi xac thuc du lieu dau vao : {}", errors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("Dữ liệu gửi lên không hợp lệ", errors));
+                .body(ApiResponse.error("Du lieu gui len khong hop le", errors));
     }
 
     /**
@@ -43,7 +47,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
-        log.warn("Không tìm thấy tài nguyên: {}", ex.getMessage());
+        log.warn("Khong tim thay tai nguyen : {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(ex.getMessage()));
     }
@@ -53,9 +57,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({AccessDeniedBusinessException.class, AccessDeniedException.class})
     public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(Exception ex) {
-        log.warn("Truy cập bị từ chối: {}", ex.getMessage());
+        log.warn("Truy cập bị từ chối : {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác trên tài nguyên này (Phân quyền Khoa/Phòng)"));
+                .body(ApiResponse.error("Ban khong co quyen thuc hien thao tac tren tai nguyen nay (Phan quyen Khoa/Phong)"));
     }
 
     /**
@@ -73,7 +77,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(InvalidFileException.class)
     public ResponseEntity<ApiResponse<Object>> handleInvalidFileException(InvalidFileException ex) {
-        log.warn("Lỗi tệp tin: {}", ex.getMessage());
+        log.warn("Loi tep tin : {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage()));
     }
@@ -83,9 +87,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiResponse<Object>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
-        log.warn("Dung lượng tệp vượt quá giới hạn tối đa: {}", ex.getMessage());
+        log.warn("Dung luong tep vuot qua gioi han toi da : {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("Dung lượng tệp vượt quá giới hạn cho phép (Tối đa 100MB)"));
+                .body(ApiResponse.error("Dung luong tep vuot qua gioi han toi da ( toi da 100mb)"));
     }
 
     /**
@@ -93,7 +97,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.warn("Tham số không hợp lệ: {}", ex.getMessage());
+        log.warn("Tham so khong hop le : {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage()));
     }
@@ -103,8 +107,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGlobalException(Exception ex) {
-        log.error("Lỗi hệ thống không mong muốn: ", ex);
+        log.error("Loi he thong khong mong muon : ", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Hệ thống đang gặp sự cố. Vui lòng thử lại sau hoặc liên hệ Quản trị viên."));
+                .body(ApiResponse.error("He thong dang gap su co . vui long thu lai sau hoac lien he quan tri vien"));
     }
 }

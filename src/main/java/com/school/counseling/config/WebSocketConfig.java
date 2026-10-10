@@ -6,6 +6,12 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+/**
+ * @deprecated Phân hệ Chat Realtime Người-Người (WebSocket STOMP Prototype - Chưa triển khai UI).
+ * Kiến trúc chính thức của cổng tư vấn QAUTE Portal là AI RAG Chatbot kết hợp Hệ thống Ticket SLA.
+ * Xem chi tiết tại: docs/requirements/chat_module_and_ticketing_architecture_guide.md
+ */
+@Deprecated
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {

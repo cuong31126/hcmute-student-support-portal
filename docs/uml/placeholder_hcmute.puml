@@ -1,0 +1,47 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 12
+skinparam roundCorner 8
+skinparam arrowColor #DC2626
+skinparam arrowFontColor #991B1B
+
+skinparam rectangle {
+    BackgroundColor #FFFFFF
+    BorderColor #94A3B8
+    FontColor #1E293B
+}
+
+header **HCMUTE - HIỆN TRẠNG KHẢO SÁT** | Báo Cáo Phân Tích Thực Trạng
+title **HÌNH 2-1 (SƠ ĐỒ ĐỐI CHIẾU): CÁC KÊNH HỖ TRỢ HỌC VỤ VÀ TƯ VẤN PHÂN TÁN TẠI HCMUTE HIỆN TẠI**
+
+actor "Sinh Viên / Thí Sinh" as User
+
+package "CÁC KÊNH TIẾP NHẬN PHÂN TÁN HIỆN NAY (DISPERSED CHANNELS)" {
+
+    rectangle "**1. Cổng Đào Tạo Trực Tuyến**\n*(online.hcmute.edu.vn)*\n- Tra cứu lịch học, lịch thi, điểm số\n- Hạn chế: Giao diện tĩnh, không có khung chat hỗ trợ thời gian thực" as K_DaoTao #FEF2F2
+
+    rectangle "**2. Cổng Thông Tin Tuyển Sinh**\n*(tuyensinh.hcmute.edu.vn)*\n- Công bố đề án tuyển sinh, học phí, điểm chuẩn\n- Hạn chế: Khối lượng thông tin lớn, thiếu công cụ hỏi đáp ngữ nghĩa tự nhiên" as K_TuyenSinh #FEF2F2
+
+    rectangle "**3. Mạng Xã Hội & Fanpage Facebook**\n*(facebook.com/tuyensinh.spkt)*\n- Tư vấn mùa tuyển sinh và các hoạt động\n- Hạn chế: Dễ trôi tin nhắn, cán bộ trực quá tải vào giờ cao điểm" as K_Fanpage #FEF2F2
+
+    rectangle "**4. Văn Phòng Khoa / Phòng Ban Trực Tiếp**\n*(Tòa nhà A1, Tòa nhà Trung tâm E1)*\n- Nộp đơn từ, xin xác nhận giấy tờ, đồ án môn học\n- Hạn chế: Phải xếp hàng trực tiếp, chỉ làm việc trong giờ hành chính" as K_TrucTiep #FEF2F2
+}
+
+package "CÁC BẤT CẬP VÀ ĐIỂM NGHẼN CHÍNH (SYSTEM BOTTLENECKS)" as PainPoints {
+    rectangle "**Không Có Cam Kết SLA**\nThắc mắc không biết khi nào có kết quả chính thức" as P1 #FFFBEB
+    rectangle "**Phân Mảnh Dữ Liệu**\nMỗi đơn vị sử dụng một kênh riêng biệt, sinh viên đi lại nhiều nơi" as P2 #FFFBEB
+    rectangle "**Cán Bộ Quá Tải Trả Lời Thủ Công**\nPhải giải đáp lặp lại hàng nghìn câu hỏi cơ bản mỗi kỳ" as P3 #FFFBEB
+}
+
+User --> K_DaoTao : Tra cứu đăng ký môn học
+User --> K_TuyenSinh : Xem điểm chuẩn, thông báo
+User --> K_Fanpage : Nhắn tin thắc mắc (dễ trôi tin)
+User --> K_TrucTiep : Đến trực tiếp phòng ban nộp đơn
+
+K_DaoTao ..> PainPoints : Phát sinh bất cập
+K_TuyenSinh ..> PainPoints : Phát sinh bất cập
+K_Fanpage ..> PainPoints : Phát sinh bất cập
+K_TrucTiep ..> PainPoints : Phát sinh bất cập
+@enduml

@@ -56,7 +56,24 @@ public class SlaSchedulerService {
                 String oldStatus = ticket.getStatus();
                 ticket.setStatus("OVERDUE");
 
+                Department dept = ticket.getDepartment();
+                String deptName = (dept != null) ? dept.getName() : "Khoa / Phòng ban phụ trách";
                 String dueStr = (ticket.getDueDate() != null) ? ticket.getDueDate().format(DATE_FORMATTER) : "Không xác định";
+
+                String actionNote;
+                if (ticket.getAssignedTo() == null) {
+                    // Yêu cầu OPEN chưa có ai tiếp nhận -> Gia hạn thêm 24h cho Admin can thiệp
+                    LocalDateTime extendedDueDate = now.plusHours(24);
+                    ticket.setDueDate(extendedDueDate);
+                    String newDueStr = extendedDueDate.format(DATE_FORMATTER);
+
+                    actionNote = String.format("Yêu cầu quá hạn tiếp nhận tại đơn vị [%s]. Hệ thống tự động chuyển giao quyền điều phối cho Quản trị viên (Admin) và gia hạn thêm 24 giờ (Hạn mới: %s).", deptName, newDueStr);
+                    log.warn("SLA Scheduler: Ticket #{} quá hạn tiếp nhận tại {}. Đã chuyển Admin & gia hạn đến {}", ticket.getTicketCode(), deptName, newDueStr);
+                } else {
+                    // Đã có Cán bộ tiếp nhận nhưng chưa hoàn tất
+                    String staffName = ticket.getAssignedTo().getFullName();
+                    actionNote = String.format("Cán bộ [%s] thuộc đơn vị [%s] xử lý quá thời hạn cam kết (Hạn chót: %s). Hệ thống chuyển sang trạng thái QUÁ HẠN (OVERDUE) và gửi cảnh báo tới Quản trị viên.", staffName, deptName, dueStr);
+                }
 
                 // 1. Ghi nhận nhật ký lịch sử hệ thống
                 TicketHistory history = TicketHistory.builder()
@@ -65,13 +82,13 @@ public class SlaSchedulerService {
                         .actorName("HỆ THỐNG (SLA DETECTOR)")
                         .fromStatus(oldStatus)
                         .toStatus("OVERDUE")
-                        .actionNote(String.format("Yêu cầu đã quá hạn cam kết giải quyết (Hạn chót: %s). Hệ thống tự động chuyển sang trạng thái QUÁ HẠN (OVERDUE) và gửi cảnh báo tới đơn vị.", dueStr))
+                        .actionNote(actionNote)
                         .build();
 
                 ticketRepository.save(ticket);
                 ticketHistoryRepository.save(history);
 
-                // 2. Gửi email cảnh báo SLA đến Cán bộ hoặc Trưởng Khoa/Phòng
+                // 2. Gửi email cảnh báo SLA đến Cán bộ hoặc Trưởng Khoa/Phòng/Admin
                 sendOverdueNotification(ticket);
 
                 count++;

@@ -7,82 +7,230 @@
 <div th:fragment="content">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="card p-4 shadow-sm">
+            <div class="card p-4 shadow-sm border-0">
                 <!-- Header -->
                 <div class="border-bottom pb-3 mb-3">
-                    <h4 class="fw-bold text-dark mb-1 d-flex align-items-center">
-                        <i class="bi bi-ticket-perforated text-primary me-2"></i>Tạo Yêu Cầu Tư Vấn Học Vụ
+                    <h4 class="fw-bold text-dark mb-1">
+                        Tạo Yêu Cầu Tư Vấn Học Vụ
                     </h4>
-                    <p class="small text-muted mb-0">Hệ thống phân luồng tới đúng Khoa/Phòng và cam kết thời hạn giải đáp (SLA)</p>
+                    <p class="small text-muted mb-0">Hệ thống tiếp nhận, tự động phân luồng tới đúng Khoa/Phòng ban và cam kết thời hạn giải quyết (SLA)</p>
                 </div>
 
-                <form th:action="@{/tickets/create}" method="post" enctype="multipart/form-data">
+                <form th:action="@{/tickets/create}" method="post" enctype="multipart/form-data" id="ticketForm">
                     
-                    <!-- Guest Input Section (chỉ hiển thị nếu chưa đăng nhập) -->
-                    <div sec:authorize="isAnonymous()" class="bg-light p-3 rounded mb-3 border">
-                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-badge me-1"></i>Thông Tin Người Gửi (Khách vãng lai / Thí sinh)</h6>
-                        <div class="row g-2">
-                            <div class="col-md-6">
-                                <label for="guestName" class="form-label small fw-semibold">Họ và tên của bạn <span class="text-danger">*</span></label>
-                                <input type="text" id="guestName" name="guestName" class="form-control form-control-sm" placeholder="VD: Nguyễn Văn Thí Sinh" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="guestEmail" class="form-label small fw-semibold">Email nhận kết quả giải đáp <span class="text-danger">*</span></label>
-                                <input type="email" id="guestEmail" name="guestEmail" class="form-control form-control-sm" placeholder="email_cua_ban@gmail.com" required>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Department Selection -->
                     <div class="mb-3">
-                        <label for="departmentId" class="form-label small fw-semibold">Chọn Đơn vị / Phòng ban tiếp nhận <span class="text-danger">*</span></label>
-                        <select id="departmentId" name="departmentId" class="form-select" required>
-                            <option value="" disabled selected>-- Vui lòng chọn Khoa / Phòng ban --</option>
-                            <option th:each="dept : ${departments}" th:value="${dept.id}" th:text="${dept.name} + ' (' + ${dept.officeLocation} + ')'"></option>
+                        <label for="departmentId" class="form-label small fw-semibold text-secondary">Đơn vị / Khoa / Phòng ban tiếp nhận <span class="text-danger">*</span></label>
+                        <select id="departmentId" name="departmentId" class="form-select" required onchange="onDepartmentChanged()">
+                            <option value="" disabled selected>-- Vui lòng chọn Đơn vị tiếp nhận --</option>
+                            <option th:each="dept : ${departments}" 
+                                    th:value="${dept.id}" 
+                                    th:data-name="${dept.name}"
+                                    th:data-code="${dept.code}"
+                                    th:text="${dept.name} + ' (' + ${dept.officeLocation} + ')'"></option>
                         </select>
                     </div>
 
-                    <!-- Priority Selection -->
-                    <div class="mb-3">
-                        <label for="priority" class="form-label small fw-semibold">Mức độ ưu tiên / Thời hạn xử lý</label>
-                        <select id="priority" name="priority" class="form-select">
-                            <option value="MEDIUM" selected>Bình thường - SLA 72 giờ (Hỏi đáp quy chế, học bổng, thông tin chung)</option>
-                            <option value="URGENT">Khẩn cấp - SLA 24 giờ (Sát giờ thi, hoãn thi, sự cố học phí sát hạn)</option>
-                            <option value="HIGH">Cao - SLA 48 giờ (Đăng ký môn học, xét tốt nghiệp, bảng điểm)</option>
-                            <option value="LOW">Thấp - SLA 7 ngày (Khảo sát, đóng góp ý kiến)</option>
-                        </select>
+                    <!-- Hidden Fields for Priority & Topic Category (Auto-managed) -->
+                    <input type="hidden" id="priority" name="priority" value="MEDIUM">
+                    <input type="hidden" id="topicCategory" name="topicCategory" value="">
+
+                    <!-- Topic Category Selection (Dynamic Based on Department) -->
+                    <div class="mb-3" id="topicSection" style="display: none;">
+                        <label class="form-label small fw-semibold text-secondary mb-2">
+                            Vấn đề / Chủ đề cần hỗ trợ <span class="text-danger">*</span>
+                        </label>
+                        
+                        <div id="topicOptionsContainer" class="d-flex flex-column gap-2">
+                            <!-- Injected dynamically via JS -->
+                        </div>
                     </div>
 
                     <!-- Title -->
                     <div class="mb-3">
-                        <label for="title" class="form-label small fw-semibold">Tiêu đề thắc mắc <span class="text-danger">*</span></label>
-                        <input type="text" id="title" name="title" th:value="${initialTitle}" class="form-control" placeholder="Tóm tắt ngắn gọn vấn đề (VD: Thắc mắc về việc nộp chứng chỉ tiếng Anh đầu vào)" required>
+                        <label for="title" class="form-label small fw-semibold text-secondary">Tiêu đề thắc mắc <span class="text-danger">*</span></label>
+                        <input type="text" id="title" name="title" th:value="${initialTitle}" class="form-control" placeholder="Tóm tắt ngắn gọn vấn đề cần giải đáp" required>
                     </div>
 
                     <!-- Description -->
                     <div class="mb-3">
-                        <label for="description" class="form-label small fw-semibold">Nội dung chi tiết câu hỏi <span class="text-danger">*</span></label>
-                        <textarea id="description" name="description" rows="5" class="form-control" placeholder="Vui lòng mô tả chi tiết: Mã số sinh viên, mã môn học, học kỳ, nội dung vướng mắc để Thầy/Cô hỗ trợ nhanh nhất..." required></textarea>
+                        <label for="description" class="form-label small fw-semibold text-secondary">Nội dung chi tiết câu hỏi <span class="text-danger">*</span></label>
+                        <textarea id="description" name="description" rows="5" class="form-control" placeholder="Vui lòng mô tả chi tiết: Mã số sinh viên, mã môn học, học kỳ, tình huống vướng mắc để Cán bộ hỗ trợ xử lý chính xác nhất..." required></textarea>
                     </div>
 
                     <!-- File Attachments -->
                     <div class="mb-4">
-                        <label for="files" class="form-label small fw-semibold">Tệp đính kèm minh chứng (Đơn xin, Phiếu điểm, Hình ảnh, PDF $\le 10\text{MB}$)</label>
+                        <label for="files" class="form-label small fw-semibold text-secondary">Tệp đính kèm minh chứng (Đơn xin, Phiếu điểm, Minh chứng, Tối đa 10MB/tệp)</label>
                         <input type="file" id="files" name="files" class="form-control form-control-sm" multiple>
-                        <div class="form-text small">Hỗ trợ định dạng: .pdf, .jpg, .png, .docx. Tối đa 5 tệp.</div>
+                        <div class="form-text small text-muted">Hỗ trợ định dạng: .pdf, .jpg, .png, .docx, .md, .txt. Tối đa 5 tệp.</div>
                     </div>
 
                     <!-- Actions -->
                     <div class="d-flex justify-content-between align-items-center border-top pt-3">
                         <a th:href="@{/}" class="btn btn-outline-secondary btn-sm">Quay Lại</a>
-                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
-                            <i class="bi bi-send-fill me-1"></i>Gửi Yêu Cầu Tư Vấn
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold" id="submitBtn">
+                            Gửi Yêu Cầu Tư Vấn
                         </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- Script tự động phân loại chủ đề & SLA -->
+    <script>
+        const TOPIC_TEMPLATES = {
+            DAO_TAO: [
+                {
+                    topic: 'Sự cố lịch thi, hoãn thi đột xuất, khiếu nại điểm xét tốt nghiệp',
+                    priority: 'URGENT',
+                    defaultTitle: 'Đề nghị hỗ trợ khẩn cấp: Sự cố thi cử / Lịch thi'
+                },
+                {
+                    topic: 'Đăng ký học phần, xử lý trùng lịch học, xin chuyển nhóm môn học',
+                    priority: 'HIGH',
+                    defaultTitle: 'Hỗ trợ đăng ký học phần / Điều chỉnh môn học'
+                },
+                {
+                    topic: 'Cấp bảng điểm tạm thời, giấy chứng nhận học vụ, quy chế tín chỉ',
+                    priority: 'MEDIUM',
+                    defaultTitle: 'Xin cấp bảng điểm / Giấy chứng nhận học vụ'
+                },
+                {
+                    topic: 'Đóng góp ý kiến chương trình đào tạo, câu hỏi chung về quy chế',
+                    priority: 'LOW',
+                    defaultTitle: 'Thắc mắc quy chế đào tạo / Chương trình học'
+                }
+            ],
+            CTSV_KHTC: [
+                {
+                    topic: 'Sự cố nộp học phí sát hạn, gia hạn học phí, bảo hiểm y tế cấp cứu',
+                    priority: 'URGENT',
+                    defaultTitle: 'Đề nghị hỗ trợ: Sự cố nộp học phí / Bảo hiểm y tế'
+                },
+                {
+                    topic: 'Học bổng khuyến khích, miễn giảm học phí, thủ tục vay vốn học tập',
+                    priority: 'HIGH',
+                    defaultTitle: 'Tư vấn hồ sơ Học bổng / Miễn giảm học phí'
+                },
+                {
+                    topic: 'Cấp lại thẻ sinh viên, giấy xác nhận tạm hoãn nghĩa vụ quân sự',
+                    priority: 'MEDIUM',
+                    defaultTitle: 'Xin cấp lại thẻ SV / Giấy hoãn nghĩa vụ quân sự'
+                },
+                {
+                    topic: 'Điểm rèn luyện, đăng ký hoạt động ngoại khóa, kỹ năng mềm',
+                    priority: 'LOW',
+                    defaultTitle: 'Thắc mắc điểm rèn luyện / Hoạt động ngoại khóa'
+                }
+            ],
+            FACULTY_DEFAULT: [
+                {
+                    topic: 'Sự cố khẩn cấp đồ án tốt nghiệp, phản biện khóa luận',
+                    priority: 'URGENT',
+                    defaultTitle: 'Hỗ trợ khẩn cấp: Đồ án / Khóa luận tốt nghiệp'
+                },
+                {
+                    topic: 'Đăng ký đề tài tốt nghiệp, thực tập doanh nghiệp, phân công GVHD',
+                    priority: 'HIGH',
+                    defaultTitle: 'Tư vấn Đề tài tốt nghiệp / Thực tập doanh nghiệp'
+                },
+                {
+                    topic: 'Tư vấn học phần chuyên ngành, cố vấn học tập, định hướng ngành học',
+                    priority: 'MEDIUM',
+                    defaultTitle: 'Tư vấn học phần chuyên ngành / Cố vấn học tập'
+                },
+                {
+                    topic: 'Thắc mắc chuyên môn khác và giải đáp nội bộ Khoa',
+                    priority: 'LOW',
+                    defaultTitle: 'Câu hỏi chuyên môn Khoa'
+                }
+            ]
+        };
+
+        function onDepartmentChanged() {
+            const select = document.getElementById('departmentId');
+            const selectedOption = select.options[select.selectedIndex];
+            if (!selectedOption || !selectedOption.value) return;
+
+            const deptName = (selectedOption.getAttribute('data-name') || selectedOption.text || '').toLowerCase();
+            const deptCode = (selectedOption.getAttribute('data-code') || '').toLowerCase();
+
+            let topics = TOPIC_TEMPLATES.FACULTY_DEFAULT;
+            if (deptName.includes('đào tạo') || deptName.includes('dao tao') || deptCode.includes('pdt') || deptCode.includes('dt')) {
+                topics = TOPIC_TEMPLATES.DAO_TAO;
+            } else if (deptName.includes('công tác sinh viên') || deptName.includes('ctsv') || deptName.includes('kế hoạch') || deptName.includes('tài chính') || deptCode.includes('ctsv') || deptCode.includes('khtc')) {
+                topics = TOPIC_TEMPLATES.CTSV_KHTC;
+            }
+
+            renderTopicOptions(topics);
+        }
+
+        function renderTopicOptions(topics) {
+            const container = document.getElementById('topicOptionsContainer');
+            const section = document.getElementById('topicSection');
+            container.innerHTML = '';
+
+            topics.forEach((item, index) => {
+                const card = document.createElement('label');
+                card.className = 'form-check p-3 rounded border bg-white d-flex align-items-center cursor-pointer topic-card';
+                card.style.cursor = 'pointer';
+                card.style.transition = 'all 0.15s ease-in-out';
+
+                const isFirst = (index === 1); // Chọn mặc định cái phổ biến (HIGH / MEDIUM)
+                
+                card.innerHTML = `
+                    <div class="d-flex align-items-center gap-2 w-100">
+                        <input class="form-check-input mt-0" type="radio" name="topicRadioOption" 
+                               value="${item.topic}" 
+                               data-priority="${item.priority}" 
+                               data-title="${item.defaultTitle}" 
+                               ${isFirst ? 'checked' : ''}
+                               onchange="onSelectTopic(this)">
+                        <span class="small fw-medium text-dark">${item.topic}</span>
+                    </div>
+                `;
+
+                container.appendChild(card);
+
+                if (isFirst) {
+                    applyTopicSelection(item.topic, item.priority, item.defaultTitle);
+                }
+            });
+
+            section.style.display = 'block';
+        }
+
+        function onSelectTopic(radio) {
+            const topic = radio.value;
+            const priority = radio.getAttribute('data-priority');
+            const defaultTitle = radio.getAttribute('data-title');
+            applyTopicSelection(topic, priority, defaultTitle);
+        }
+
+        function applyTopicSelection(topic, priority, defaultTitle) {
+            document.getElementById('priority').value = priority;
+            document.getElementById('topicCategory').value = topic;
+
+            const titleInput = document.getElementById('title');
+            if (!titleInput.value || titleInput.value.trim() === '' || titleInput.hasAttribute('data-auto-filled')) {
+                titleInput.value = defaultTitle;
+                titleInput.setAttribute('data-auto-filled', 'true');
+            }
+        }
+
+        document.getElementById('title').addEventListener('input', function() {
+            this.removeAttribute('data-auto-filled');
+        });
+
+        // Tự động kích hoạt nếu đã có sẵn đơn vị được chọn
+        document.addEventListener('DOMContentLoaded', function() {
+            const select = document.getElementById('departmentId');
+            if (select.value) {
+                onDepartmentChanged();
+            }
+        });
+    </script>
 </div>
 </body>
 </html>

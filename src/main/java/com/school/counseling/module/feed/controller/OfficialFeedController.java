@@ -1,5 +1,6 @@
 package com.school.counseling.module.feed.controller;
 
+import com.school.counseling.common.util.Constant;
 import com.school.counseling.common.util.SecurityUtils;
 import com.school.counseling.module.auth.entity.Department;
 import com.school.counseling.module.auth.entity.User;
@@ -7,22 +8,34 @@ import com.school.counseling.module.auth.repository.DepartmentRepository;
 import com.school.counseling.module.auth.repository.UserRepository;
 import com.school.counseling.module.feed.dto.CreatePostRequest;
 import com.school.counseling.module.feed.dto.PostResponseDto;
+import com.school.counseling.module.feed.entity.PostAttachment;
+import com.school.counseling.module.feed.repository.PostAttachmentRepository;
 import com.school.counseling.module.feed.service.PostService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StreamUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+@Slf4j
 @Controller
 @RequestMapping("/feed/official")
 @RequiredArgsConstructor
@@ -31,6 +44,7 @@ public class OfficialFeedController {
     private final PostService postService;
     private final DepartmentRepository departmentRepository;
     private final UserRepository userRepository;
+    private final PostAttachmentRepository postAttachmentRepository;
 
     /**
      * Bảng tin thông báo chính thức công khai (Guest, Sinh viên, Cán bộ đều xem được)
@@ -105,7 +119,7 @@ public class OfficialFeedController {
         }
 
         Long currentUserId = SecurityUtils.getCurrentUserId().orElseThrow();
-        User author = userRepository.findById(currentUserId).orElseThrow();
+        User author = userRepository.findByIdWithRoleAndDepartment(currentUserId).orElseThrow();
 
         // Chuẩn hóa danh sách tài liệu văn phòng
         List<MultipartFile> docs = (documentFiles != null) ? new java.util.ArrayList<>(documentFiles) : new java.util.ArrayList<>();
@@ -117,6 +131,60 @@ public class OfficialFeedController {
 
         redirectAttributes.addFlashAttribute("successMessage", "Đã đăng thông báo chính thức thành công!");
         return "redirect:/feed/official/" + created.getId();
+    }
+
+    /**
+     * Giao diện Chỉnh sửa bài viết thông báo
+     */
+    @GetMapping("/edit/{id}")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public String showEditForm(@PathVariable("id") Long id, Model model) {
+        PostResponseDto post = postService.getPostById(id);
+        List<Department> departments = departmentRepository.findByIsActiveTrue();
+
+        CreatePostRequest postRequest = CreatePostRequest.builder()
+                .title(post.getTitle())
+                .content(post.getContent())
+                .departmentId(post.getDepartmentId())
+                .isPinned(Boolean.TRUE.equals(post.getIsPinned()))
+                .videoEmbedUrl(post.getVideoUrl())
+                .youtubeUrl(post.getVideoUrl())
+                .build();
+
+        model.addAttribute("post", post);
+        model.addAttribute("postRequest", postRequest);
+        model.addAttribute("departments", departments);
+
+        return "feed/edit-official-post";
+    }
+
+    /**
+     * Xử lý lưu cập nhật thông báo chính thức
+     */
+    @PostMapping("/edit/{id}")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public String handleEditPost(
+            @PathVariable("id") Long id,
+            @Valid @ModelAttribute("postRequest") CreatePostRequest request,
+            BindingResult bindingResult,
+            @RequestParam(value = "videoFile", required = false) MultipartFile videoFile,
+            @RequestParam(value = "documentFiles", required = false) List<MultipartFile> documentFiles,
+            RedirectAttributes redirectAttributes,
+            Model model) {
+
+        if (bindingResult.hasErrors()) {
+            PostResponseDto post = postService.getPostById(id);
+            model.addAttribute("post", post);
+            model.addAttribute("departments", departmentRepository.findByIsActiveTrue());
+            return "feed/edit-official-post";
+        }
+
+        Long currentUserId = SecurityUtils.getCurrentUserId().orElseThrow();
+        User currentUser = userRepository.findByIdWithRoleAndDepartment(currentUserId).orElseThrow();
+
+        postService.updateOfficialPost(id, request, videoFile, documentFiles, currentUser);
+        redirectAttributes.addFlashAttribute("successMessage", "Đã cập nhật thông báo chính thức thành công!");
+        return "redirect:/feed/official/" + id;
     }
 
     /**
@@ -137,5 +205,129 @@ public class OfficialFeedController {
         }
 
         return "redirect:/feed/official";
+    }
+
+    /**
+     * Admin ghim hoặc bỏ ghim thông báo chính thức lên đầu Bảng tin
+     */
+    @PostMapping("/toggle-pin/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String togglePinOfficialPost(
+            @PathVariable("id") Long id,
+            @RequestHeader(value = "Referer", required = false) String referer,
+            RedirectAttributes redirectAttributes) {
+        try {
+            boolean isPinned = postService.togglePinPost(id);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                    isPinned ? "Đã ghim thông báo lên đầu trang thành công!" : "Đã bỏ ghim thông báo thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Không thể thay đổi trạng thái ghim: " + e.getMessage());
+        }
+        return (referer != null && !referer.isBlank()) ? "redirect:" + referer : "redirect:/feed/official";
+    }
+
+    /**
+     * Phục vụ xem trực tiếp tệp PDF đính kèm của bài viết (Inline Preview cho <iframe> và toàn màn hình)
+     */
+    @GetMapping("/attachment/{id}/view")
+    public void previewAttachment(@PathVariable("id") Long id, HttpServletRequest request, HttpServletResponse response) {
+        serveAttachmentFile(id, "inline", request, response);
+    }
+
+    /**
+     * Tải về tệp đính kèm của bài viết
+     */
+    @GetMapping("/attachment/{id}/download")
+    public void downloadAttachment(@PathVariable("id") Long id, HttpServletRequest request, HttpServletResponse response) {
+        serveAttachmentFile(id, "attachment", request, response);
+    }
+
+    private void serveAttachmentFile(Long attachmentId, String dispositionType, HttpServletRequest request, HttpServletResponse response) {
+        PostAttachment attachment = postAttachmentRepository.findById(attachmentId).orElse(null);
+        if (attachment == null) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        String fileUrl = attachment.getFileUrl();
+        if (fileUrl == null || fileUrl.isBlank()) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        // Nếu là URL online (Cloudinary / S3 / HTTP)
+        if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+            try {
+                response.sendRedirect(fileUrl);
+                return;
+            } catch (Exception e) {
+                log.error("Redirect attachment error: ", e);
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                return;
+            }
+        }
+
+        // Tệp trên hệ thống tệp cục bộ
+        File file = new File(fileUrl);
+        if (!file.exists() || !file.isFile()) {
+            String cleanName = file.getName();
+            String[] searchDirs = {
+                Constant.DIR_DOCUMENTS,
+                Constant.DIR,
+                Constant.DIR_VIDEOS,
+                Constant.DIR_IMAGES
+            };
+            boolean found = false;
+            for (String dir : searchDirs) {
+                File candidate = new File(dir, cleanName);
+                if (candidate.exists() && candidate.isFile()) {
+                    file = candidate;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                log.warn("Không tìm thấy tệp đính kèm trên đĩa: {}", fileUrl);
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+        }
+
+        String fileName = attachment.getFileName() != null ? attachment.getFileName() : file.getName();
+        String mimeType = resolveMimeType(fileName);
+
+        response.setContentType(mimeType);
+        try {
+            response.setHeader("Content-Disposition", org.springframework.http.ContentDisposition.builder(dispositionType)
+                    .filename(fileName, StandardCharsets.UTF_8)
+                    .build()
+                    .toString());
+        } catch (Exception e) {
+            String asciiFallback = fileName.replaceAll("[^\\x00-\\x7F]", "_");
+            response.setHeader("Content-Disposition", dispositionType + "; filename=\"" + asciiFallback + "\"");
+        }
+        response.setHeader("X-Frame-Options", "SAMEORIGIN");
+        response.setHeader("Accept-Ranges", "bytes");
+        response.setContentLengthLong(file.length());
+
+        try (InputStream is = new FileInputStream(file)) {
+            StreamUtils.copy(is, response.getOutputStream());
+        } catch (Exception e) {
+            log.warn("Lỗi khi truyền tệp đính kèm: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private String resolveMimeType(String fileName) {
+        if (fileName == null) return "application/octet-stream";
+        String lower = fileName.toLowerCase();
+        if (lower.endsWith(".pdf")) return "application/pdf";
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".mp4")) return "video/mp4";
+        if (lower.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        if (lower.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        return "application/octet-stream";
     }
 }

@@ -1,0 +1,56 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 12
+skinparam roundCorner 8
+skinparam arrowColor #334155
+skinparam arrowFontColor #0F172A
+
+skinparam rectangle {
+    BackgroundColor #FFFFFF
+    BorderColor #94A3B8
+    FontColor #1E293B
+}
+
+header **HCMUTE - QAUTE PORTAL** | Kiến Trúc Phòng Vệ & Tối Ưu Quota AI
+title **HÌNH 4-2: SƠ ĐỒ PHỄU CẢN TẢI 4 TẦNG VÀ PHÒNG VỆ HẠN MỨC QUOTA GEMINI API**
+
+rectangle "**100% REQUEST HỎI ĐÁP HỌC VỤ TỪ SINH VIÊN / THÍ SINH**\n(Truy vấn gửi đến endpoint /api/v1/ai/chat)" as InboundReq #EEF2FF
+
+package "TẦNG 0: CHUẨN HÓA VĂN BẢN VÀ BỘ LỌC LUẬT CỨNG (FAST REGEX & NORMALIZER)" as Tier0 {
+    rectangle "**Cấp 0: Academic Regex & Abbreviation Utils**\n- Chuẩn hóa Unicode NFC, xóa khoảng trắng thừa\n- Mở rộng từ viết tắt học vụ: ĐRL, ĐKMH, CTĐT, KLTN, BHYT...\n- Khớp Regex: Chào hỏi, hỏi giờ hành chính, vị trí phòng ban (A1-201, E1-402...)\n--\n**Độ trễ:** dưới 10ms | **Chi phí:** 0 Token / 0 API Quota\n**Tỷ lệ cản tải:** khoảng 20% Request" as L0 #FFFFFF
+}
+
+package "TẦNG 1: BỘ ĐỆM BỘ NHỚ RAM NỘI BỘ (IN-MEMORY CAFFEINE / CONCURRENTHASHMAP)" as Tier1 {
+    rectangle "**Cấp 1: Local In-Memory Cache**\n- Băm chuỗi truy vấn đã chuẩn hóa thành Cache Key\n- Trả lời tức thì câu hỏi lặp lại hoàn toàn trong phiên\n--\n**Độ trễ:** dưới 5ms | **Chi phí:** 0 Token / 0 API Quota\n**Tỷ lệ cản tải:** khoảng 30% Request lũy kế" as L1 #FFFFFF
+}
+
+package "TẦNG 2: NGÂN HÀNG FAQ LỊCH SỬ CHUẨN HÓA (VECTOR SEMANTIC SIMILARITY)" as Tier2 {
+    rectangle "**Cấp 2: Pre-computed FAQ Knowledge Base**\n- Quét độ tương đồng Cosine trên 300+ vector FAQ lưu sẵn\n- Ngưỡng chấp nhận: Cosine Similarity từ 0.85 trở lên\n- Trả lời ngay câu hỏi tương đương ngữ nghĩa mà không cần gọi LLM\n--\n**Độ trễ:** dưới 50ms | **Chi phí:** 0 Token phát sinh\n**Tỷ lệ cản tải:** khoảng 25% Request lũy kế" as L2 #FFFFFF
+}
+
+package "TẦNG 3: AI RAG ENGINE VÀ GOOGLE GEMINI 2.5 FLASH (DEEP CONTEXT RETRIEVAL)" as Tier3 {
+    rectangle "**Cấp 3: Full RAG Pipeline & Gemini API**\n- Phân tích ngữ cảnh, truy xuất Top-k Chunks công văn PDF từ Vector Store\n- Ghép Prompt chuẩn hóa kèm trích dẫn chính xác Điều / Khoản quy chế\n- Gọi Google Gemini 2.5 Flash tổng hợp lời giải đáp tự nhiên\n--\n**Độ trễ:** khoảng 1.2s đến 1.8s | **Tải thực tế tới API:** Chỉ còn khoảng 15% đến 20% tổng lượt hỏi\n**Phòng vệ hạn mức:** Rate Limiter 15 RPM, trần Token, Time-decay trọng số" as L3 #FFFFFF
+}
+
+package "CƠ CHẾ PHÒNG VỆ CỰC HẠN KHI GẶP SỰ CỐ (SAFETY FALLBACK & TICKET ESCALATION)" as Safety {
+    rectangle "**Deterministic Fallback & One-Click SLA Ticket**\n- Tự động kích hoạt khi: Mất mạng, Quota Gemini cạn (HTTP 429), lỗi mạng ngoại vi\n- Phản hồi lời xin lỗi trang nhã kèm số Hotline/văn phòng Khoa\n- Hiển thị nút bấm 'Chuyển thành Ticket hỗ trợ gửi Thầy/Cô tiếp nhận (SLA)'" as L_Fallback #FAF5FF
+}
+
+' Luồng phễu cản tải
+InboundReq --> L0 : Tiếp nhận xử lý
+
+L0 --> Tier1 : Chưa thỏa mãn luật cứng (khoảng 80% chuyển tiếp)
+L0 ..> InboundReq : [Response tức thì] Trả lời chào hỏi / Vị trí phòng ban
+
+L1 --> Tier2 : Cache Miss (khoảng 50% chuyển tiếp)
+L1 ..> InboundReq : [Response tức thì] Trả lời từ bộ nhớ Cache RAM
+
+L2 --> Tier3 : Cosine nhỏ hơn 0.85 (khoảng 20% câu phức tạp chạm tới AI)
+L2 ..> InboundReq : [Response tức thì] Trả lời từ ngân hàng FAQ chuẩn
+
+L3 ..> InboundReq : [RAG Response] Trả lời tổng hợp từ quy chế PDF
+L3 --> L_Fallback : Khi gặp sự cố HTTP 429 Quota / Timeout
+L_Fallback ..> InboundReq : Phản hồi quy chuẩn & Mở Modal chuyển thành Ticket SLA
+@enduml

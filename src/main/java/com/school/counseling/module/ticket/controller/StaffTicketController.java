@@ -55,4 +55,14 @@ public class StaffTicketController {
         TicketResponseDto response = ticketService.resolveTicket(ticketId, staffId, note);
         return ResponseEntity.ok(ApiResponse.success(response, "Đã hoàn tất giải quyết Ticket"));
     }
+
+    @GetMapping("/unread-summary")
+    public ResponseEntity<ApiResponse<Long>> getUnreadStudentRepliesCount() {
+        boolean isAdmin = SecurityUtils.getCurrentUserPrincipal()
+                .map(u -> "ROLE_ADMIN".equalsIgnoreCase(u.getRoleName()))
+                .orElse(false);
+        Long currentDeptId = isAdmin ? null : SecurityUtils.getCurrentDepartmentId().orElse(null);
+        long count = ticketService.countTicketsWithStudentReply(currentDeptId);
+        return ResponseEntity.ok(ApiResponse.success(count));
+    }
 }

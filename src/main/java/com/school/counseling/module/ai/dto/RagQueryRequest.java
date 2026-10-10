@@ -14,4 +14,6 @@ public class RagQueryRequest {
     private String question;
 
     private Long departmentId; // Tùy chọn lọc theo Khoa/Phòng
+
+    private String engine; // "DIFY" | "GEMINI" (Tùy chọn engine chỉ định)
 }

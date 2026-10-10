@@ -19,6 +19,12 @@
             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()" title="In văn bản">
                 <i class="bi bi-printer me-1"></i>In thông báo
             </button>
+            <!-- Edit Button for Staff & Admin -->
+            <div sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
+                <a th:href="@{'/feed/official/edit/' + ${post.id}}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil-square me-1"></i>Chỉnh sửa
+                </a>
+            </div>
             <!-- Delete Button for Staff & Admin -->
             <div sec:authorize="hasAnyRole('STAFF', 'ADMIN')">
                 <form th:action="@{/feed/official/delete/{id}(id=${post.id})}" method="post" class="d-inline"
@@ -38,19 +44,24 @@
         </div>
     </div>
 
-    <!-- Alert Notification -->
-    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMessage}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
 
     <!-- Post Content Card -->
     <div class="card border shadow-sm rounded-3 p-4 p-md-5 mb-4 bg-white">
         <!-- Metadata Header -->
         <div class="border-bottom pb-3 mb-4">
-            <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
-                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1" th:text="${post.departmentName != null ? post.departmentName : 'Ban Giám Hiệu'}">Phòng Ban</span>
-                <span th:if="${post.isPinned}" class="badge bg-danger text-white"><i class="bi bi-pin-fill me-1"></i>Thông báo ghim</span>
+            <div class="d-flex flex-wrap gap-2 mb-2 align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1" th:text="${post.departmentName != null ? post.departmentName : 'Ban Giám Hiệu'}">Phòng Ban</span>
+                    <span th:if="${post.isPinned}" class="badge bg-danger text-white"><i class="bi bi-pin-fill me-1"></i>Thông báo ghim</span>
+                </div>
+                <!-- Admin Toggle Pin Form -->
+                <form sec:authorize="hasRole('ADMIN')" th:action="@{/feed/official/toggle-pin/{id}(id=${post.id})}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-sm rounded-pill px-3 shadow-xs"
+                            th:classappend="${post.isPinned ? 'btn-outline-danger' : 'btn-outline-secondary'}">
+                        <i class="bi me-1" th:classappend="${post.isPinned ? 'bi-pin-fill' : 'bi-pin'}"></i>
+                        <span th:text="${post.isPinned ? 'Bỏ Ghim Tin Này' : 'Ghim Lên Đầu Trang'}">Ghim Lên Đầu Trang</span>
+                    </button>
+                </form>
             </div>
             <h3 class="fw-bold text-dark mb-2" th:text="${post.title}">Tiêu đề bài viết</h3>
             <div class="d-flex flex-wrap gap-3 text-muted small">
@@ -99,8 +110,31 @@
         </div>
 
         <!-- Post Body -->
-        <div class="article-content text-dark mb-5" style="line-height: 1.8; font-size: 15.5px; white-space: pre-line;" th:text="${post.content}">
+        <div class="article-content text-dark mb-4" style="line-height: 1.8; font-size: 15.5px; white-space: pre-line;" th:text="${post.content}">
             Nội dung thông báo chi tiết...
+        </div>
+
+        <!-- Trình đọc văn bản PDF trực tiếp (Embedded PDF Viewer) -->
+        <div th:if="${post.attachments != null}" th:each="att : ${post.attachments}">
+            <div th:if="${att.fileType == 'PDF'}" class="card border rounded-4 overflow-hidden shadow-sm my-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom">
+                    <span class="small fw-semibold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
+                        <span>Xem trực tiếp: <strong th:text="${att.fileName}">van-ban.pdf</strong></span>
+                    </span>
+                    <div class="d-flex align-items-center gap-2">
+                        <a th:href="@{/feed/official/attachment/{id}/view(id=${att.id})}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Toàn màn hình
+                        </a>
+                        <a th:href="@{/feed/official/attachment/{id}/download(id=${att.id})}" class="btn btn-sm btn-primary rounded-pill px-3">
+                            <i class="bi bi-download me-1"></i>Tải về PDF
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0" style="height: 720px; background-color: #525659;">
+                    <iframe th:src="@{/feed/official/attachment/{id}/view(id=${att.id})}" class="w-100 h-100 border-0" title="PDF Document Viewer"></iframe>
+                </div>
+            </div>
         </div>
 
         <!-- Attachments & Documents Download Section -->
@@ -121,7 +155,7 @@
                                 <small class="text-muted" th:text="${att.fileSize != null and att.fileSize > 0 ? #numbers.formatDecimal(att.fileSize / 1024.0 / 1024.0, 1, 2) + ' MB' : (att.fileType != null ? att.fileType : 'Tệp đính kèm')}">1.2 MB</small>
                             </div>
                         </div>
-                        <a th:href="${att.fileUrl}" target="_blank" class="btn btn-sm btn-primary px-3 text-nowrap">
+                        <a th:href="@{/feed/official/attachment/{id}/download(id=${att.id})}" class="btn btn-sm btn-primary px-3 text-nowrap">
                             <i class="bi bi-download me-1"></i>Tải Về
                         </a>
                     </div>

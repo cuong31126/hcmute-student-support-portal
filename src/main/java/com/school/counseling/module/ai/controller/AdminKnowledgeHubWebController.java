@@ -68,7 +68,7 @@ public class AdminKnowledgeHubWebController {
     /**
      * API kích hoạt quét và nạp hàng loạt 91 tệp PDF công văn
      */
-    @PostMapping("/batch-ingest")
+    @RequestMapping(value = "/batch-ingest", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
     public ResponseEntity<ApiResponse<BatchDocumentIngestionService.IngestionSummary>> triggerBatchIngest(
             @RequestParam(defaultValue = "D:\\HK5\\CongNghePhanMem\\tailieuAI") String rootPath
@@ -86,7 +86,7 @@ public class AdminKnowledgeHubWebController {
     /**
      * API kích hoạt chiến dịch đăng tải toàn bộ công văn quy chế lên Bảng tin sinh viên
      */
-    @PostMapping("/campaign/publish-feed")
+    @RequestMapping(value = "/campaign/publish-feed", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
     public ResponseEntity<ApiResponse<BatchDocumentIngestionService.CampaignFeedSummary>> triggerPublishFeedCampaign(
             @AuthenticationPrincipal UserDetails userDetails
@@ -105,6 +105,22 @@ public class AdminKnowledgeHubWebController {
         } catch (Exception e) {
             log.error("[Admin Knowledge Hub] Lỗi khi đăng công văn lên Bảng tin: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(ApiResponse.error("Thất bại khi đăng công văn lên Bảng tin: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * API dọn sạch toàn bộ 91 công văn và chunks đã nạp để giải phóng ổ đĩa sau khi demo
+     */
+    @RequestMapping(value = "/reset-documents", method = {RequestMethod.GET, RequestMethod.POST})
+    @ResponseBody
+    public ResponseEntity<ApiResponse<String>> resetAllDocuments() {
+        try {
+            log.info("[Admin Knowledge Hub] Yêu cầu dọn sạch toàn bộ kho công văn để giải phóng dung lượng...");
+            batchIngestionService.deleteAllRegulationDocuments();
+            return ResponseEntity.ok(ApiResponse.success("SUCCESS", "Đã dọn sạch toàn bộ công văn và giải phóng dung lượng database thành công!"));
+        } catch (Exception e) {
+            log.error("[Admin Knowledge Hub] Lỗi khi dọn dẹp kho công văn: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("Thất bại khi dọn dẹp: " + e.getMessage()));
         }
     }
 

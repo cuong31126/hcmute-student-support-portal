@@ -21,7 +21,7 @@ Yêu cầu thực hiện:
    - Trường hợp biên (Edge Cases, NullPointerException, chuỗi ký tự đặc biệt/quá dài).
 2. Lập kế hoạch kiểm thử chi tiết (Test Plan) bao gồm:
    - Danh sách Unit Test & Integration Test (Service + Controller) cần viết.
-   - Kịch bản E2E Test (Playwright) mô phỏng người dùng thực tế.
+   -
 3. CHƯA SỬA ĐỔI CODE. Hãy trình bày bảng ma trận rủi ro và khung Test Plan để tôi duyệt trước.
 
 

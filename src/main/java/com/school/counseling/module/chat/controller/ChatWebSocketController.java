@@ -10,6 +10,12 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
 
+/**
+ * @deprecated Phân hệ Chat Realtime Người-Người (WebSocket Prototype - Chưa triển khai UI).
+ * Kiến trúc chính thức sử dụng AI Chatbot Widget (REST API DeferredResult) và Module Ticket SLA.
+ * Xem chi tiết tại: docs/requirements/chat_module_and_ticketing_architecture_guide.md
+ */
+@Deprecated
 @Slf4j
 @Controller
 @RequiredArgsConstructor

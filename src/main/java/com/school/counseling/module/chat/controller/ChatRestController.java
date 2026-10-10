@@ -13,6 +13,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+/**
+ * @deprecated Phân hệ Chat Realtime Người-Người (Prototype - Chưa triển khai UI).
+ * Xem chi tiết tại: docs/requirements/chat_module_and_ticketing_architecture_guide.md
+ */
+@Deprecated
 @RestController
 @RequestMapping("/api/v1/chat")
 @RequiredArgsConstructor

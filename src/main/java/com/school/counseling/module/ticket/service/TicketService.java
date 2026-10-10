@@ -14,14 +14,20 @@ import com.school.counseling.module.chat.entity.Conversation;
 import com.school.counseling.module.chat.entity.Message;
 import com.school.counseling.module.chat.repository.AttachmentRepository;
 import com.school.counseling.module.chat.repository.ConversationRepository;
+import com.school.counseling.module.ai.service.PythonAiEngineClient;
 import com.school.counseling.module.ticket.dto.CreateTicketRequest;
 import com.school.counseling.module.ticket.dto.TicketReplyRequest;
 import com.school.counseling.module.ticket.dto.TicketResponseDto;
 import com.school.counseling.module.ticket.dto.TicketSummaryDto;
+import com.school.counseling.module.ticket.dto.TicketTriageResponseDto;
 import com.school.counseling.module.ticket.entity.Ticket;
 import com.school.counseling.module.ticket.entity.TicketHistory;
 import com.school.counseling.module.ticket.repository.TicketHistoryRepository;
 import com.school.counseling.module.ticket.repository.TicketRepository;
+import org.springframework.context.ApplicationEventPublisher;
+import com.school.counseling.module.ticket.event.TicketClaimedEvent;
+import com.school.counseling.module.ticket.event.TicketCreatedEvent;
+import com.school.counseling.module.ticket.event.TicketResolvedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,6 +52,9 @@ import java.util.stream.Collectors;
  * 2. getTicketsByDepartment: Trả về TicketSummaryDto thay vì TicketResponseDto để
  *    tránh N+1 Query (chỉ 1 SQL thay vì N*3 SQL).
  * 3. getTicketById: Dùng findByIdWithRelations (JOIN FETCH) để tương thích OSIV=false.
+ * 4. suggestTicketTriage: Tích hợp Python AI Engine tự động phân loại phòng ban & mức độ ưu tiên.
+ * 5. Event-Driven Decoupled: Sử dụng ApplicationEventPublisher bắn Domain Events khi tạo và claim vé,
+ *    xóa bỏ phụ thuộc trực tiếp với EmailAsyncService.
  */
 @Slf4j
 @Service
@@ -61,6 +70,8 @@ public class TicketService {
     private final AttachmentRepository attachmentRepository;
     private final SlaCalculatorService slaCalculatorService;
     private final IStorageService storageService;
+    private final PythonAiEngineClient pythonAiEngineClient;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ─── NHÓM TẠO / CHUYỂN ĐỔI TICKET ───────────────────────────────────────────────────
 
@@ -68,6 +79,10 @@ public class TicketService {
     public TicketResponseDto createTicket(CreateTicketRequest request, Long creatorId, List<MultipartFile> files) {
         Department department = departmentRepository.findById(request.getDepartmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Đơn vị", "id", request.getDepartmentId()));
+
+        if (department.getIsActive() != null && !department.getIsActive()) {
+            throw new IllegalArgumentException("Khoa / Đơn vị [" + department.getName() + "] hiện đang tạm dừng tiếp nhận yêu cầu hỗ trợ mới.");
+        }
 
         User creator = null;
         String guestToken = null;
@@ -78,6 +93,19 @@ public class TicketService {
         }
 
         String priority = request.getPriority() != null ? request.getPriority().toUpperCase() : "MEDIUM";
+        // AI Triage Auto-Upgrade: Tự động phát hiện nguy cơ khẩn cấp để rút ngắn SLA
+        if ("MEDIUM".equalsIgnoreCase(priority)) {
+            try {
+                TicketTriageResponseDto triage = suggestTicketTriage(request.getTitle(), request.getDescription());
+                if (triage != null && ("URGENT".equalsIgnoreCase(triage.getPriority()) || "HIGH".equalsIgnoreCase(triage.getPriority()))) {
+                    priority = triage.getPriority();
+                    log.info("AI Triage phát hiện mức độ cấp bách, tự động nâng cấp độ ưu tiên Ticket lên: {}", priority);
+                }
+            } catch (Exception e) {
+                log.debug("Không thể chạy AI Triage: {}", e.getMessage());
+            }
+        }
+
         LocalDateTime dueDate = slaCalculatorService.calculateDueDate(priority);
         String ticketCode = generateTicketCode();
 
@@ -91,6 +119,7 @@ public class TicketService {
                 .guestEmail(request.getGuestEmail())
                 .guestToken(guestToken)
                 .priority(priority)
+                .topicCategory(request.getTopicCategory())
                 .status("OPEN")
                 .dueDate(dueDate)
                 .build();
@@ -119,15 +148,117 @@ public class TicketService {
         }
 
         log.info("Tạo mới Ticket thành công: Code={}, DueDate={}", ticket.getTicketCode(), ticket.getDueDate());
+
+        // Bắn Domain Event bất đồng bộ để gửi email xác nhận mà không chặn luồng chính
+        String recipientEmail = ticket.getGuestEmail() != null ? ticket.getGuestEmail()
+                : (ticket.getCreator() != null ? ticket.getCreator().getEmail() : null);
+        String recipientName = ticket.getGuestName() != null ? ticket.getGuestName()
+                : (ticket.getCreator() != null ? ticket.getCreator().getFullName() : "Bạn");
+        String trackingUrl = (ticket.getGuestToken() != null)
+                ? "http://localhost:8080/tickets/guest-track?token=" + ticket.getGuestToken()
+                : "http://localhost:8080/tickets/detail/" + ticket.getId();
+
+        eventPublisher.publishEvent(new TicketCreatedEvent(
+                ticket.getId(),
+                ticket.getTicketCode(),
+                ticket.getTitle(),
+                ticket.getPriority() != null ? ticket.getPriority() : "MEDIUM",
+                ticket.getDueDate(),
+                recipientEmail,
+                recipientName,
+                trackingUrl
+        ));
+
         return mapToDetailDto(ticket);
     }
 
+    /**
+     * Tự động phân loại Ticket bằng AI (gợi ý Phòng ban, Mức độ ưu tiên, Cảm xúc).
+     * Gọi Python AI Engine (/ai/classify-ticket) kèm cơ chế Java Rule Fallback nếu Python tắt/lỗi.
+     */
+    public TicketTriageResponseDto suggestTicketTriage(String title, String description) {
+        String safeTitle = title != null ? title.trim() : "";
+        String safeDesc = description != null ? description.trim() : "";
+
+        // 1. Gọi Python AI Engine
+        PythonAiEngineClient.PythonTicketClassifyResponse aiRes = pythonAiEngineClient.classifyTicket(safeTitle, safeDesc);
+        if (aiRes != null && aiRes.department_code() != null) {
+            Department dept = departmentRepository.findByCode(aiRes.department_code())
+                    .orElseGet(() -> departmentRepository.findByCode("DAO_TAO").orElse(null));
+
+            return TicketTriageResponseDto.builder()
+                    .suggestedDepartmentId(dept != null ? dept.getId() : null)
+                    .departmentCode(dept != null ? dept.getCode() : aiRes.department_code())
+                    .departmentName(dept != null ? dept.getName() : aiRes.department_name())
+                    .priority(aiRes.priority())
+                    .sentiment(aiRes.sentiment())
+                    .confidenceScore(aiRes.confidence_score())
+                    .summary(aiRes.summary())
+                    .suggestedAction(aiRes.suggested_action())
+                    .keyIndicators(aiRes.key_indicators())
+                    .classifiedBy("PYTHON_AI_ENGINE")
+                    .build();
+        }
+
+        // 2. Cơ chế Fallback an toàn (Java Rule Engine) khi Python Engine tắt hoặc không phản hồi
+        String text = (safeTitle + " " + safeDesc).toLowerCase();
+        String deptCode = "DAO_TAO";
+        String priority = "MEDIUM";
+        String sentiment = "NEUTRAL";
+        String action = "Tiếp nhận và phản hồi theo quy định tiếp nhận giải quyết thắc mắc học vụ.";
+
+        if (text.contains("tuyển sinh") || text.contains("nhập học") || text.contains("trúng tuyển")) {
+            deptCode = "TUYEN_SINH";
+            action = "Cung cấp thông tin đề án tuyển sinh và hướng dẫn thủ tục nhập học.";
+        } else if (text.contains("cntt") || text.contains("đồ án") || text.contains("phần mềm")) {
+            deptCode = "KHOA_CNTT";
+            action = "Chuyển tiếp đến Trợ lý Giáo vụ Khoa CNTT hoặc Giảng viên hướng dẫn.";
+        } else if (text.contains("ngoại ngữ") || text.contains("toeic") || text.contains("đgnlta")) {
+            deptCode = "KHOA_NN";
+            action = "Hướng dẫn thủ tục nộp chứng chỉ ngoại ngữ hoặc xét miễn học phần.";
+        } else if (text.contains("đoàn") || text.contains("hội sinh viên") || text.contains("mùa hè xanh")) {
+            deptCode = "DOAN_HOI";
+            action = "Kiểm tra danh sách tham gia phong trào hoặc cấp giấy chứng nhận tình nguyện.";
+        }
+
+        if (text.contains("buộc thôi học") || text.contains("đình chỉ") || text.contains("khẩn cấp") || text.contains("gấp")) {
+            priority = "URGENT";
+            sentiment = "ANXIOUS";
+        } else if (text.contains("phúc khảo") || text.contains("học bổng") || text.contains("khiếu nại")) {
+            priority = "HIGH";
+        }
+
+        Department dept = departmentRepository.findByCode(deptCode)
+                .orElseGet(() -> departmentRepository.findAll().stream().findFirst().orElse(null));
+
+        return TicketTriageResponseDto.builder()
+                .suggestedDepartmentId(dept != null ? dept.getId() : null)
+                .departmentCode(dept != null ? dept.getCode() : deptCode)
+                .departmentName(dept != null ? dept.getName() : "Phòng Đào tạo & Công tác Sinh viên")
+                .priority(priority)
+                .sentiment(sentiment)
+                .confidenceScore(0.70)
+                .summary("[" + priority + "] " + safeTitle)
+                .suggestedAction(action)
+                .keyIndicators(List.of("fallback_java_rule"))
+                .classifiedBy("JAVA_RULE_FALLBACK")
+                .build();
+    }
+
+    /**
+     * @deprecated Chuyển đổi hội thoại Conversation thành Ticket (Prototype - Hiện chưa có UI gọi tới).
+     * Xem chi tiết tại: docs/requirements/chat_module_and_ticketing_architecture_guide.md
+     */
+    @Deprecated
     @Transactional
     public TicketResponseDto convertConversationToTicket(Long conversationId, CreateTicketRequest request, Long currentUserId) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cuộc hội thoại", "id", conversationId));
 
         Department department = conversation.getDepartment();
+        if (department != null && department.getIsActive() != null && !department.getIsActive()) {
+            throw new IllegalArgumentException("Khoa / Đơn vị [" + department.getName() + "] hiện đang tạm dừng tiếp nhận yêu cầu hỗ trợ mới.");
+        }
         User creator = conversation.getCreator();
         if (creator == null && currentUserId != null) {
             creator = userRepository.findById(currentUserId).orElse(null);
@@ -220,6 +351,26 @@ public class TicketService {
         saveHistory(ticket, staff, staff.getFullName(), "OPEN", "IN_PROGRESS", "Cán bộ tiếp nhận xử lý yêu cầu");
         log.info("Cán bộ ID={} đã tiếp nhận thành công Ticket Code={}", staffId, ticket.getTicketCode());
 
+        // Bắn Domain Event bất đồng bộ để gửi email thông báo cho sinh viên/khách
+        String recipientEmail = ticket.getGuestEmail() != null ? ticket.getGuestEmail()
+                : (ticket.getCreator() != null ? ticket.getCreator().getEmail() : null);
+        String recipientName = ticket.getGuestName() != null ? ticket.getGuestName()
+                : (ticket.getCreator() != null ? ticket.getCreator().getFullName() : "Bạn");
+        String trackingUrl = (ticket.getGuestToken() != null)
+                ? "http://localhost:8080/tickets/guest-track?token=" + ticket.getGuestToken()
+                : "http://localhost:8080/tickets/detail/" + ticket.getId();
+        String deptName = ticket.getDepartment() != null ? ticket.getDepartment().getName() : "Khoa/Phòng";
+
+        eventPublisher.publishEvent(new TicketClaimedEvent(
+                ticket.getId(),
+                ticket.getTicketCode(),
+                recipientEmail,
+                recipientName,
+                staff.getFullName(),
+                deptName,
+                trackingUrl
+        ));
+
         return mapToDetailDto(ticket);
     }
 
@@ -241,6 +392,19 @@ public class TicketService {
         } else if ("WAITING_STUDENT".equalsIgnoreCase(request.getNewStatus())) {
             toStatus = "WAITING_STUDENT";
             ticket.setStatus("WAITING_STUDENT");
+        }
+
+        boolean isStaff = responder != null && responder.getRole() != null &&
+                ("ROLE_STAFF".equalsIgnoreCase(responder.getRole().getName()) || "ROLE_ADMIN".equalsIgnoreCase(responder.getRole().getName()));
+
+        if (!isStaff) {
+            ticket.setHasStudentReply(true);
+            if ("WAITING_STUDENT".equalsIgnoreCase(ticket.getStatus())) {
+                toStatus = "IN_PROGRESS";
+                ticket.setStatus("IN_PROGRESS");
+            }
+        } else {
+            ticket.setHasStudentReply(false);
         }
 
         ticket = ticketRepository.save(ticket);
@@ -284,11 +448,34 @@ public class TicketService {
         saveHistory(ticket, staff, staff != null ? staff.getFullName() : "Cán bộ",
                 fromStatus, "RESOLVED", resolutionNote != null ? resolutionNote : "Đã hoàn tất giải đáp yêu cầu");
 
+        // Bắn Domain Event bất đồng bộ để gửi email thông báo kết quả giải đáp
+        String recipientEmail = ticket.getGuestEmail() != null ? ticket.getGuestEmail()
+                : (ticket.getCreator() != null ? ticket.getCreator().getEmail() : null);
+        String recipientName = ticket.getGuestName() != null ? ticket.getGuestName()
+                : (ticket.getCreator() != null ? ticket.getCreator().getFullName() : "Bạn");
+        String trackingUrl = (ticket.getGuestToken() != null)
+                ? "http://localhost:8080/tickets/guest-track?token=" + ticket.getGuestToken()
+                : "http://localhost:8080/tickets/detail/" + ticket.getId();
+
+        eventPublisher.publishEvent(new TicketResolvedEvent(
+                ticket.getId(),
+                ticket.getTicketCode(),
+                recipientEmail,
+                recipientName,
+                resolutionNote != null ? resolutionNote : "Yêu cầu đã được xử lý xong",
+                trackingUrl
+        ));
+
         return mapToDetailDto(ticket);
     }
 
     @Transactional
     public TicketResponseDto closeTicket(Long ticketId, Long userId, Integer rating) {
+        return closeTicket(ticketId, userId, rating, null);
+    }
+
+    @Transactional
+    public TicketResponseDto closeTicket(Long ticketId, Long userId, Integer rating, String feedback) {
         Ticket ticket = ticketRepository.findByIdWithRelations(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
 
@@ -302,8 +489,42 @@ public class TicketService {
         }
         ticket = ticketRepository.save(ticket);
 
+        String note = "Đóng yêu cầu (Đánh giá CSAT: " + (rating != null ? rating + " sao" : "Không") + ")";
+        if (feedback != null && !feedback.trim().isEmpty()) {
+            note += " | Góp ý: " + feedback.trim();
+        }
+
         saveHistory(ticket, user, user != null ? user.getFullName() : "Sinh viên",
-                fromStatus, "CLOSED", "Đóng yêu cầu (Đánh giá: " + (rating != null ? rating + " sao" : "Không") + ")");
+                fromStatus, "CLOSED", note);
+
+        return mapToDetailDto(ticket);
+    }
+
+    @Transactional
+    public TicketResponseDto rateTicket(Long ticketId, Long userId, Integer rating, String feedback) {
+        Ticket ticket = ticketRepository.findByIdWithRelations(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+
+        User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
+
+        if (rating != null && rating >= 1 && rating <= 5) {
+            ticket.setRating(rating);
+        }
+
+        if ("RESOLVED".equalsIgnoreCase(ticket.getStatus())) {
+            ticket.setStatus("CLOSED");
+            ticket.setClosedAt(LocalDateTime.now());
+        }
+
+        ticket = ticketRepository.save(ticket);
+
+        String note = "Sinh viên gửi đánh giá CSAT: " + (rating != null ? rating + " sao" : "Không");
+        if (feedback != null && !feedback.trim().isEmpty()) {
+            note += " | Góp ý: " + feedback.trim();
+        }
+
+        saveHistory(ticket, user, user != null ? user.getFullName() : "Sinh viên",
+                ticket.getStatus(), ticket.getStatus(), note);
 
         return mapToDetailDto(ticket);
     }
@@ -385,6 +606,24 @@ public class TicketService {
         return ticketRepository.findSummaryByCreatorId(userId);
     }
 
+    @Transactional
+    public void markStaffSeen(Long ticketId, Long staffId) {
+        ticketRepository.findById(ticketId).ifPresent(t -> {
+            if (Boolean.TRUE.equals(t.getHasStudentReply())) {
+                t.setHasStudentReply(false);
+                ticketRepository.save(t);
+            }
+        });
+    }
+
+    @Transactional(readOnly = true)
+    public long countTicketsWithStudentReply(Long departmentId) {
+        if (departmentId == null) {
+            return ticketRepository.countAllByHasStudentReplyTrue();
+        }
+        return ticketRepository.countByDepartmentIdAndHasStudentReplyTrue(departmentId);
+    }
+
     // ─── PRIVATE HELPERS ─────────────────────────────────────────────────────────────────
 
     /**
@@ -453,16 +692,7 @@ public class TicketService {
                 })
                 .map(h -> {
                     List<AttachmentDto> matchedAtts = allAttachments.stream()
-                            .filter(a -> {
-                                if (a.getTicketHistory() != null) {
-                                    return a.getTicketHistory().getId().equals(h.getId());
-                                }
-                                if (a.getCreatedAt() != null && h.getCreatedAt() != null) {
-                                    long diffSeconds = Math.abs(java.time.Duration.between(a.getCreatedAt(), h.getCreatedAt()).getSeconds());
-                                    return diffSeconds <= 15;
-                                }
-                                return false;
-                            })
+                            .filter(a -> a.getTicketHistory() != null && a.getTicketHistory().getId().equals(h.getId()))
                             .map(a -> AttachmentDto.builder()
                                     .id(a.getId())
                                     .fileName(a.getFileName())
@@ -518,6 +748,7 @@ public class TicketService {
                 .assignedStaffAvatarUrl(t.getAssignedTo() != null ? t.getAssignedTo().getAvatarUrl() : null)
                 .assignedStaffRole(t.getAssignedTo() != null && t.getAssignedTo().getRole() != null ? t.getAssignedTo().getRole().getName() : null)
                 .priority(t.getPriority())
+                .topicCategory(t.getTopicCategory())
                 .status(t.getStatus())
                 .dueDate(t.getDueDate())
                 .isOverdue(isOverdue)

@@ -80,35 +80,77 @@
     <!-- Header / Navbar -->
     <div th:replace="~{layout/navbar :: navbar}"></div>
 
+    <!-- Global Top-Right Toast Notification Container (Academic UI/UX Standard) -->
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;">
+        <!-- Success Toast -->
+        <div th:if="${successMessage}" class="toast app-toast align-items-center text-bg-success border-0 shadow-lg rounded-3 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center py-2 px-3">
+                    <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+                    <div>
+                        <strong class="d-block small">Thành công</strong>
+                        <span th:text="${successMessage}">Thao tác hoàn tất.</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+
+        <!-- Error Toast -->
+        <div th:if="${errorMessage}" class="toast app-toast align-items-center text-bg-danger border-0 shadow-lg rounded-3 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center py-2 px-3">
+                    <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                    <div>
+                        <strong class="d-block small">Lỗi thao tác</strong>
+                        <span th:text="${errorMessage}">Đã xảy ra sự cố.</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+
+        <!-- Info Toast -->
+        <div th:if="${infoMessage}" class="toast app-toast align-items-center text-bg-primary border-0 shadow-lg rounded-3 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center py-2 px-3">
+                    <i class="bi bi-info-circle-fill fs-5 me-2"></i>
+                    <div>
+                        <strong class="d-block small">Thông báo</strong>
+                        <span th:text="${infoMessage}">Thông tin hệ thống.</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content Container -->
     <main class="flex-grow-1 py-4">
         <div class="container">
-            <!-- Flash Success Message -->
-            <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <span th:text="${successMessage}"></span>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-
-            <!-- Flash Error Message -->
-            <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <span th:text="${errorMessage}"></span>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-
             <!-- Page Specific Content -->
             <div th:replace="${content}"></div>
         </div>
     </main>
 
-    <!-- Chatbot Widget -->
-    <div th:replace="~{ai/chat-widget :: chat-widget}"></div>
+    <!-- Chatbot Widget: Giới hạn nghiêm ngặt, chỉ hiển thị cho người dùng đã đăng nhập -->
+    <div sec:authorize="isAuthenticated()" th:replace="~{ai/chat-widget :: chat-widget}"></div>
 
     <!-- Footer -->
     <div th:replace="~{layout/footer :: footer}"></div>
 
     <!-- Bootstrap 5.3 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Global Toast Auto-show Script (Academic UI/UX) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toasts = document.querySelectorAll('.app-toast');
+            toasts.forEach(function(toastEl) {
+                var toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+                toast.show();
+            });
+        });
+    </script>
 </body>
 </html>

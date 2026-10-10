@@ -23,6 +23,7 @@ spring:
       enabled: true
       max-file-size: 100MB
       max-request-size: 105MB
+      file-size-threshold: 2MB
 
   # Cấu hình Database (Hỗ trợ MySQL mặc định và profile SQL Server)
   datasource:
@@ -89,14 +90,27 @@ app:
   gemini:
     api-key: ${GEMINI_API_KEY:demo_key}
     embedding-model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}
-    chat-model: ${GEMINI_CHAT_MODEL:gemini-1.5-flash}
-    secondary-chat-model: ${GEMINI_SECONDARY_CHAT_MODEL:gemini-2.0-flash}
+    chat-model: ${GEMINI_CHAT_MODEL:gemini-2.5-flash}
+    secondary-chat-model: ${GEMINI_SECONDARY_CHAT_MODEL:gemini-2.5-flash}
+
+  # ─── Cloud Dify AI Engine (Ưu tiên số 1 - Demo) ──────────────────────────
+  dify:
+    enabled: ${DIFY_ENABLED:true} # Đã bật sẵn sàng để gọi Dify khi chọn mode DIFY
+    base-url: ${DIFY_BASE_URL:https://api.dify.ai/v1}
+    api-key: ${DIFY_API_KEY:app-Ku5Tbg0u2r7AD6ev5P6sQmlk}
+    connect-timeout-ms: ${DIFY_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${DIFY_READ_TIMEOUT_MS:6000} # Quá 6s coi như nghẽn -> Tự động Fallback
 
   # ─── Python AI Engine (RAG Microservice) ────────────────────────────────────
-  # Đặt enabled=true để kích hoạt Python Engine (cổng 8001)
-  # Đặt enabled=false để dùng Java RAG (legacy mode — mặc định an toàn)
+  # Đặt enabled=true để kích hoạt Python Engine (cổng 8001) — tiến trình FastAPI RIÊNG, không phải Spring Boot
+  # Đặt enabled=false (mặc định an toàn) để dùng Java RAG + Gemini trực tiếp — không cần chạy Python
   python-ai:
-    enabled: ${PYTHON_AI_ENABLED:false}
+    enabled: ${PYTHON_AI_ENABLED:false}         # FALSE = an toàn, tránh lỗi Connection refused: getsockopt
     base-url: ${PYTHON_AI_BASE_URL:http://127.0.0.1:8001}
     connect-timeout-ms: ${PYTHON_AI_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${PYTHON_AI_READ_TIMEOUT_MS:20000}
+
+  # ─── AI Engine chung ─────────────────────────────────────────────────────────
+  ai:
+    default-engine: ${AI_DEFAULT_ENGINE:GEMINI}     # Mặc định dùng Gemini Flash
+    similarity-threshold: ${AI_SIMILARITY_THRESHOLD:0.90}  # Chỉ gọi LLM khi >= 0.90

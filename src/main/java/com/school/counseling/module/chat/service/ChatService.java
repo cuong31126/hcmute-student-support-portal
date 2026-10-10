@@ -25,6 +25,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * @deprecated Phân hệ Chat Realtime Người-Người (Prototype - Chưa triển khai UI).
+ * Lưu ý: Quản lý đính kèm trong bảng attachments hiện đang được TicketService sử dụng trực tiếp.
+ * Xem chi tiết tại: docs/requirements/chat_module_and_ticketing_architecture_guide.md
+ */
+@Deprecated
 @Slf4j
 @Service
 @RequiredArgsConstructor

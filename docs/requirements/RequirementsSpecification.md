@@ -267,3 +267,15 @@ Hệ thống sử dụng **k6 (Grafana Labs)** làm công cụ đo kiểm chịu
 | **TEST-LOAD-02** | Spike Test | 10 $\rightarrow$ 500 VUs | 10s Ramp-up | Server không sập, Cache/FAQ cản $\ge 70\%$ tải, trả HTTP 429 đúng quy chuẩn |
 | **TEST-LOAD-03** | Stress / Breakpoint | $100 \rightarrow 1.500\text{ VUs}$ | Tăng bậc thang | Xác định điểm cực hạn (Error rate $> 5\%$ hoặc CPU $100\%$) |
 | **TEST-LOAD-04** | Soak / Endurance | 100 VUs | 2 giờ | Không rò rỉ bộ nhớ (Memory Leak), Heap Memory JVM dạng răng cưa ổn định |
+
+---
+
+### 5.6. Quy Chuẩn Phòng Vệ Kiến Trúc & Chống Lỗi Hệ Thống (Architecture Guardrails)
+Mọi thiết kế module bắt buộc tuân thủ sổ tay kỹ thuật chi tiết tại:
+👉 **[docs/analysis/architecture_guardrails_and_antipatterns.md](file:///d:/HK5/LapTrinhWeb/doancuoiki/doancuoiki_demo1/docs/analysis/architecture_guardrails_and_antipatterns.md)**
+
+* **NFR-ARCH-01 (Atomic Concurrency):** Triệt tiêu Race Condition khi nhiều Cán bộ cùng tiếp nhận Ticket bằng câu lệnh Atomic UPDATE Query (`claimTicketAtomic`) cấp dòng (InnoDB Row-Level X-Lock). Cấm dùng Read-Modify-Write truyền thống.
+* **NFR-ARCH-02 (Tomcat Starvation Defense):** Bất đồng bộ hóa toàn bộ cuộc gọi LLM và gửi Email (`CompletableFuture` + ThreadPool riêng biệt `aiTaskExecutor` & `mailTaskExecutor`), giải phóng Tomcat worker threads ngay lập tức.
+* **NFR-ARCH-03 (Decoupled Event-Driven):** Giao tiếp giữa các module (Ticket $\rightarrow$ Notification/Email) phải qua Spring Domain Events (`ApplicationEventPublisher` & `@EventListener`), xóa bỏ triệt để phụ thuộc vòng (Circular Dependencies).
+* **NFR-ARCH-04 (DTO & OSIV Discipline):** Tắt Open-Session-In-View (`spring.jpa.open-in-view: false`), 100% dữ liệu truyền qua Controller/View bắt buộc là DTO/Record, dùng `@EntityGraph` triệt tiêu N+1 Query.
+* **NFR-ARCH-05 (Department IDOR Defense):** Bảo vệ toàn diện các endpoint tra cứu/sửa đổi bằng SpEL `@PreAuthorize("@deptSecurity.canAccessTicket(#id)")`, ngăn chặn tuyệt đối can thiệp chéo giữa 5 Khoa/Phòng.

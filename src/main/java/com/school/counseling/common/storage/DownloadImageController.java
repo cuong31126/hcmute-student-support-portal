@@ -258,7 +258,14 @@ public class DownloadImageController {
 
     private String buildContentDisposition(String type, String originalFilename) {
         String clean = originalFilename != null ? originalFilename.replaceAll("[\"\\\\]", "") : "download";
-        String encoded = URLEncoder.encode(clean, StandardCharsets.UTF_8).replace("+", "%20");
-        return type + "; filename=\"" + clean + "\"; filename*=UTF-8''" + encoded;
+        try {
+            return org.springframework.http.ContentDisposition.builder(type)
+                    .filename(clean, StandardCharsets.UTF_8)
+                    .build()
+                    .toString();
+        } catch (Exception e) {
+            String asciiFallback = clean.replaceAll("[^\\x00-\\x7F]", "_");
+            return type + "; filename=\"" + asciiFallback + "\"";
+        }
     }
 }

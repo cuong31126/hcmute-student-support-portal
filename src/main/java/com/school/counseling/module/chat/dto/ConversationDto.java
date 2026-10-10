@@ -6,6 +6,11 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * @deprecated DTO cho phân hệ Chat Realtime Prototype.
+ * Xem chi tiết tại: docs/requirements/chat_module_and_ticketing_architecture_guide.md
+ */
+@Deprecated
 @Getter
 @Setter
 @NoArgsConstructor

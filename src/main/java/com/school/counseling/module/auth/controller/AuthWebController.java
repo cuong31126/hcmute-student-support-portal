@@ -83,4 +83,66 @@ public class AuthWebController {
         redirectAttributes.addFlashAttribute("successMessage", "Đăng ký tài khoản thành công! Vui lòng đăng nhập.");
         return "redirect:/auth/login";
     }
+
+    private final com.school.counseling.module.auth.service.OtpService otpService;
+
+    @GetMapping("/forgot-password")
+    public String forgotPasswordPage(
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "step", defaultValue = "1") int step,
+            Model model,
+            jakarta.servlet.http.HttpServletRequest request) {
+        request.getSession(true);
+        model.addAttribute("email", email);
+        model.addAttribute("step", step);
+        return "auth/forgot-password";
+    }
+
+    @PostMapping("/forgot-password/send-otp")
+    public String handleSendOtp(
+            @RequestParam("email") String email,
+            RedirectAttributes redirectAttributes) {
+
+        if (email == null || email.isBlank()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Vui lòng nhập địa chỉ email của bạn");
+            return "redirect:/auth/forgot-password?step=1";
+        }
+
+        boolean sent = otpService.generateAndSendOtpForPasswordReset(email.trim());
+        if (!sent) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Email không tồn tại trên hệ thống hoặc không thể gửi mã");
+            return "redirect:/auth/forgot-password?step=1";
+        }
+
+        redirectAttributes.addFlashAttribute("successMessage", "Mã xác thực OTP đã được gửi đến email " + email + ". Vui lòng kiểm tra hộp thư (và thư mục Spam).");
+        return "redirect:/auth/forgot-password?step=2&email=" + java.net.URLEncoder.encode(email.trim(), java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public String handleResetPassword(
+            @RequestParam("email") String email,
+            @RequestParam("otpCode") String otpCode,
+            @RequestParam("newPassword") String newPassword,
+            @RequestParam("confirmPassword") String confirmPassword,
+            RedirectAttributes redirectAttributes) {
+
+        if (!newPassword.equals(confirmPassword)) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Mật khẩu xác nhận không khớp");
+            return "redirect:/auth/forgot-password?step=2&email=" + java.net.URLEncoder.encode(email.trim(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+
+        if (newPassword.length() < 6) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Mật khẩu mới phải có ít nhất 6 ký tự");
+            return "redirect:/auth/forgot-password?step=2&email=" + java.net.URLEncoder.encode(email.trim(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+
+        boolean success = otpService.resetPasswordWithOtp(email.trim(), otpCode.trim(), newPassword);
+        if (!success) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Mã OTP không chính xác hoặc đã hết hạn (5 phút). Vui lòng thử lại!");
+            return "redirect:/auth/forgot-password?step=2&email=" + java.net.URLEncoder.encode(email.trim(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+
+        redirectAttributes.addFlashAttribute("successMessage", "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.");
+        return "redirect:/auth/login";
+    }
 }

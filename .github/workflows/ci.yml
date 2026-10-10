@@ -1,44 +1,78 @@
-name: Java Spring Boot CI/CD Pipeline
+name: CI/CD Pipeline - Build, Push Docker & Deploy to AWS EC2
 
 on:
   push:
-    branches: [ main, develop, 'feat/**', 'fix/**' ]
-  pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build:
-    name: Build & Package Spring Boot
+  build-and-push:
+    name: 🐳 Build Docker Image & Push to Docker Hub
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Kéo mã nguồn về máy ảo CI
-      - name: Checkout Source Code
+      - name: 📥 Checkout Mã Nguồn
         uses: actions/checkout@v4
 
-      # 2. Cài đặt Java 17 kèm Caching Maven (.m2) tăng tốc độ build
-      - name: Set up JDK 17 with Maven Cache
-        uses: actions/setup-java@v4
+      - name: 🔑 Đăng Nhập Docker Hub
+        uses: docker/login-action@v3
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 3. Biên dịch và Đóng gói file JAR
-      - name: Compile & Package JAR with Maven
-        run: |
-          echo "========================================="
-          echo "Bắt đầu kiểm tra và đóng gói dự án Maven..."
-          echo "========================================="
-          mvn -B clean compile test-compile package -DskipTests
-        env:
-          MAVEN_OPTS: "-Xmx1024m"
+      - name: ⚙️ Cài đặt Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # 4. Lưu trữ file Artifact JAR để tải về hoặc triển khai
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
+      - name: 📦 Build và Đẩy Docker Image lên Docker Hub
+        uses: docker/build-push-action@v5
         with:
-          name: qaute-portal-build
-          path: target/*.jar
-          if-no-files-found: ignore
-          retention-days: 7
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/qaute-portal:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: 🚀 Deploy Tự Động lên AWS EC2
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Mã Nguồn để lấy docker-compose.yml
+        uses: actions/checkout@v4
+
+      - name: 📂 Sao chép docker-compose.yml sang AWS EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/home/ubuntu/qaute-portal"
+
+      - name: ⚡ Kích hoạt Docker Compose trên AWS EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "=========================================="
+            echo "Bắt đầu cập nhật ứng dụng trên AWS EC2..."
+            echo "=========================================="
+            cd /home/ubuntu/qaute-portal
+
+            # Tạo volume mysql_data nếu chưa có
+            docker volume create mysql_data || true
+
+            # Tải image mới nhất từ Docker Hub
+            docker compose pull app
+
+            # Khởi động lại container (Zero-downtime)
+            docker compose up -d
+
+            # Dọn dẹp các images cũ để tiết kiệm dung lượng ổ cứng
+            docker image prune -f
+
+            echo "✅ DEPLOY THÀNH CÔNG LÊN AWS EC2!"

@@ -40,7 +40,7 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> success(T data) {
+    public static <T> ApiResponse<T> success(T data) { // hàm trả về thành công mặc định 
         return success(data, "Thao tác thành công");
     }
 
@@ -52,6 +52,7 @@ public class ApiResponse<T> {
                 .build();
     }
 
+    // trả về thất bại kèm ds lỗi chi tiết  
     public static <T> ApiResponse<T> error(String message, Map<String, String> errors) {
         return ApiResponse.<T>builder()
                 .success(false)

@@ -6,15 +6,6 @@
 <body>
 <div th:fragment="content">
     
-    <!-- Flash Messages -->
-    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMessage}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${errorMessage}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
 
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
@@ -45,6 +36,7 @@
                         <th>Đơn Vị Tiếp Nhận</th>
                         <th>Trạng Thái</th>
                         <th>Thời Hạn SLA</th>
+                        <th class="text-center" style="width: 140px;">Đánh Giá CSAT</th>
                         <th class="text-end">Thao Tác</th>
                     </tr>
                 </thead>
@@ -67,6 +59,24 @@
                             <span th:if="${t.isOverdue()}" class="badge bg-danger"><i class="bi bi-clock-history me-1"></i>Quá hạn</span>
                             <span th:if="${t.isDueSoon() and !t.isOverdue()}" class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Sắp đến hạn</span>
                             <span th:if="${!t.isOverdue() and !t.isDueSoon()}" class="small text-muted" th:text="${t.dueDate != null ? #temporals.format(t.dueDate, 'HH:mm dd/MM/yyyy') : 'N/A'}">Hạn chót</span>
+                        </td>
+                        <td class="text-center">
+                            <!-- Đã có điểm CSAT -->
+                            <span th:if="${t.rating != null}" class="badge bg-warning-subtle text-dark border border-warning px-2 py-1" title="Điểm hài lòng CSAT">
+                                <i class="bi bi-star-fill text-warning me-1"></i><span th:text="${t.rating} + ' / 5'">5 / 5</span>
+                            </span>
+                            <!-- Chưa đánh giá & Đã giải quyết / Đã đóng: Khuyến khích đánh giá -->
+                            <a th:if="${t.rating == null and (t.status == 'RESOLVED' or t.status == 'CLOSED')}" 
+                               th:href="@{'/tickets/detail/' + ${t.id} + '#csatSection'}" 
+                               class="btn btn-outline-warning btn-sm text-dark py-0 px-2 shadow-xs fw-semibold"
+                               style="font-size: 0.74rem;"
+                               title="Bấm để đánh giá chất lượng tư vấn">
+                                <i class="bi bi-star-fill text-warning me-1"></i>Đánh giá ngay
+                            </a>
+                            <!-- Đang trong tiến trình xử lý -->
+                            <span th:if="${t.rating == null and t.status != 'RESOLVED' and t.status != 'CLOSED'}" class="text-muted small">
+                                <em>Chưa mở</em>
+                            </span>
                         </td>
                         <td class="text-end">
                             <a th:href="@{'/tickets/detail/' + ${t.id}}" class="btn btn-outline-primary btn-sm btn-view-ticket">

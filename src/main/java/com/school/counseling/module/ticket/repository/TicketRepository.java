@@ -62,7 +62,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             d.id, d.name,
             t.status, t.priority, t.dueDate, t.createdAt,
             COALESCE(c.fullName, t.guestName),
-            a.fullName
+            a.fullName,
+            COALESCE(t.hasStudentReply, false),
+            t.rating
         )
         FROM Ticket t
         JOIN t.department d
@@ -79,7 +81,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             d.id, d.name,
             t.status, t.priority, t.dueDate, t.createdAt,
             COALESCE(c.fullName, t.guestName),
-            a.fullName
+            a.fullName,
+            COALESCE(t.hasStudentReply, false),
+            t.rating
         )
         FROM Ticket t
         JOIN t.department d
@@ -97,7 +101,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             d.id, d.name,
             t.status, t.priority, t.dueDate, t.createdAt,
             COALESCE(c.fullName, t.guestName),
-            a.fullName
+            a.fullName,
+            COALESCE(t.hasStudentReply, false),
+            t.rating
         )
         FROM Ticket t
         JOIN t.department d
@@ -114,7 +120,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             d.id, d.name,
             t.status, t.priority, t.dueDate, t.createdAt,
             COALESCE(c.fullName, t.guestName),
-            a.fullName
+            a.fullName,
+            COALESCE(t.hasStudentReply, false),
+            t.rating
         )
         FROM Ticket t
         JOIN t.department d
@@ -131,7 +139,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             d.id, d.name,
             t.status, t.priority, t.dueDate, t.createdAt,
             COALESCE(c.fullName, t.guestName),
-            a.fullName
+            a.fullName,
+            COALESCE(t.hasStudentReply, false),
+            t.rating
         )
         FROM Ticket t
         JOIN t.department d
@@ -141,6 +151,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         ORDER BY t.createdAt DESC
     """)
     List<TicketSummaryDto> findAllSummariesByStatus(@Param("status") String status);
+
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.department.id = :deptId AND t.hasStudentReply = true AND t.isDeleted = false")
+    long countByDepartmentIdAndHasStudentReplyTrue(@Param("deptId") Long deptId);
+
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.hasStudentReply = true AND t.isDeleted = false")
+    long countAllByHasStudentReplyTrue();
 
     // ─── Atomic Update: Chống Race Condition khi nhiều Cán bộ cùng nhận Ticket ───
 
@@ -285,7 +301,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             d.id, d.name,
             t.status, t.priority, t.dueDate, t.createdAt,
             COALESCE(c.fullName, t.guestName),
-            a.fullName
+            a.fullName,
+            COALESCE(t.hasStudentReply, false),
+            t.rating
         )
         FROM Ticket t
         JOIN t.department d

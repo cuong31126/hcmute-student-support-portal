@@ -4,7 +4,6 @@ import com.school.counseling.common.exception.TicketAlreadyClaimedException;
 import com.school.counseling.common.util.SecurityUtils;
 import com.school.counseling.module.auth.entity.Department;
 import com.school.counseling.module.auth.repository.DepartmentRepository;
-import com.school.counseling.module.notification.service.EmailAsyncService;
 import com.school.counseling.module.ticket.dto.TicketResponseDto;
 import com.school.counseling.module.ticket.dto.TicketSummaryDto;
 import com.school.counseling.module.ticket.service.TicketService;
@@ -25,7 +24,6 @@ public class StaffTicketWebController {
 
     private final TicketService ticketService;
     private final DepartmentRepository departmentRepository;
-    private final EmailAsyncService emailAsyncService;
 
     @GetMapping
     @PreAuthorize("#departmentId == null or @deptSecurity.canAccessDepartment(#departmentId)")
@@ -74,6 +72,11 @@ public class StaffTicketWebController {
         long countInProgress = allTickets.stream().filter(t -> "IN_PROGRESS".equalsIgnoreCase(t.getStatus())).count();
         long countOverdue    = allTickets.stream().filter(TicketSummaryDto::isOverdue).count();
         long countResolved   = allTickets.stream().filter(t -> "RESOLVED".equalsIgnoreCase(t.getStatus()) || "CLOSED".equalsIgnoreCase(t.getStatus())).count();
+        long countNewReplies = allTickets.stream().filter(TicketSummaryDto::getHasStudentReply).count();
+
+        if ("NEW_REPLY".equalsIgnoreCase(status)) {
+            filteredTickets = allTickets.stream().filter(TicketSummaryDto::getHasStudentReply).toList();
+        }
 
         model.addAttribute("currentDepartment", dept);
         model.addAttribute("tickets", filteredTickets);
@@ -82,6 +85,7 @@ public class StaffTicketWebController {
         model.addAttribute("countInProgress", countInProgress);
         model.addAttribute("countOverdue", countOverdue);
         model.addAttribute("countResolved", countResolved);
+        model.addAttribute("countNewReplies", countNewReplies);
 
         return "ticket/staff-dashboard";
     }
@@ -92,19 +96,6 @@ public class StaffTicketWebController {
         Long staffId = SecurityUtils.getCurrentUserId().orElse(null);
         try {
             TicketResponseDto ticket = ticketService.claimTicket(ticketId, staffId);
-
-            String recipientEmail = ticket.getGuestEmail();
-            String recipientName = ticket.getGuestName() != null ? ticket.getGuestName() : ticket.getCreatorName();
-            String staffName = SecurityUtils.getCurrentUserPrincipal().map(u -> u.getFullName()).orElse("Cán bộ tư vấn");
-            String trackingUrl = (ticket.getGuestToken() != null)
-                    ? "http://localhost:8080/tickets/guest-track?token=" + ticket.getGuestToken()
-                    : "http://localhost:8080/tickets/detail/" + ticket.getId();
-
-            if (recipientEmail != null) {
-                emailAsyncService.sendTicketClaimedEmail(
-                        recipientEmail, recipientName, ticket.getTicketCode(), staffName,
-                        ticket.getDepartmentName(), trackingUrl);
-            }
 
             redirectAttributes.addFlashAttribute("successMessage",
                     "Bạn đã tiếp nhận xử lý yêu cầu #" + ticket.getTicketCode());
@@ -126,17 +117,6 @@ public class StaffTicketWebController {
 
         Long staffId = SecurityUtils.getCurrentUserId().orElse(null);
         TicketResponseDto ticket = ticketService.resolveTicket(ticketId, staffId, note);
-
-        // Gửi email kết quả giải đáp
-        String recipientEmail = ticket.getGuestEmail();
-        String recipientName = ticket.getGuestName() != null ? ticket.getGuestName() : ticket.getCreatorName();
-        String trackingUrl = (ticket.getGuestToken() != null)
-                ? "http://localhost:8080/tickets/guest-track?token=" + ticket.getGuestToken()
-                : "http://localhost:8080/tickets/detail/" + ticket.getId();
-
-        if (recipientEmail != null) {
-            emailAsyncService.sendTicketResolvedEmail(recipientEmail, recipientName, ticket.getTicketCode(), note, trackingUrl);
-        }
 
         redirectAttributes.addFlashAttribute("successMessage", "Đã đánh dấu hoàn tất yêu cầu #" + ticket.getTicketCode());
         return "redirect:/tickets/detail/" + ticketId;

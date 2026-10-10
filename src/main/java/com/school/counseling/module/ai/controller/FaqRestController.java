@@ -23,4 +23,10 @@ public class FaqRestController {
         List<SmartFaqMatcherService.FaqMatchResult> results = faqMatcherService.matchQuestion(query, departmentId);
         return ResponseEntity.ok(ApiResponse.success(results, "Đối soát tri thức thành công"));
     }
+
+    @PostMapping("/reload")
+    public ResponseEntity<ApiResponse<String>> reloadFaqCache() {
+        faqMatcherService.reloadCache();
+        return ResponseEntity.ok(ApiResponse.success("Đã làm mới bộ nhớ Cache FAQ thành công!", "OK"));
+    }
 }

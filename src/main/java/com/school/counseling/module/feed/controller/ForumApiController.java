@@ -52,7 +52,7 @@ public class ForumApiController {
         }
 
         Long currentUserId = SecurityUtils.getCurrentUserId().orElseThrow();
-        User author = userRepository.findById(currentUserId).orElseThrow();
+        User author = userRepository.findByIdWithRoleAndDepartment(currentUserId).orElseThrow();
 
         PostResponseDto createdPost = postService.createForumPostDto(title.trim(), content.trim(), image, author);
 
@@ -74,7 +74,7 @@ public class ForumApiController {
             @Valid @RequestBody CreateCommentRequest request) {
 
         Long currentUserId = SecurityUtils.getCurrentUserId().orElseThrow();
-        User author = userRepository.findById(currentUserId).orElseThrow();
+        User author = userRepository.findByIdWithRoleAndDepartment(currentUserId).orElseThrow();
 
         CommentDto commentDto = postService.addCommentDto(postId, request.getContent(), request.getParentId(), author);
 

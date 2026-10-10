@@ -90,6 +90,7 @@ public class ModerationController {
         model.addAttribute("currentStatus", status);
         model.addAttribute("pendingCount", postService.countPendingPosts());
         model.addAttribute("reportCount", postService.countPendingReports());
+        model.addAttribute("resolvedReportCount", postService.countResolvedReports());
         return "moderation/reports-list";
     }
 
@@ -115,5 +116,18 @@ public class ModerationController {
 
         redirectAttributes.addFlashAttribute("successMessage", msg);
         return "redirect:/moderation/reports";
+    }
+
+    /**
+     * Khôi phục / Bỏ ẩn bài viết bị báo cáo nhầm
+     */
+    @PostMapping("/reports/{id}/unhide")
+    public String unhidePost(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+        Long currentUserId = SecurityUtils.getCurrentUserId().orElseThrow();
+        User staff = userRepository.findById(currentUserId).orElseThrow();
+
+        postService.unhidePost(id, staff);
+        redirectAttributes.addFlashAttribute("successMessage", "Đã khôi phục bài viết và cho phép hiển thị lại trên Diễn đàn!");
+        return "redirect:/moderation/reports?status=RESOLVED";
     }
 }

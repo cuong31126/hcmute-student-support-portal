@@ -21,4 +21,12 @@ public class HomeController {
         model.addAttribute("departments", departments);
         return "home";
     }
+
+    /**
+     * Chuyển hướng liên kết bài viết /posts/{id} sang Bảng tin chính thức /feed/official/{id}
+     */
+    @GetMapping("/posts/{id}")
+    public String redirectPostToOfficialFeed(@org.springframework.web.bind.annotation.PathVariable("id") Long id) {
+        return "redirect:/feed/official/" + id;
+    }
 }

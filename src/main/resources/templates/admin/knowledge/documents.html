@@ -11,6 +11,10 @@
     <!-- Toast Container góc phải -->
     <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;"></div>
 
+    <!-- CSRF Token Support -->
+    <input type="hidden" id="csrfToken" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}" th:value="${_csrf != null ? _csrf.token : ''}" />
+    <input type="hidden" id="csrfHeader" th:value="${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}" />
+
     <!-- Header Section -->
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
         <div>
@@ -29,6 +33,9 @@
             </button>
             <button id="btn-batch-ingest" class="btn btn-crimson btn-sm fw-bold shadow-xs px-3">
                 <i class="bi bi-cloud-arrow-down-fill me-1.5"></i>Quét & Nạp 91 Công Văn (Batch Ingest)
+            </button>
+            <button id="btn-reset-docs" class="btn btn-outline-danger btn-sm fw-bold shadow-xs px-3" th:if="${totalDocs > 0}">
+                <i class="bi bi-trash3-fill me-1.5"></i>Dọn Sạch Công Văn (Giải Phóng Ổ Đĩa)
             </button>
             <a th:href="@{/admin/knowledge/visualizer}" class="btn btn-outline-dark btn-sm fw-semibold">
                 <i class="bi bi-diagram-3 me-1"></i>3D Vector Space
@@ -167,6 +174,15 @@
             setTimeout(() => toastEl.remove(), 4000);
         }
 
+        function getCsrfHeaders() {
+            const token = document.getElementById('csrfToken')?.value;
+            const header = document.getElementById('csrfHeader')?.value || 'X-CSRF-TOKEN';
+            const headers = {};
+            if (token) headers[header] = token;
+            return headers;
+        }
+
+        // 1. Kích hoạt Quét & Nạp 91 Công văn
         if (btnBatch) {
             btnBatch.addEventListener('click', async () => {
                 if (!confirm('Hệ thống sẽ quét toàn bộ thư mục D:\\HK5\\CongNghePhanMem\\tailieuAI (năm 2024, 2025, 2026), trích xuất văn bản và tạo vector nhúng. Bạn có chắc chắn muốn tiến hành?')) {
@@ -174,15 +190,21 @@
                 }
 
                 btnBatch.disabled = true;
-                btnBatch.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang quét và nạp vector...';
+                btnBatch.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang quét và nạp vector (vui lòng chờ)...';
 
                 try {
                     const response = await fetch('/admin/knowledge/batch-ingest', {
                         method: 'POST',
                         headers: {
+                            ...getCsrfHeaders(),
                             'Content-Type': 'application/x-www-form-urlencoded'
                         }
                     });
+
+                    if (!response.ok) {
+                        throw new Error(`Máy chủ phản hồi mã lỗi HTTP ${response.status}`);
+                    }
+
                     const res = await response.json();
 
                     if (res.success) {
@@ -194,14 +216,14 @@
                         btnBatch.innerHTML = '<i class="bi bi-cloud-arrow-down-fill me-1.5"></i>Quét & Nạp 91 Công Văn (Batch Ingest)';
                     }
                 } catch (e) {
-                    showToast('Lỗi mạng hoặc máy chủ không phản hồi: ' + e.message, false);
+                    showToast('Lỗi khi nạp công văn: ' + e.message, false);
                     btnBatch.disabled = false;
                     btnBatch.innerHTML = '<i class="bi bi-cloud-arrow-down-fill me-1.5"></i>Quét & Nạp 91 Công Văn (Batch Ingest)';
                 }
             });
         }
 
-        // Kích hoạt Chiến dịch Đăng 91 Công văn lên Bảng tin
+        // 2. Kích hoạt Chiến dịch Đăng 91 Công văn lên Bảng tin
         const btnFeed = document.getElementById('btn-publish-feed');
         if (btnFeed) {
             btnFeed.addEventListener('click', async function () {
@@ -214,8 +236,16 @@
 
                 try {
                     const response = await fetch('/admin/knowledge/campaign/publish-feed', {
-                        method: 'POST'
+                        method: 'POST',
+                        headers: {
+                            ...getCsrfHeaders()
+                        }
                     });
+
+                    if (!response.ok) {
+                        throw new Error(`Máy chủ phản hồi mã lỗi HTTP ${response.status}`);
+                    }
+
                     const res = await response.json();
 
                     if (res.success) {
@@ -230,6 +260,47 @@
                     showToast('Lỗi kết nối: ' + e.message, false);
                     btnFeed.disabled = false;
                     btnFeed.innerHTML = '<i class="bi bi-megaphone-fill me-1.5"></i>Đăng 91 Công Văn Lên Bảng Tin';
+                }
+            });
+        }
+
+        // 3. Kích hoạt Dọn Sạch Công Văn (Giải Phóng Ổ Đĩa)
+        const btnReset = document.getElementById('btn-reset-docs');
+        if (btnReset) {
+            btnReset.addEventListener('click', async function () {
+                if (!confirm('Hành động này sẽ xóa toàn bộ 91 công văn PDF và các vector chunk liên quan khỏi Database để giải phóng dung lượng ổ đĩa. Dữ liệu FAQ và Người dùng vẫn được giữ nguyên. Bạn có chắc chắn muốn dọn sạch?')) {
+                    return;
+                }
+
+                btnReset.disabled = true;
+                btnReset.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang dọn sạch...';
+
+                try {
+                    const response = await fetch('/admin/knowledge/reset-documents', {
+                        method: 'POST',
+                        headers: {
+                            ...getCsrfHeaders()
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Máy chủ phản hồi mã lỗi HTTP ${response.status}`);
+                    }
+
+                    const res = await response.json();
+
+                    if (res.success) {
+                        showToast(res.message || 'Đã dọn sạch công văn và giải phóng dung lượng thành công!', true);
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast(res.message || 'Lỗi khi dọn dẹp', false);
+                        btnReset.disabled = false;
+                        btnReset.innerHTML = '<i class="bi bi-trash3-fill me-1.5"></i>Dọn Sạch Công Văn (Giải Phóng Ổ Đĩa)';
+                    }
+                } catch (e) {
+                    showToast('Lỗi kết nối: ' + e.message, false);
+                    btnReset.disabled = false;
+                    btnReset.innerHTML = '<i class="bi bi-trash3-fill me-1.5"></i>Dọn Sạch Công Văn (Giải Phóng Ổ Đĩa)';
                 }
             });
         }

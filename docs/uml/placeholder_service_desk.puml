@@ -1,0 +1,83 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 12
+skinparam roundCorner 8
+skinparam arrowColor #334155
+skinparam arrowFontColor #1E293B
+
+skinparam rectangle {
+    BackgroundColor #FFFFFF
+    BorderColor #94A3B8
+    FontColor #1E293B
+}
+
+header **HCMUTE - QAUTE PORTAL** | Kiến Trúc Mô Hình Service Desk Chuẩn
+title **HÌNH 2-2: MÔ HÌNH ONE-STOP STUDENT PORTAL VÀ HỆ THỐNG SERVICE DESK HỌC VỤ TIÊU CHUẨN (ITIL V4)**
+
+package "TẦNG NGƯỜI SỬ DỤNG (MULTI-CHANNEL CONSUMERS)" {
+    rectangle "**Sinh Viên Chính Quy**\nTra cứu quy chế, nộp Ticket, theo dõi tiến độ" as Student #EFF6FF
+    rectangle "**Thí Sinh và Phụ Huynh (Guest)**\nHỏi đáp tuyển sinh, gửi yêu cầu qua Email" as Guest #FDF2F8
+    rectangle "**Cựu Sinh Viên / Doanh Nghiệp**\nThủ tục chứng nhận hồ sơ, giới thiệu việc làm" as Alumni #F0FDF4
+}
+
+package "CỔNG MỘT CỬA TẬP TRUNG (ONE-STOP PORTAL - SINGLE POINT OF CONTACT)" {
+    rectangle "**Cổng Học Vụ Trực Tuyến Duy Nhất (Single Point of Contact - SPOC)**\n- Bảng tin thông báo chính thống và Biểu mẫu trực tuyến\n- Trợ lý AI Widget thông minh nổi góc phải màn hình\n- Cổng nộp đơn từ và Tra cứu tiến độ xử lý Ticket qua mã tra cứu" as Portal #FEF2F2
+}
+
+package "HỆ THỐNG SERVICE DESK PHÂN TẦNG TIÊU CHUẨN (TIERED SERVICE ARCHITECTURE)" {
+    
+    package "TIER 0: TỰ PHỤC VỤ THÔNG MINH (SELF-SERVICE & AI RAG)" as Tier0 {
+        rectangle "**AI RAG Dual-Engine và FAQ Hub**\n- Đọc hiểu PDF quy chế đào tạo, chuẩn đầu ra, điểm chuẩn\n- Phản hồi tức thì (dưới 50ms đến 1.5s)\n- Tự động hóa giải quyết khoảng 70% thắc mắc thường gặp" as AI_Self #FFFFFF
+    }
+
+    package "TIER 1: TIẾP NHẬN VÀ ĐIỀU PHỐI TỰ ĐỘNG (SERVICE DISPATCHER & SLA ENGINE)" as Tier1 {
+        rectangle "**Động Cơ Định Tuyến và Giám Sát SLA**\n- Cấp mã số Ticket duy nhất (TK-YYYYMMDD-XXXXXX)\n- Phân loại chính xác theo Khoa/Phòng (department_id)\n- Gán thời hạn cam kết SLA (URGENT 24h, MEDIUM 72h, LOW 7d)" as SLA_Engine #E0F2FE
+    }
+
+    package "TIER 2: CÁN BỘ CHUYÊN TRÁCH CÁC KHOA / PHÒNG BAN (SUBJECT MATTER EXPERTS)" as Tier2 {
+        rectangle "**Phòng Đào Tạo**\nĐKMH, lịch thi, hoãn thi,\nphúc khảo, xét tốt nghiệp" as Dept_DT #FFFBEB
+        rectangle "**Phòng Tuyển Sinh và TT**\nĐề án tuyển sinh, điểm chuẩn,\nhọc phí, xác nhận nhập học" as Dept_TS #FFFBEB
+        rectangle "**Phòng Công Tác SV**\nHọc bổng, trợ cấp XH,\nbảo hiểm, xác nhận sinh viên" as Dept_CTSV #FFFBEB
+        rectangle "**Khoa Chuyên Môn (CNTT,...)**\nĐồ án môn học, thực tập,\nkhóa luận tốt nghiệp" as Dept_Khoa #FFFBEB
+        rectangle "**Đoàn Thanh Niên - HSV**\nĐiểm rèn luyện, tình nguyện,\nhoạt động phong trào" as Dept_Doan #FFFBEB
+    }
+
+    package "TIER 3: HỘI ĐỒNG HỌC VỤ VÀ BAN LÃNH ĐẠO (ESCALATION & GOVERNANCE)" as Tier3 {
+        rectangle "**Hội Đồng Xử Lý và Ban Giám Hiệu**\n- Giải quyết khiếu nại vượt cấp, trường hợp ngoài quy chế chuẩn\n- Phê duyệt hội đồng khen thưởng, kỷ luật, bảo lưu đặc biệt" as Board #FEF2F2
+    }
+}
+
+package "VÒNG PHẢN HỒI VÀ CẢI TIẾN LIÊN TỤC (FEEDBACK & QUALITY ASSURANCE)" {
+    rectangle "**Đánh Giá Hài Lòng CSAT**\nKhảo sát 1 - 5 sao và ý kiến góp ý của SV sau khi xử lý" as CSAT #F0FDF4
+    rectangle "**Bổ Sung Kho Tri Thức (FAQ Builder)**\nChuyển đổi các giải pháp xử lý xuất sắc thành bài FAQ mới" as FAQ_Builder #F5F3FF
+    rectangle "**Báo Cáo Hiệu Năng và Tuân Thủ SLA**\nThống kê tỷ lệ xử lý đúng hạn (%) của từng Khoa/Phòng" as SLA_Report #EFF6FF
+}
+
+' Luồng kết nối
+Student --> Portal : Truy cập đa kênh
+Guest --> Portal : Truy cập đa kênh
+Alumni --> Portal : Truy cập đa kênh
+
+Portal --> AI_Self : [Tự Phục Vụ] Tra cứu biểu mẫu / Hỏi đáp AI 24/7
+AI_Self ..> Student : Phản hồi câu trả lời kèm căn cứ văn bản
+
+Portal --> SLA_Engine : [Yêu cầu thủ tục] Nộp đơn từ / Tạo Ticket
+AI_Self --> SLA_Engine : [Chuyển đổi] Khi AI không giải quyết được
+
+SLA_Engine --> Dept_DT : Phân loại theo department_id
+SLA_Engine --> Dept_TS : Phân loại theo department_id
+SLA_Engine --> Dept_CTSV : Phân loại theo department_id
+SLA_Engine --> Dept_Khoa : Phân loại theo department_id
+SLA_Engine --> Dept_Doan : Phân loại theo department_id
+
+Tier2 --> Board : Vượt thẩm quyền / Khiếu nại đặc biệt (Escalation)
+Tier2 --> Student : Giải quyết và Phản hồi kết quả chính thức qua Portal/Email
+Board --> Student : Quyết định phê duyệt đặc biệt
+
+Student --> CSAT : Đánh giá mức độ hài lòng (CSAT)
+Tier2 --> FAQ_Builder : Chuẩn hóa câu trả lời thành bài FAQ
+FAQ_Builder --> AI_Self : Nạp vào Ngân hàng FAQ / ChromaDB
+Tier1 --> SLA_Report : Dữ liệu thời gian phản hồi thực tế
+@enduml

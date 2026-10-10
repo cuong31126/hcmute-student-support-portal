@@ -1,0 +1,42 @@
+# 📋 BÁO CÁO TIẾN ĐỘ & KẾT QUẢ XỬ LÝ (TIẾN ĐỘ 11) - QAUTE PORTAL
+
+> **Mục tiêu:** Khắc phục triệt để 10 vấn đề bất cập về nghiệp vụ Ticket, Chat Realtime, Tri thức AI, Quên mật khẩu OTP qua Gmail, Phân quyền Ghim bài và Tinh gọn giao diện Diễn đàn/Bảng tin.
+
+---
+
+## 🎯 DANH SÁCH CHI TIẾT 10 VẤN ĐỀ VÀ PHƯƠNG ÁN XỬ LÝ
+
+| STT | Vấn đề / Bất cập ghi nhận | Nguyên nhân kỹ thuật | Giải pháp đã triển khai | Trạng thái |
+|---|---|---|---|:---:|
+| **vd1** | Khi Cán bộ/Admin tiếp nhận hoặc phản hồi ticket, tệp đính kèm khởi tạo bị lặp lại (duplicate 2 lần). | Hàm `mapToDto` trong `TicketService.java` áp dụng logic fallback so khớp thời gian `diffSeconds <= 15`, khiến tệp ban đầu bị tự động gắn nhầm vào các sự kiện lịch sử tiếp nhận/phản hồi. | Bỏ hoàn toàn logic `diffSeconds <= 15`. Chỉ gắn `AttachmentDto` vào `HistoryDto` khi có khóa ngoại tường minh (`a.getTicketHistory().getId().equals(h.getId())`). Tệp khởi tạo nằm riêng tại `initialAttachments`. |  **ĐÃ HOÀN TẤT** |
+| **vd2** | Khi Cán bộ/Admin đóng ticket (CLOSED), giao diện phía Sinh viên không cập nhật realtime dẫn đến SV vẫn tưởng ticket đang mở. | Cơ chế Polling JS `updateTicketMeta()` chưa can thiệp ẩn thanh dock nhập tin nhắn (`chatReplyDock`) và chưa hiển thị thanh thông báo đóng (`chatClosedNotice`) trong DOM. | Đặt ID cố định cho dock nhập tin nhắn và thông báo đóng. Trong hàm JS `updateTicketMeta()`, khi `ticketData.status === 'CLOSED'` sẽ tự động ẩn dock chat và hiện thông báo đóng ngay lập tức mà không cần reload trang. |  **ĐÃ HOÀN TẤT** |
+| **vd3** | Khi nạp tri thức vào AI (Promote FAQ), console in warning lỗi kết nối: `[PythonAI] Không thể đồng bộ chunk 'ticket_79' sang Python: I/O error on POST request`. | Phương thức bất đồng bộ `syncChunkToPythonEngineAsync()` trong `PythonAiEngineClient.java` chưa kiểm tra trạng thái sống `isHealthy()` của Python AI Engine và log ở mức `WARN`. | Thêm guard `if (!pythonAiEnabled || !isHealthy()) return;` trước khi gửi request và hạ log xuống `DEBUG` để không spam cảnh báo khi engine Python chưa khởi động. |  **ĐÃ HOÀN TẤT** |
+| **vd4** | Chưa có xác thực bảo mật OTP tài khoản. | Chưa có module tạo, quản lý và gửi mã OTP ngẫu nhiên có thời hạn bảo mật. | Xây dựng `OtpService` sinh mã 6 chữ số an toàn (thời hạn 5 phút, lưu trữ bộ nhớ thread-safe `ConcurrentHashMap`) tích hợp `EmailAsyncService`. |  **ĐÃ HOÀN TẤT** |
+| **vd5** | Khách/Sinh viên quên mật khẩu: Cần tính năng nhập email xác nhận, gửi mã OTP qua Gmail để đặt lại mật khẩu mới. | Chưa có luồng Forgot Password và giao diện 2 bước (Bước 1: Nhập email nhận OTP; Bước 2: Nhập OTP & mật khẩu mới). | 1. Tạo `OtpService.resetPasswordWithOtp(...)`.<br>2. Bổ sung `sendOtpEmail(...)` vào `EmailAsyncService`.<br>3. Thêm route `/auth/forgot-password` trong `AuthWebController`.<br>4. Tạo template `auth/forgot-password.html` và thêm link "Quên mật khẩu?" tại `auth/login.html`. |  **ĐÃ HOÀN TẤT** |
+| **vd6** | Bảng tin nhà trường bị ghim hàng loạt (toàn bộ tài liệu 2026+ bị ghim); cần bỏ ghim mặc định và chỉ cho phép Quản trị viên (ROLE_ADMIN) được ghim bài. | `BatchDocumentIngestionService` tự động đặt `isPinned = true` khi năm hiệu lực >= 2026; trang tạo thông báo cho phép mọi staff ghim. | 1. Đặt `isPinned(false)` mặc định trong `BatchDocumentIngestionService`.<br>2. Bọc switch ghim bài trong `create-official-post.html` với thẻ `sec:authorize="hasRole('ADMIN')"`. |  **ĐÃ HOÀN TẤT** |
+| **vd7** | Lỗi "Hệ thống đang gặp sự cố. Vui lòng thử lại sau hoặc liên hệ Quản trị viên" khi đăng bài thảo luận diễn đàn. | `ForumApiController` nạp `User` qua `userRepository.findById(id)` (chưa FETCH `role` và `department`), khi gọi `mapToDto` bị ném `LazyInitializationException` (do `spring.jpa.open-in-view: false`). | Đổi sang `userRepository.findByIdWithRoleAndDepartment(currentUserId)` và bổ sung `LEFT JOIN FETCH a.role` vào các câu query của `PostRepository`. |  **ĐÃ HOÀN TẤT** |
+| **vd8** | Dialog tạo bài viết thảo luận diễn đàn có các dòng thông báo rườm rà: `Theo quy định BRULE-POST-002...` và badge `Công khai toàn trường`. | Template `forum.html` có các khối alert tĩnh gây choán diện tích và làm rối mắt người dùng. | Đã loại bỏ khối badge `Công khai toàn trường` và thông báo `BRULE-POST-002` trong modal `#createPostModal`, giúp form gọn gàng, tinh tế và tập trung vào nội dung. |  **ĐÃ HOÀN TẤT** |
+| **vd9** | Không thể gửi bình luận / phản hồi trên diễn đàn sinh viên (ném lỗi 500). | `ForumApiController.addComment` cũng bị `LazyInitializationException` khi ánh xạ `CommentDto` do `author.role` chưa được FETCH trong `userRepository.findById`. | Đổi sang `userRepository.findByIdWithRoleAndDepartment(currentUserId)` trong hàm `addComment` của `ForumApiController`. |  **ĐÃ HOÀN TẤT** |
+| **vd10** | Lỗi 500 khi đăng bài bảng tin và mục Video / Tài liệu đính kèm bị trình bày rườm rà, rối mắt. | `create-official-post.html` chứa nhiều hướng dẫn dài dòng chia 2 khối lớn; `OfficialFeedController` nạp thiếu quan hệ User. | 1. Tinh gọn mục Video & Đính kèm thành 2 cột nhỏ gọn, thẩm mỹ.<br>2. Sửa `userRepository.findByIdWithRoleAndDepartment` trong `OfficialFeedController`. |  **ĐÃ HOÀN TẤT** |
+
+---
+
+## 🛠️ CÁC TỆP NGUỒN ĐÃ CHỈNH SỬA & BỔ SUNG
+
+1. **Backend Java:**
+   - [`TicketService.java`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/java/com/school/counseling/module/ticket/service/TicketService.java): Loại bỏ duplicate tệp đính kèm lịch sử ticket (vd1).
+   - [`PythonAiEngineClient.java`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/java/com/school/counseling/module/ai/service/PythonAiEngineClient.java): Kiểm tra `isHealthy()` và hạ mức log debug cho sync chunk (vd3).
+   - [`BatchDocumentIngestionService.java`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/java/com/school/counseling/module/ai/service/BatchDocumentIngestionService.java): Bỏ ghim bài viết tự động khi import văn bản (vd6).
+   - [`PostRepository.java`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/java/com/school/counseling/module/feed/repository/PostRepository.java): Bổ sung `LEFT JOIN FETCH a.role` và `a.department` cho toàn bộ query (vd7, vd9).
+   - [`ForumApiController.java`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/java/com/school/counseling/module/feed/controller/ForumApiController.java): Sử dụng `findByIdWithRoleAndDepartment` (vd7, vd9).
+   - [`OfficialFeedController.java`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/java/com/school/counseling/module/feed/controller/OfficialFeedController.java): Sử dụng `findByIdWithRoleAndDepartment` (vd10).
+   - [`EmailAsyncService.java`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/java/com/school/counseling/module/notification/service/EmailAsyncService.java): Bổ sung hàm gửi OTP bảo mật qua Gmail `sendOtpEmail` (vd4, vd5).
+   - [`OtpService.java`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/java/com/school/counseling/module/auth/service/OtpService.java): Service mới quản lý OTP và đổi mật khẩu an toàn (vd4, vd5).
+   - [`AuthWebController.java`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/java/com/school/counseling/module/auth/controller/AuthWebController.java): Bổ sung các luồng GET/POST cho `/auth/forgot-password` (vd5).
+
+2. **Frontend & Thymeleaf Templates:**
+   - [`detail.html`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/resources/templates/ticket/detail.html): Cập nhật realtime trạng thái ticket CLOSED ẩn dock chat (vd2).
+   - [`login.html`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/resources/templates/auth/login.html): Thêm liên kết "Quên mật khẩu?" điều hướng đến `/auth/forgot-password` (vd5).
+   - [`forgot-password.html`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/resources/templates/auth/forgot-password.html): Template giao diện khôi phục mật khẩu OTP 2 bước chuẩn học thuật (vd5).
+   - [`create-official-post.html`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/resources/templates/feed/create-official-post.html): Tinh gọn khu vực Video & Tài liệu, phân quyền ghim bài cho Admin (vd6, vd10).
+   - [`forum.html`](file:///d:/CauHinh_Java/workspace_sts/luyentap/doancuoiki_demo1/src/main/resources/templates/feed/forum.html): Xóa bỏ các dòng thông báo rườm rà trong modal tạo bài thảo luận (vd8).

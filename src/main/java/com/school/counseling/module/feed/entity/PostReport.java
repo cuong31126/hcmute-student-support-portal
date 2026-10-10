@@ -24,14 +24,14 @@ import java.time.LocalDateTime;
 @SQLRestriction("is_deleted = false")
 public class PostReport extends BaseEntity {
 
-    @NotNull(message = "Bài viết báo cáo không được để trống")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
+    @JoinColumn(name = "post_id", updatable = false)
+    @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
     private Post post;
 
-    @NotNull(message = "Người báo cáo không được để trống")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reporter_id", nullable = false)
+    @JoinColumn(name = "reporter_id", updatable = false)
+    @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
     private User reporter;
 
     @NotBlank(message = "Lý do báo cáo không được để trống")
@@ -49,6 +49,7 @@ public class PostReport extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "resolved_by")
+    @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
     private User resolvedBy;
 
     @Column(name = "resolved_at")

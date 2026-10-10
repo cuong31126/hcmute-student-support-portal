@@ -15,13 +15,17 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("SELECT p FROM Post p " +
            "LEFT JOIN FETCH p.department " +
-           "LEFT JOIN FETCH p.author " +
+           "LEFT JOIN FETCH p.author a " +
+           "LEFT JOIN FETCH a.role " +
+           "LEFT JOIN FETCH a.department " +
            "WHERE p.id = :id AND p.isDeleted = false")
     Optional<Post> findByIdWithDetails(@Param("id") Long id);
 
     @Query(value = "SELECT p FROM Post p " +
                    "LEFT JOIN FETCH p.department " +
-                   "LEFT JOIN FETCH p.author " +
+                   "LEFT JOIN FETCH p.author a " +
+                   "LEFT JOIN FETCH a.role " +
+                   "LEFT JOIN FETCH a.department " +
                    "WHERE p.postType = :postType AND p.status = 'APPROVED' AND p.isDeleted = false " +
                    "ORDER BY p.isPinned DESC, p.createdAt DESC",
            countQuery = "SELECT count(p) FROM Post p WHERE p.postType = :postType AND p.status = 'APPROVED' AND p.isDeleted = false")
@@ -29,7 +33,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query(value = "SELECT p FROM Post p " +
                    "LEFT JOIN FETCH p.department " +
-                   "LEFT JOIN FETCH p.author " +
+                   "LEFT JOIN FETCH p.author a " +
+                   "LEFT JOIN FETCH a.role " +
+                   "LEFT JOIN FETCH a.department " +
                    "WHERE p.postType = 'OFFICIAL_ANNOUNCEMENT' AND p.department.id = :deptId AND p.status = 'APPROVED' AND p.isDeleted = false " +
                    "ORDER BY p.isPinned DESC, p.createdAt DESC",
            countQuery = "SELECT count(p) FROM Post p WHERE p.postType = 'OFFICIAL_ANNOUNCEMENT' AND p.department.id = :deptId AND p.status = 'APPROVED' AND p.isDeleted = false")
@@ -37,7 +43,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query(value = "SELECT p FROM Post p " +
                    "LEFT JOIN FETCH p.department " +
-                   "LEFT JOIN FETCH p.author " +
+                   "LEFT JOIN FETCH p.author a " +
+                   "LEFT JOIN FETCH a.role " +
+                   "LEFT JOIN FETCH a.department " +
                    "WHERE p.postType = 'OFFICIAL_ANNOUNCEMENT' AND p.status = 'APPROVED' AND p.isDeleted = false AND " +
                    "(LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%'))) " +
                    "ORDER BY p.isPinned DESC, p.createdAt DESC",
@@ -47,7 +55,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query(value = "SELECT p FROM Post p " +
                    "LEFT JOIN FETCH p.department " +
-                   "LEFT JOIN FETCH p.author " +
+                   "LEFT JOIN FETCH p.author a " +
+                   "LEFT JOIN FETCH a.role " +
+                   "LEFT JOIN FETCH a.department " +
                    "WHERE p.status = 'PENDING_APPROVAL' AND p.isDeleted = false " +
                    "ORDER BY p.createdAt ASC",
            countQuery = "SELECT count(p) FROM Post p WHERE p.status = 'PENDING_APPROVAL' AND p.isDeleted = false")
@@ -55,7 +65,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query(value = "SELECT p FROM Post p " +
                    "LEFT JOIN FETCH p.department " +
-                   "LEFT JOIN FETCH p.author " +
+                   "LEFT JOIN FETCH p.author a " +
+                   "LEFT JOIN FETCH a.role " +
+                   "LEFT JOIN FETCH a.department " +
                    "WHERE p.postType = 'STUDENT_FORUM' AND p.status = 'APPROVED' AND p.isDeleted = false AND " +
                    "(:deptId IS NULL OR p.department.id = :deptId) AND " +
                    "(:query IS NULL OR :query = '' OR LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%'))) " +
@@ -67,7 +79,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query(value = "SELECT p FROM Post p " +
                    "LEFT JOIN FETCH p.department " +
-                   "LEFT JOIN FETCH p.author " +
+                   "LEFT JOIN FETCH p.author a " +
+                   "LEFT JOIN FETCH a.role " +
+                   "LEFT JOIN FETCH a.department " +
                    "WHERE p.author.id = :authorId AND p.isDeleted = false " +
                    "ORDER BY p.createdAt DESC",
            countQuery = "SELECT count(p) FROM Post p WHERE p.author.id = :authorId AND p.isDeleted = false")

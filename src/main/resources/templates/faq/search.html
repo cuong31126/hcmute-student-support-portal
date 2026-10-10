@@ -13,8 +13,7 @@
             class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 pb-2 border-bottom">
             <div>
                 <h4 class="fw-bold text-dark mb-1 d-flex align-items-center">
-                    <i class="bi bi-question-diamond-fill text-primary me-2"></i>Tra Cứu Câu Hỏi Thường Gặp (FAQ) lừo qi
-                    cê
+                    <i class="bi bi-question-diamond-fill text-primary me-2"></i>Tra Cứu Câu Hỏi Thường Gặp (FAQ)
                 </h4>
                 <p class="small text-muted mb-0">Hệ thống giải đáp học vụ, quy chế đào tạo, học phí và đời sống sinh
                     viên</p>
@@ -238,7 +237,11 @@
                     btnClear.classList.remove('d-none');
                     if (defaultSectionTitle) defaultSectionTitle.classList.add('d-none');
 
-                    fetch(`/api/v1/faqs/match?q=${encodeURIComponent(q)}`)
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const deptId = urlParams.get('departmentId');
+                    const deptParam = deptId ? `&departmentId=${encodeURIComponent(deptId)}` : '';
+
+                    fetch(`/api/v1/faqs/match?q=${encodeURIComponent(q)}${deptParam}`)
                         .then(res => res.json())
                         .then(data => {
                             spinner.classList.add('d-none');

@@ -25,6 +25,26 @@ public class SmartFaqMatcherService {
 
     // Bộ nhớ Cache RAM phục vụ tìm kiếm siêu tốc (< 5ms)
     private final List<FaqCacheItem> faqCache = new ArrayList<>();
+    private volatile long lastCacheCheck = 0;
+    private volatile long cachedDbCount = 0;
+
+    // Danh sách Stopwords tiếng Việt phổ biến không dùng làm từ khóa tìm kiếm đơn độc trong câu trả lời
+    private static final Set<String> STOPWORDS = Set.of(
+            "vao", "trong", "cho", "duoc", "cac", "nhung", "co", "khi", "la", "va", "thi", "o", "cua", "em", "da", "nhe", "tai", "hay", "voi", "ve", "den", "nhu", "nen"
+    );
+
+    // Bản đồ từ đồng nghĩa thuật ngữ học vụ HCMUTE
+    private static final Map<String, List<String>> ACADEMIC_SYNONYMS = Map.of(
+            "anh van", List.of("tieng anh", "ngoai ngu", "avdv", "avdr", "toeic"),
+            "tieng anh", List.of("anh van", "ngoai ngu", "avdv", "avdr", "toeic"),
+            "dau vao", List.of("avdv", "dgnlta", "xet tuyen"),
+            "dau ra", List.of("avdr", "chuan dau ra", "tot nghiep"),
+            "avdv", List.of("anh van dau vao", "tieng anh dau vao", "ngoai ngu dau vao"),
+            "avdr", List.of("anh van dau ra", "tieng anh dau ra", "toeic dau ra"),
+            "dkmh", List.of("dang ky mon hoc", "dang ky tin chi", "tin chi"),
+            "hoc phi", List.of("dong tien", "hoc phi tin chi", "bien lai"),
+            "tot nghiep", List.of("xet tot nghiep", "bang tot nghiep", "le tot nghiep")
+    );
 
     @PostConstruct
     public void initFaqKnowledgeBase() {
@@ -35,7 +55,7 @@ public class SmartFaqMatcherService {
      * Nạp toàn bộ FAQs từ Database vào RAM Cache
      */
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public void reloadCache() {
+    public synchronized void reloadCache() {
         try {
             List<Faq> faqs = faqRepository.findAllActiveWithDepartment();
             faqCache.clear();
@@ -61,33 +81,79 @@ public class SmartFaqMatcherService {
                         formattedDate
                 ));
             }
-            log.info("Nạp bộ nhớ Cache FAQ thành công: {} câu hỏi", faqCache.size());
+            cachedDbCount = faqCache.size();
+            lastCacheCheck = System.currentTimeMillis();
+            log.info("Nạp bộ nhớ Cache FAQ thành công: {} câu hỏi học vụ", faqCache.size());
         } catch (Exception e) {
             log.error("Lỗi khi nạp bộ nhớ Cache FAQ: ", e);
         }
     }
 
     /**
-     * Tìm kiếm từ khóa chính xác trong kho câu hỏi học vụ
-     * @param query Từ khóa do người dùng nhập (hỗ trợ cả tiếng Việt có dấu và không dấu)
-     * @param departmentId Đơn vị (nếu có lọc)
-     * @return Danh sách câu hỏi phù hợp nhất sắp xếp theo thời gian mới nhất (post_date DESC)
+     * Tự động kiểm tra và làm mới Cache nếu số lượng câu hỏi trong Database thay đổi (thêm mới 30 - 50 câu)
+     */
+    private void checkAndSyncCache() {
+        long now = System.currentTimeMillis();
+        // Kiểm tra sau mỗi 10 giây nếu có thao tác tìm kiếm
+        if (now - lastCacheCheck > 10_000) {
+            lastCacheCheck = now;
+            try {
+                long currentCount = faqRepository.countActive();
+                if (currentCount != cachedDbCount) {
+                    log.info("Phát hiện thay đổi số lượng FAQ (DB: {}, Cache: {}). Tự động đồng bộ lại RAM Cache...", currentCount, cachedDbCount);
+                    reloadCache();
+                }
+            } catch (Exception e) {
+                log.debug("Bỏ qua lỗi kiểm tra count FAQ: {}", e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Tìm kiếm thông minh câu hỏi học vụ theo từ khóa và từ đồng nghĩa học thuật
+     * Sắp xếp kết quả: ƯU TIÊN ĐỘ PHÙ HỢP (Relevance Score DESC) lên đầu tiên!
      */
     public List<FaqMatchResult> matchQuestion(String query, Long departmentId) {
         if (query == null || query.trim().isEmpty()) {
             return Collections.emptyList();
         }
 
+        // Tự động đồng bộ cache nếu có câu hỏi mới thêm vào DB
+        checkAndSyncCache();
+
         String normQuery = normalize(query);
         String[] rawTokens = normQuery.split("\\s+");
         List<String> queryWords = new ArrayList<>();
+        List<String> meaningfulKeywords = new ArrayList<>();
+
         for (String w : rawTokens) {
-            if (!w.trim().isEmpty() && w.length() >= 2) {
-                queryWords.add(w.trim());
+            String trimmed = w.trim();
+            if (!trimmed.isEmpty() && trimmed.length() >= 2) {
+                queryWords.add(trimmed);
+                if (!STOPWORDS.contains(trimmed)) {
+                    meaningfulKeywords.add(trimmed);
+                }
             }
         }
-        if (queryWords.isEmpty() && normQuery.length() > 0) {
-            queryWords.add(normQuery);
+        if (meaningfulKeywords.isEmpty() && !queryWords.isEmpty()) {
+            meaningfulKeywords.addAll(queryWords);
+        }
+
+        // Thu thập các cụm từ đồng nghĩa có thể xuất hiện từ câu truy vấn
+        List<String> synonymPhrases = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : ACADEMIC_SYNONYMS.entrySet()) {
+            if (normQuery.contains(entry.getKey())) {
+                synonymPhrases.addAll(entry.getValue());
+            }
+        }
+
+        // Thu thập các cụm từ ghép (Bigrams) từ câu truy vấn (Ví dụ: "anh van", "dau vao")
+        List<String> queryBigrams = new ArrayList<>();
+        for (int i = 0; i < rawTokens.length - 1; i++) {
+            String b = rawTokens[i].trim() + " " + rawTokens[i + 1].trim();
+            if (b.length() >= 5) {
+                queryBigrams.add(b);
+            }
         }
 
         List<ScoredItem> matches = new ArrayList<>();
@@ -97,58 +163,108 @@ public class SmartFaqMatcherService {
                 continue;
             }
 
-            int matchedWordCount = 0;
+            // Bổ sung khoảng trắng đầu cuối để đảm bảo khớp trọn vẹn từ (Whole-word match)
+            String paddedQuestion = " " + item.normQuestion() + " ";
+            String paddedKeywords = " " + item.normKeywords() + " ";
+            String paddedAnswer = " " + item.normAnswer() + " ";
+
             int relevanceScore = 0;
+            int matchedQuestionWords = 0;
+            int matchedAnswerWords = 0;
+            boolean hasPhraseOrBigramMatch = false;
 
-            for (String word : queryWords) {
-                boolean inQuestion = item.normQuestion().contains(word);
-                boolean inKeywords = item.normKeywords().contains(word);
-                boolean inAnswer = item.normAnswer().contains(word);
+            // 1. Khớp trọn vẹn cụm từ người dùng tìm kiếm (Full Phrase Match)
+            if (paddedQuestion.contains(" " + normQuery + " ")) {
+                relevanceScore += 160;
+                matchedQuestionWords += meaningfulKeywords.size();
+                hasPhraseOrBigramMatch = true;
+            } else if (item.normQuestion().contains(normQuery)) {
+                relevanceScore += 120;
+                matchedQuestionWords += meaningfulKeywords.size();
+                hasPhraseOrBigramMatch = true;
+            } else if (paddedAnswer.contains(" " + normQuery + " ")) {
+                relevanceScore += 45;
+                matchedAnswerWords += meaningfulKeywords.size();
+                hasPhraseOrBigramMatch = true;
+            }
 
-                if (inQuestion) {
-                    matchedWordCount++;
-                    relevanceScore += 15; // Từ khóa nằm trong câu hỏi ưu tiên cao nhất
-                } else if (inKeywords) {
-                    matchedWordCount++;
-                    relevanceScore += 10;
-                } else if (inAnswer) {
-                    matchedWordCount++;
-                    relevanceScore += 4;
+            // 2. Khớp cụm từ đồng nghĩa học vụ (Ví dụ: "anh văn đầu vào" <=> "tiếng anh đầu vào" <=> "avdv")
+            for (String syn : synonymPhrases) {
+                if (paddedQuestion.contains(" " + syn + " ") || item.normQuestion().contains(syn)) {
+                    relevanceScore += 90;
+                    matchedQuestionWords++;
+                    hasPhraseOrBigramMatch = true;
+                } else if (paddedAnswer.contains(" " + syn + " ")) {
+                    relevanceScore += 30;
+                    matchedAnswerWords++;
                 }
             }
 
-            // Nếu không có bất kỳ từ khóa nào khớp, bỏ qua
-            if (matchedWordCount == 0) {
-                continue;
+            // 3. Khớp cụm từ ghép (Bigrams) như "anh van", "dau vao", "tin chi"
+            for (String bg : queryBigrams) {
+                if (paddedQuestion.contains(" " + bg + " ") || item.normQuestion().contains(bg)) {
+                    relevanceScore += 50;
+                    matchedQuestionWords += 2;
+                    hasPhraseOrBigramMatch = true;
+                } else if (paddedAnswer.contains(" " + bg + " ")) {
+                    relevanceScore += 15;
+                    matchedAnswerWords += 2;
+                }
             }
 
-            // Điểm thưởng khi khớp cả cụm từ liên tiếp (Phrase match)
-            if (item.normQuestion().contains(normQuery)) {
-                relevanceScore += 50;
-            } else if (item.normKeywords().contains(normQuery)) {
-                relevanceScore += 30;
-            } else if (item.normAnswer().contains(normQuery)) {
-                relevanceScore += 15;
+            // 4. Khớp từng từ khóa có nghĩa theo ranh giới từ nguyên vẹn (Whole-word Boundary)
+            for (String kw : meaningfulKeywords) {
+                String paddedKw = " " + kw + " ";
+                boolean inQ = paddedQuestion.contains(paddedKw);
+                boolean inK = paddedKeywords.contains(paddedKw);
+                boolean inA = paddedAnswer.contains(paddedKw);
+
+                if (inQ) {
+                    matchedQuestionWords++;
+                    relevanceScore += 20;
+                } else if (inK) {
+                    matchedQuestionWords++;
+                    relevanceScore += 15;
+                } else if (inA) {
+                    matchedAnswerWords++;
+                    relevanceScore += 5;
+                }
             }
 
-            // Điểm thưởng nếu tất cả từ khóa tìm kiếm đều có mặt
-            if (!queryWords.isEmpty() && matchedWordCount >= queryWords.size()) {
-                relevanceScore += 25;
+            // 🛡️ BỘ LỌC CHẶN RÁC NGHIÊM NGẶT (Strict Garbage Filtering):
+            // - Với truy vấn đa từ (>= 2 từ khóa như "anh văn đầu vào"):
+            //   Câu hỏi bắt buộc phải khớp cụm từ (phrase/bigram) HOẶC khớp tối thiểu 2 từ khóa trong câu hỏi.
+            //   Triệt tiêu hoàn toàn lỗi dính 1 chữ ngẫu nhiên (ví dụ chữ 'ảnh' trong câu 'nộp sổ đoàn')!
+            if (meaningfulKeywords.size() >= 2) {
+                if (!hasPhraseOrBigramMatch && matchedQuestionWords < 2 && (matchedQuestionWords + matchedAnswerWords < 3)) {
+                    continue;
+                }
+            } else {
+                if (matchedQuestionWords == 0 && matchedAnswerWords < 2) {
+                    continue;
+                }
             }
 
-            double confidenceScore = Math.min(1.0, relevanceScore / 100.0);
+            // Điểm thưởng khi câu hỏi phủ kín đa số từ khóa tìm kiếm
+            if (!meaningfulKeywords.isEmpty() && matchedQuestionWords >= meaningfulKeywords.size()) {
+                relevanceScore += 40;
+            }
 
-            matches.add(new ScoredItem(item, relevanceScore, confidenceScore));
+            if (relevanceScore > 0) {
+                double confidenceScore = Math.min(1.0, relevanceScore / 100.0);
+                matches.add(new ScoredItem(item, relevanceScore, confidenceScore));
+            }
         }
 
-        // Sắp xếp ưu tiên thời gian gần đây nhất lên đầu (postDate DESC), sau đó đến điểm liên quan (score DESC)
+        // 🌟 BẢN VÁ QUAN TRỌNG: SẮP XẾP THEO ĐỘ PHÙ HỢP LIÊN QUAN (score DESC) LÊN ĐẦU TIÊN!
+        // Nếu cùng điểm thì mới ưu tiên câu hỏi có thời gian mới hơn (postDate DESC)
         Comparator<ScoredItem> sorter = Comparator
-                .comparing((ScoredItem s) -> s.item().postDate(), Comparator.nullsLast(Comparator.reverseOrder()))
-                .thenComparing(Comparator.comparingInt(ScoredItem::score).reversed());
+                .comparingInt(ScoredItem::score).reversed()
+                .thenComparing((ScoredItem s) -> s.item().postDate(), Comparator.nullsLast(Comparator.reverseOrder()));
 
         return matches.stream()
                 .sorted(sorter)
-                .limit(20)
+                .limit(25)
                 .map(m -> new FaqMatchResult(
                         m.item().id(),
                         m.item().question(),

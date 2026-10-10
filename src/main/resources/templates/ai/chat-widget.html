@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head></head>
-<body>
-<div th:fragment="chat-widget">
+<div th:fragment="chat-widget" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" sec:authorize="isAuthenticated()">
     <style>
         .ai-pulse-btn {
             position: fixed;
@@ -53,17 +52,27 @@
          style="position: fixed; bottom: 95px; right: 25px; width: 385px; max-width: calc(100vw - 40px); height: 520px; z-index: 1050; border-radius: 14px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.2) !important;">
         
         <!-- Header -->
-        <div class="card-header text-white d-flex align-items-center justify-content-between py-3 px-3" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);">
+        <div class="card-header text-white d-flex align-items-center justify-content-between px-3" 
+             style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding-top: 14px; padding-bottom: 12px; min-height: 60px;">
             <div class="d-flex align-items-center gap-2">
                 <div class="bg-white rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                     <i class="bi bi-robot text-crimson fs-6"></i>
                 </div>
                 <div>
-                    <h6 class="mb-0 fw-bold font-serif" style="font-size: 0.95rem;">Trợ Lý AI Học Vụ HCMUTE</h6>
-                    <small class="text-white-50" style="font-size: 11px;"><i class="bi bi-circle-fill text-success me-1" style="font-size: 8px;"></i>Trực tuyến 24/7 &bull; Trích xuất quy chế</small>
+                    <h6 class="mb-0 fw-bold font-serif" style="font-size: 0.95rem; line-height: 1.4; padding-top: 2px;">Trợ Lý AI HCMUTE</h6>
+                    <small class="text-white-50 d-block" style="font-size: 10.5px;"><i class="bi bi-circle-fill text-success me-1" style="font-size: 7px;"></i>Trực tuyến 24/7 &bull; Quy chế học vụ</small>
                 </div>
             </div>
-            <button type="button" id="btn-close-ai-chat" class="btn-close btn-close-white shadow-none" aria-label="Close"></button>
+            <div class="d-flex align-items-center gap-2">
+                <!-- Dual Engine Switcher (Dify Chatflow / Gemini Flash) -->
+                <select id="aiModelSelector" class="form-select form-select-sm py-0 px-2 text-white border-0 shadow-none" 
+                        style="background-color: rgba(255,255,255,0.18); font-size: 11px; width: auto; cursor: pointer; border-radius: 20px;" 
+                        title="Chọn mô hình AI xử lý">
+                    <option value="DIFY" selected class="text-dark">⚡ Dify Workflow</option>
+                    <option value="GEMINI" class="text-dark">✨ Gemini 2.5 Flash</option>
+                </select>
+                <button type="button" id="btn-close-ai-chat" class="btn-close btn-close-white shadow-none" aria-label="Close"></button>
+            </div>
         </div>
 
         <!-- Chat Messages Container -->
@@ -136,7 +145,10 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ question: query })
+                    body: JSON.stringify({ 
+                        question: query,
+                        engine: document.getElementById('aiModelSelector')?.value || 'DIFY'
+                    })
                 })
                 .then(res => {
                     if (!res.ok) throw new Error('Network error: ' + res.status);
@@ -184,7 +196,7 @@
                                 // Nút liên kết sang Bảng tin hoặc Thư viện văn bản
                                 let feedBtnHtml = '';
                                 if (postId) {
-                                    feedBtnHtml = `<a href="/posts/${postId}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2 fw-semibold text-decoration-none shadow-none" style="font-size: 10px; white-space: nowrap;"><i class="bi bi-newspaper me-1"></i>Xem trên Bảng tin</a>`;
+                                    feedBtnHtml = `<a href="/feed/official/${postId}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2 fw-semibold text-decoration-none shadow-none" style="font-size: 10px; white-space: nowrap;"><i class="bi bi-newspaper me-1"></i>Xem trên Bảng tin</a>`;
                                 } else if (docId) {
                                     feedBtnHtml = `<a href="/admin/knowledge/documents" target="_blank" class="btn btn-xs btn-outline-secondary py-0 px-2 fw-semibold text-decoration-none shadow-none" style="font-size: 10px; white-space: nowrap;"><i class="bi bi-archive me-1"></i>Thư viện</a>`;
                                 }
@@ -246,11 +258,29 @@
                             `;
                         }
 
-                        // BR-08: Badge cho biết câu trả lời từ LLM hay fallback raw context
-                        if (!ragData.llmGenerated) {
+                        // Phân biệt chính xác giữa: Golden Truth (chuẩn 100%), Dify AI, Gemini AI, và Fallback
+                        if (ragData.confidenceScore >= 0.99) {
+                            answerHtml += `
+                                <div class="mt-1" style="font-size: 10px; color: #16a34a;">
+                                    <i class="bi bi-patch-check-fill me-1"></i><strong>Cơ sở tri thức chuẩn HCMUTE (Xác thực 100%)</strong>
+                                </div>
+                            `;
+                        } else if (ragData.primarySourceType === 'DIFY_AI' || (selectedEngine === 'DIFY' && ragData.llmGenerated)) {
+                            answerHtml += `
+                                <div class="mt-1" style="font-size: 10px; color: #4338ca;">
+                                    <i class="bi bi-lightning-charge-fill text-warning me-1"></i><strong>Tổng hợp bởi Dify Workflow AI</strong>
+                                </div>
+                            `;
+                        } else if (ragData.llmGenerated) {
+                            answerHtml += `
+                                <div class="mt-1" style="font-size: 10px; color: #2563eb;">
+                                    <i class="bi bi-stars me-1"></i><strong>Tổng hợp thông minh bởi Gemini 2.5 Flash</strong>
+                                </div>
+                            `;
+                        } else {
                             answerHtml += `
                                 <div class="mt-1" style="font-size: 10px; color: #6b7280;">
-                                    <i class="bi bi-cpu me-1"></i><em>Trích xuất trực tiếp từ công văn (AI đang bận)</em>
+                                    <i class="bi bi-file-earmark-text me-1"></i><em>Trích xuất trực tiếp từ công văn quy chế</em>
                                 </div>
                             `;
                         }
@@ -284,7 +314,10 @@
             function formatAiResponse(text) {
                 if (!text) return '';
                 // Bỏ câu cảnh báo trùng nếu Gemini đã đính kèm text tương tự ở đầu
-                let cleaned = text.replace(/⚠️\s*\*\*Lưu ý:\*\*[\s\S]*?\n\n/, '');
+                let cleaned = text.replace(/⚠️\s*\*\*Lưu ý:\*\*[\s\S]*?\n\n/, '')
+                                  .replace(/\$\\ge\s*/g, '≥ ')
+                                  .replace(/\$\\le\s*/g, '≤ ')
+                                  .replace(/\$([^\$]+)\$/g, '$1');
                 let formatted = escapeHtml(cleaned)
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -345,7 +378,7 @@
                 const feedLink = document.getElementById('modal-pdf-feed-link');
                 if (feedLink) {
                     if (postId && postId.trim() !== '') {
-                        feedLink.href = '/posts/' + postId;
+                        feedLink.href = '/feed/official/' + postId;
                         feedLink.style.display = 'inline-flex';
                     } else {
                         feedLink.style.display = 'none';

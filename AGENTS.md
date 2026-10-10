@@ -4,52 +4,34 @@
 
 ---
 
-## 🚀 1. QUY TẮC BẮT BUỘC: TỰ ĐỘNG COMMIT & PUSH (AUTO GIT WORKFLOW)
+## 🚀 1. QUY ĐỊNH QUẢN LÝ GIT: KHÔNG TỰ ĐỘNG COMMIT & PUSH (MANUAL GIT WORKFLOW)
 
-Sau khi hoàn thành và xác minh (test-compile / verify) xong **MỖI chức năng, module hoặc sửa lỗi**:
-AI **PHẢI TỰ ĐỘNG CHẠY TERMINAL** chuỗi lệnh sau mà không cần chờ người dùng nhắc:
-```bash
-git add .
-git commit -m "<type>(<scope>): <mô tả ngắn gọn chức năng vừa hoàn thành>"
-git push origin <tên-nhánh-hiện-tại>
-```
-
-### Quy định Commit Message (Chuẩn Conventional Commits):
-- `feat(<module>)`: Tính năng mới (ví dụ: `feat(forum): restructure to facebook feed style with ajax and top-right toast`)
-- `fix(<module>)`: Sửa lỗi (ví dụ: `fix(post): resolve hibernate orphan removal 500 error`)
-- `refactor(<module>)`: Tái cấu trúc mã nguồn (ví dụ: `refactor(ticket): optimize chatbox upload ui`)
-- `docs(<module>)`: Cập nhật tài liệu (ví dụ: `docs(analysis): add beginner guide for java core`)
-- `style(<module>)`: Điều chỉnh CSS / Giao diện
-
-### Quy định Nhánh Làm Việc (Feature Branch Workflow):
-- **Đối với chức năng mới hoặc cải tổ lớn (Major Overhaul / Feature):**
-  1. AI **BẮT BUỘC** phải rẽ ra một nhánh feature riêng biệt từ `main`:
-     ```bash
-     git checkout -b feature/<tên-chức-năng>
-     ```
-  2. Toàn bộ quá trình code, chỉnh sửa và xác minh được thực hiện và commit trên nhánh feature này.
-  3. Chỉ khi kiểm thử xác nhận chạy OK (ví dụ: `mvn test` đạt 100% BUILD SUCCESS), AI mới tiến hành checkout về `main`, merge nhánh feature vào và push lên origin:
-     ```bash
-     git checkout main
-     git merge feature/<tên-chức-năng>
-     git push origin main
-     git push origin feature/<tên-chức-năng>
-     ```
-
-### Ràng buộc an toàn Git:
-- **Tuyệt đối KHÔNG dùng cờ `--force`** khi push.
-- Nếu gặp lỗi push (conflict hoặc non-fast-forward rejected), AI phải **dừng lại ngay lập tức và báo cáo lỗi cho người dùng**, không tự ý reset hay ghi đè lịch sử git.
+- **TUYỆT ĐỐI KHÔNG TỰ Ý COMMIT & PUSH:** AI KHÔNG ĐƯỢC PHÉP tự động chạy `git commit` hoặc `git push` lên GitHub sau khi code xong.
+- **Người dùng toàn quyền quản lý Git:** Việc commit, tạo branch, và push lên repository sẽ do người dùng tự thực hiện thủ công hoặc chỉ thực hiện khi người dùng yêu cầu rõ ràng bằng lệnh trong prompt.
+- **Trách nhiệm của AI:** 
+  1. Tập trung tối ưu mã nguồn, giao diện, và cấu trúc hệ thống.
+  2. Xác minh tính đúng đắn sau khi chỉnh sửa (ví dụ: `mvn test-compile` thành công).
+  3. Báo cáo rõ ràng các file đã thay đổi để người dùng dễ dàng theo dõi và chủ động commit.
 
 ---
 
 ## 🏛️ 2. QUY CHUẨN KIẾN TRÚC & CODING RULES
 
+> [!IMPORTANT]
+> **TÀI LIỆU QUY CHUẨN KIẾN TRÚC BẮT BUỘC:**
+> Mọi AI Coding Assistant BẮT BUỘC phải đọc và tuân thủ nghiêm ngặt tài liệu:
+> 👉 `docs/analysis/architecture_guardrails_and_antipatterns.md`
+
 1. **Hierarchy of Truth:** Luôn ưu tiên theo thứ tự:
-   `docs/requirements/brief.md` > `docs/team/engineering-rules.md` > task files.
-2. **Kỷ luật DTO (OSIV = false):** Do cấu hình `spring.jpa.open-in-view: false`, 100% dữ liệu truyền sang View Thymeleaf bắt buộc phải là DTO/Record được ánh xạ trong Service, tránh ném lỗi `LazyInitializationException`.
-3. **Hibernate Collection Safety:** Tuyệt đối không gọi `entity.setList(newList)` trên quan hệ `@OneToMany(orphanRemoval = true)` của Entity đang được quản lý (managed).
-4. **Giao diện chuẩn Học đường / Doanh nghiệp:** BẮT BUỘC tuân thủ tài liệu `.agents/skills/academic-ui-ux/SKILL.md`. Tối giản, trang nhã, không màu mè sặc sỡ, ưu tiên tương tác mượt mà qua AJAX / Fetch API (Zero Full-Page Refresh) và thông báo Toast góc phải.
-5. **Ràng Buộc Thiết Kế UI Bắt Buộc (Strict UI Rules):**
+   `docs/analysis/architecture_guardrails_and_antipatterns.md` > `docs/requirements/brief.md` > `docs/team/engineering-rules.md` > task files.
+2. **Chống Race Condition & Atomic Update:** BẮT BUỘC dùng Atomic Update Query `@Modifying(clearAutomatically = true)` khi Cán bộ nhận vé (Claim Ticket) hoặc thay đổi trạng thái đồng thời. TUYỆT ĐỐI KHÔNG dùng Hibernate `findById` rồi `save` truyền thống gây Lost Update.
+3. **Phòng Vệ Nghẽn Tomcat (Non-blocking AI & Async Email):** TUYỆT ĐỐI KHÔNG gọi LLM hoặc gửi Mail trong luồng Controller đồng bộ. Bắt buộc dùng `CompletableFuture` với `aiTaskExecutor` và `@Async("mailTaskExecutor")` để giải phóng Tomcat worker threads ngay lập tức.
+4. **Chống Phụ Thuộc Vòng (Circular Dependencies):** Giao tiếp giữa các module (như Ticket $\rightarrow$ Notification/Email) BẮT BUỘC qua **Spring Domain Events** (`ApplicationEventPublisher` + `@EventListener`). CẤM inject Service chéo giữa các module.
+5. **Kỷ luật DTO (OSIV = false):** Do cấu hình `spring.jpa.open-in-view: false`, 100% dữ liệu truyền sang View Thymeleaf hoặc REST API bắt buộc phải là DTO/Record được ánh xạ trong Service, kèm `@EntityGraph` trong Repository để triệt tiêu N+1 Query và `LazyInitializationException`.
+6. **Bảo mật SpEL chống IDOR:** Mọi thao tác trên Ticket, Đơn vị bắt buộc kiểm tra `@PreAuthorize("@deptSecurity.canAccessTicket(#ticketId)")`, nghiêm cấm cho phép xem/sửa chéo dữ liệu Khoa/Phòng.
+7. **Hibernate Collection Safety:** Tuyệt đối không gọi `entity.setList(newList)` trên quan hệ `@OneToMany(orphanRemoval = true)` của Entity đang được quản lý (managed).
+8. **Giao diện chuẩn Học đường / Doanh nghiệp:** BẮT BUỘC tuân thủ tài liệu `.agents/skills/academic-ui-ux/SKILL.md`. Tối giản, trang nhã, không màu mè sặc sỡ, ưu tiên tương tác mượt mà qua AJAX / Fetch API (Zero Full-Page Refresh) và thông báo Toast góc phải.
+9. **Ràng Buộc Thiết Kế UI Bắt Buộc (Strict UI Rules):**
    - **Anti-Boxed Layout:** Tuyệt đối không đóng khung lơ lửng hình ảnh nền hoặc khối visual (Hero, Login, Register) vào một thẻ bo góc lọt thỏm giữa trang. Hero và Auth bắt buộc dùng layout tràn viền Fullscreen / Split-Screen (`100vw`).
    - **Bảng Màu Cấm:** Cấm tuyệt đối màu vàng chói lóa (`#FFC107`, `#FFD700`, v.v.), cấm gradient đỏ đen dày đặc che khuất ảnh trường học. Chỉ sử dụng bộ màu chuẩn: Harvard Crimson (`#A51C30`), Deep Slate (`#111827`), Light Gray (`#F8F9FA`), và White (`#FFFFFF`).
    - **Form & Typography:** Sử dụng font `Inter` cho nội dung thông thường, `Playfair Display` cho tiêu đề trang trọng, độ tương phản chữ phải đạt chuẩn WCAG AA.

@@ -2,6 +2,7 @@ package com.school.counseling.common.storage;
 
 import org.springframework.web.multipart.MultipartFile;
 
+// bản hợp đồng quy định phải có 3 hàm uploadFile , đelteteFile , getFileUrl 
 public interface IStorageService {
 
     StorageResult uploadFile(MultipartFile file, String folder);

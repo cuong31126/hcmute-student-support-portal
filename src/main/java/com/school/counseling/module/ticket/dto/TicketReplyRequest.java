@@ -10,7 +10,6 @@ import lombok.*;
 @Builder
 public class TicketReplyRequest {
 
-    @NotBlank(message = "Nội dung phản hồi không được để trống")
     private String content;
 
     private String newStatus; // null hoặc RESOLVED, WAITING_STUDENT

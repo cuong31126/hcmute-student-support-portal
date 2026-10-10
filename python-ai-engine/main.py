@@ -29,7 +29,8 @@ from pydantic import BaseModel, Field
 
 from config import get_settings
 from rag_engine import RagEngine
-from evaluator import RagEvaluator
+from evaluator import RagEvaluator, GoldenTruthBenchmark
+from ticket_classifier import TicketClassifier, TicketClassificationResult
 
 # ── Logging setup ──────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -43,6 +44,7 @@ logger = logging.getLogger("qaute.ai")
 settings = get_settings()
 rag_engine = RagEngine(settings)
 evaluator = RagEvaluator(settings)
+ticket_classifier = TicketClassifier(settings)
 
 
 # ── Lifespan: Startup / Shutdown ───────────────────────────────────────────────
@@ -59,6 +61,17 @@ async def lifespan(app: FastAPI):
     if ok:
         stats = rag_engine.get_collection_stats()
         logger.info(f"  ✅ ChromaDB sẵn sàng: {stats['count']} chunks đã nạp")
+        
+        # Tự động nạp golden-truth.txt nếu ChromaDB chưa có dữ liệu
+        if stats['count'] == 0:
+            gt_path = Path(__file__).parent / "data" / "golden-truth.txt"
+            if not gt_path.exists():
+                gt_path = Path(__file__).parent.parent / "golden-truth.txt"
+            if gt_path.exists():
+                logger.info(f"  📥 Tự động nạp Cơ sở Tri thức Vàng: {gt_path}...")
+                rag_engine.ingest_golden_truth_file(gt_path)
+                stats = rag_engine.get_collection_stats()
+                logger.info(f"  ✅ Sau khi nạp Golden Truth: {stats['count']} chunks")
     else:
         logger.warning("  ⚠️ ChromaDB khởi tạo thất bại — server vẫn chạy nhưng /ai/ask sẽ trả fallback")
     
@@ -151,6 +164,23 @@ class IngestResponse(BaseModel):
 class ConvertPdfRequest(BaseModel):
     pdf_dir: Optional[str] = None
     output_dir: Optional[str] = None
+
+
+class TicketClassifyRequest(BaseModel):
+    title: str = Field(..., min_length=1, description="Tiêu đề yêu cầu của sinh viên")
+    description: str = Field(..., min_length=1, description="Nội dung chi tiết yêu cầu")
+
+
+class TicketClassifyResponse(BaseModel):
+    department_code: str
+    department_name: str
+    priority: str
+    sentiment: str
+    confidence_score: float
+    summary: str
+    suggested_action: str
+    key_indicators: list[str] = []
+    classified_by: str = "RULE_ENGINE"
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
@@ -339,6 +369,130 @@ async def reset_knowledge():
         "status": "success" if success else "error",
         "message": "Đã xóa toàn bộ ChromaDB collection." if success else "Lỗi khi reset."
     }
+
+
+class BenchmarkRequest(BaseModel):
+    max_samples: Optional[int] = Field(None, description="Số lượng câu hỏi mẫu cần kiểm thử (mặc định toàn bộ)")
+    use_llm_judge: bool = Field(False, description="Có gọi Gemini LLM-as-a-judge chấm điểm chi tiết không")
+
+
+@app.post("/admin/ingest-golden-truth")
+async def ingest_golden_truth():
+    """
+    Nạp trực tiếp Cơ sở Tri thức Vàng (golden-truth.txt) vào ChromaDB.
+    """
+    gt_path = Path(__file__).parent / "data" / "golden-truth.txt"
+    if not gt_path.exists():
+        gt_path = Path(__file__).parent.parent / "golden-truth.txt"
+    if not gt_path.exists():
+        gt_path = Path("golden-truth.txt")
+    if not gt_path.exists():
+        raise HTTPException(status_code=404, detail="Không tìm thấy tệp golden-truth.txt")
+    
+    res = rag_engine.ingest_golden_truth_file(gt_path)
+    return {
+        "status": "success",
+        "file": str(gt_path),
+        "ingested_chunks": res.get("ingested", 0),
+        "message": "Đã nạp thành công dữ liệu chuẩn Golden Truth vào ChromaDB."
+    }
+
+
+@app.post("/admin/benchmark")
+async def run_benchmark(req: BenchmarkRequest):
+    """
+    Kích hoạt đánh giá tự động RAG Engine đối sánh với Cơ sở Tri thức Vàng (golden-truth.txt).
+    """
+    gt_path = Path(__file__).parent / "data" / "golden-truth.txt"
+    if not gt_path.exists():
+        gt_path = Path(__file__).parent.parent / "golden-truth.txt"
+    if not gt_path.exists():
+        gt_path = Path("golden-truth.txt")
+    if not gt_path.exists():
+        raise HTTPException(status_code=404, detail="Không tìm thấy tệp golden-truth.txt")
+    
+    benchmark = GoldenTruthBenchmark(gt_path, rag_engine, evaluator)
+    summary = benchmark.run_benchmark(max_samples=req.max_samples, use_llm_judge=req.use_llm_judge)
+    
+    # Xuất file báo cáo Markdown
+    report_path = Path(__file__).parent / "benchmark_report.md"
+    benchmark.export_markdown_report(summary, report_path)
+    
+    return {
+        "status": "completed",
+        "total_questions": summary.total_questions,
+        "passed_count": summary.passed_count,
+        "failed_count": summary.failed_count,
+        "pass_rate_pct": summary.pass_rate_pct,
+        "hallucination_rate_pct": summary.hallucination_rate_pct,
+        "avg_latency_ms": summary.avg_latency_ms,
+        "avg_keyword_hit_rate": summary.avg_keyword_hit_rate,
+        "report_saved_at": str(report_path.name)
+    }
+
+
+@app.post("/ai/classify-ticket", response_model=TicketClassifyResponse)
+def classify_ticket(req: TicketClassifyRequest):
+    """
+    Endpoint phân loại Ticket: Tự động xác định Đơn vị phụ trách, Mức độ ưu tiên, Cảm xúc và Gợi ý xử lý.
+    Spring Boot gọi: POST http://127.0.0.1:8001/ai/classify-ticket
+    """
+    from dataclasses import asdict
+    logger.info(f"[/ai/classify-ticket] Phân loại ticket: '{req.title[:60]}...'")
+    result = ticket_classifier.classify(req.title, req.description)
+    return TicketClassifyResponse(**asdict(result))
+
+
+@app.get("/admin/latent-space-3d")
+def get_latent_space_3d(limit: int = 150):
+    """
+    AI-06: Trích xuất tọa độ 3D (PCA/SVD reduction) của các chunks trong ChromaDB
+    phục vụ trực quan hóa 3D Latent Space trên giao diện WebGL Admin.
+    """
+    try:
+        if not rag_engine.collection:
+            return {"points": [], "total": 0}
+        
+        results = rag_engine.collection.get(
+            limit=limit,
+            include=["embeddings", "metadatas", "documents"]
+        )
+        embeddings = results.get("embeddings")
+        if not embeddings or len(embeddings) == 0:
+            return {"points": [], "total": 0}
+        
+        import numpy as np
+        arr = np.array(embeddings)
+        # Chuẩn hóa tâm
+        arr_centered = arr - np.mean(arr, axis=0)
+        u, s, vt = np.linalg.svd(arr_centered, full_matrices=False)
+        coords = u[:, :3] * s[:3]
+        
+        max_abs = np.max(np.abs(coords)) if np.max(np.abs(coords)) > 0 else 1.0
+        scaled_coords = (coords / max_abs) * 50.0
+        
+        points = []
+        metas = results.get("metadatas") or []
+        docs = results.get("documents") or []
+        ids = results.get("ids") or []
+        
+        for idx in range(len(ids)):
+            meta = metas[idx] if idx < len(metas) else {}
+            doc_preview = docs[idx][:120] if idx < len(docs) else ""
+            points.append({
+                "id": ids[idx],
+                "x": round(float(scaled_coords[idx][0]), 2),
+                "y": round(float(scaled_coords[idx][1]), 2),
+                "z": round(float(scaled_coords[idx][2]), 2),
+                "doc_code": meta.get("doc_code", "UNKNOWN"),
+                "source": meta.get("doc_source", "REGULATION"),
+                "preview": doc_preview
+            })
+            
+        return {"points": points, "total": len(points)}
+    except Exception as e:
+        logger.error(f"Lỗi giảm chiều không gian 3D: {e}")
+        return {"points": [], "total": 0, "error": str(e)}
 
 
 # ── Main entry ─────────────────────────────────────────────────────────────────

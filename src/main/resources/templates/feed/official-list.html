@@ -94,7 +94,17 @@
                 <!-- Pinned & Dept Header -->
                 <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
                     <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1" th:text="${post.departmentName != null ? post.departmentName : 'Nhà trường'}">Phòng Ban</span>
-                    <span th:if="${post.isPinned}" class="badge bg-danger text-white"><i class="bi bi-pin-fill me-1"></i>Được ghim</span>
+                    <div class="d-flex align-items-center gap-1">
+                        <span th:if="${post.isPinned}" class="badge bg-danger text-white"><i class="bi bi-pin-fill me-1"></i>Được ghim</span>
+                        <!-- Admin Toggle Pin Button -->
+                        <form sec:authorize="hasRole('ADMIN')" th:action="@{/feed/official/toggle-pin/{id}(id=${post.id})}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm py-0 px-1 border-0" 
+                                    th:classappend="${post.isPinned ? 'text-danger' : 'text-muted'}"
+                                    th:title="${post.isPinned ? 'Bấm để Bỏ ghim bài viết này' : 'Bấm để Ghim bài viết này lên đầu'}">
+                                <i class="bi fs-6" th:classappend="${post.isPinned ? 'bi-pin-fill' : 'bi-pin'}"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- Card Body -->

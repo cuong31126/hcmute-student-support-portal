@@ -35,6 +35,7 @@ public class TicketResponseDto {
     private String assignedStaffRole;
 
     private String priority;
+    private String topicCategory;
     private String status;
     private LocalDateTime dueDate;
     private boolean isOverdue;

@@ -60,7 +60,7 @@ public class SecurityConfig {
                     "/api/admin/**"
                 ).hasRole("ADMIN")
 
-                // 2. Khu vực Tương tác Sinh viên / Người dùng đã xác thực
+                // 2. Khu vực Tương tác Sinh viên / Người dùng đã xác thực (Guest bị giới hạn nghiêm ngặt)
                 .requestMatchers(
                     "/student/**",
                     "/tickets/create",
@@ -70,7 +70,10 @@ public class SecurityConfig {
                     "/feed/forum/*/like",
                     "/feed/forum/*/report",
                     "/feed/forum/delete/*",
-                    "/api/likes/**"
+                    "/api/likes/**",
+                    "/api/v1/ai/**",
+                    "/api/v1/tickets/**",
+                    "/ws-chat/**"
                 ).authenticated()
 
                 // 3. Khu vực công khai cho Guest / Thí sinh / Tài nguyên tĩnh & Đọc tin tức
@@ -80,7 +83,7 @@ public class SecurityConfig {
                     "/auth/**",
                     "/faqs/**",
                     "/feed/official",
-                    "/feed/official/*",
+                    "/feed/official/**",
                     "/feed/forum",
                     "/image/**",
                     "/documents/**",
@@ -90,9 +93,7 @@ public class SecurityConfig {
                     "/js/**",
                     "/images/**",
                     "/webjars/**",
-                    "/ws-chat/**",
                     "/api/v1/faqs/**",
-                    "/api/v1/ai/**",
                     "/api/v1/auth/**",
                     "/api/v1/integration/**",
                     "/tickets/guest-track/**",
@@ -120,7 +121,7 @@ public class SecurityConfig {
                 .permitAll()
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/**", "/ws-chat/**")
+                .ignoringRequestMatchers("/api/**", "/ws-chat/**", "/admin/knowledge/**")
             )
             .headers(headers -> headers
                 .frameOptions(frame -> frame.sameOrigin())

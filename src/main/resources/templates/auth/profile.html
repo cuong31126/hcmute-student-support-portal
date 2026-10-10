@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Hồ Sơ & Cài Đặt Tài Khoản - HCMUTE QAUTE Portal</title>
+</head>
+<body>
+<div th:fragment="content" class="py-2">
+
+    <!-- Scoped Styling for Profile Page (Strict Academic Contrast & Zero White-on-White) -->
+    <style>
+        .profile-page-root {
+            color: #111827;
+        }
+        /* Tab Pill Navigation: High-contrast Dark Gray on Light Gray when inactive, Crimson on Active */
+        #profileTabs .nav-link {
+            color: #374151 !important;
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        #profileTabs .nav-link:hover {
+            color: #111827 !important;
+            background-color: #e5e7eb;
+            border-color: #d1d5db;
+        }
+        #profileTabs .nav-link.active {
+            color: #ffffff !important;
+            background-color: #A51C30 !important;
+            border-color: #A51C30 !important;
+            box-shadow: 0 2px 6px rgba(165, 28, 48, 0.35);
+        }
+        /* Form Inputs: Ensure deep dark text, clear borders */
+        .profile-form-control {
+            color: #111827 !important;
+            background-color: #ffffff;
+            border-color: #d1d5db;
+            font-size: 0.925rem;
+        }
+        .profile-form-control:focus {
+            color: #111827 !important;
+            background-color: #ffffff;
+            border-color: #A51C30;
+            box-shadow: 0 0 0 0.2rem rgba(165, 28, 48, 0.15);
+        }
+        /* Disabled Inputs: Crisp readable text, no washed-out light gray */
+        .profile-form-control:disabled,
+        .profile-form-control[readonly] {
+            color: #374151 !important;
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0;
+            font-weight: 500;
+            opacity: 1 !important;
+            -webkit-text-fill-color: #374151 !important; /* Safari/Chrome fix for disabled text */
+        }
+        /* Input Addons */
+        .profile-input-addon {
+            background-color: #f8fafc;
+            color: #4b5563;
+            border-color: #d1d5db;
+        }
+        /* Label Typography */
+        .profile-label {
+            color: #1f2937;
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.35rem;
+        }
+    </style>
+
+    <!-- Page Header Banner (Dark Slate with Crimson Accent) -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 text-white overflow-hidden" 
+         style="background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%); border-left: 5px solid #A51C30 !important;">
+        <div class="card-body p-4 p-md-5">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-white bg-opacity-10 border border-white border-opacity-20 shadow-xs" 
+                         style="width: 56px; height: 56px;">
+                        <i class="bi bi-person-gear fs-3 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-danger bg-opacity-75 text-white px-2.5 py-1 text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Tài Khoản Cá Nhân</span>
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2.5 py-1" style="font-size: 0.7rem;">Đang Hoạt Động</span>
+                        </div>
+                        <h3 class="fw-bold mb-1 text-white font-serif" style="letter-spacing: 0.5px;">Hồ Sơ & Cài Đặt Tài Khoản</h3>
+                        <p class="text-white-50 mb-0 small">Quản lý thông tin định danh, số điện thoại liên lạc và bảo mật mật khẩu của bạn</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a th:href="@{/tickets/my-tickets}" class="btn btn-outline-light btn-sm rounded-pill px-3 shadow-xs">
+                        <i class="bi bi-journal-text me-1"></i>Ticket Của Tôi
+                    </a>
+                    <a th:href="@{/}" class="btn btn-light text-dark btn-sm rounded-pill px-3 fw-semibold shadow-xs" style="color: #111827 !important; background-color: #ffffff;">
+                        <i class="bi bi-house-door me-1"></i>Trang Chủ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Layout -->
+    <div class="row g-4 profile-page-root">
+
+        <!-- Cột Trái (col-lg-4): Card Thông Tin Tổng Quan & Avatar -->
+        <div class="col-lg-4">
+            <div class="card border-0 bg-white shadow-sm rounded-4 overflow-hidden mb-4">
+                <!-- Cover Header Mini -->
+                <div style="height: 90px; background: linear-gradient(135deg, #A51C30 0%, #dc2626 100%);"></div>
+                
+                <div class="card-body px-4 pb-4 pt-0 text-center position-relative">
+                    <!-- Avatar Frame -->
+                    <div class="d-inline-block position-relative" style="margin-top: -48px;">
+                        <div class="rounded-circle border border-4 border-white shadow-sm overflow-hidden bg-light d-flex align-items-center justify-content-center" 
+                             style="width: 96px; height: 96px;">
+                            <img th:if="${userProfile.avatarUrl != null and !userProfile.avatarUrl.isEmpty()}" 
+                                 th:src="${userProfile.avatarUrl}" 
+                                 id="previewAvatarImg"
+                                 alt="Avatar" 
+                                 class="w-100 h-100 object-fit-cover"
+                                 onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=' + encodeURIComponent('[[${userProfile.fullName}]]') + '&background=A51C30&color=fff&size=128';">
+                            <img th:if="${userProfile.avatarUrl == null or userProfile.avatarUrl.isEmpty()}" 
+                                 th:src="'https://ui-avatars.com/api/?name=' + ${#strings.replace(userProfile.fullName, ' ', '+')} + '&background=A51C30&color=fff&size=128'" 
+                                 id="previewAvatarImg"
+                                 alt="Avatar" 
+                                 class="w-100 h-100 object-fit-cover">
+                        </div>
+                    </div>
+
+                    <!-- User Name & Username -->
+                    <h5 class="fw-bold text-dark mt-2 mb-0" th:text="${userProfile.fullName}">Họ và Tên</h5>
+                    <small class="text-secondary d-block mb-2">@<span th:text="${userProfile.username}">username</span></small>
+
+                    <!-- Role Badge -->
+                    <div class="mb-3">
+                        <span th:if="${userProfile.roleName == 'ROLE_ADMIN'}" class="badge bg-primary text-white px-3 py-1.5 rounded-pill shadow-xs">
+                            <i class="bi bi-shield-lock-fill me-1"></i>Quản Trị Viên (Admin)
+                        </span>
+                        <span th:if="${userProfile.roleName == 'ROLE_STAFF'}" class="badge bg-info text-dark px-3 py-1.5 rounded-pill shadow-xs">
+                            <i class="bi bi-person-badge-fill me-1"></i>Cán Bộ Tư Vấn (Staff)
+                        </span>
+                        <span th:if="${userProfile.roleName == 'ROLE_STUDENT'}" class="badge bg-success text-white px-3 py-1.5 rounded-pill shadow-xs">
+                            <i class="bi bi-mortarboard-fill me-1"></i>Sinh Viên (Student)
+                        </span>
+                    </div>
+
+                    <!-- Quick Details List -->
+                    <div class="list-group list-group-flush text-start small border-top pt-2">
+                        <div class="list-group-item px-0 py-2 border-0 d-flex justify-content-between align-items-center bg-transparent">
+                            <span class="text-secondary"><i class="bi bi-envelope me-2 text-danger"></i>Email:</span>
+                            <span class="fw-semibold text-dark text-truncate ms-2" style="max-width: 190px;" th:text="${userProfile.email}">user@student.hcmute.edu.vn</span>
+                        </div>
+                        <div class="list-group-item px-0 py-2 border-0 d-flex justify-content-between align-items-center bg-transparent">
+                            <span class="text-secondary"><i class="bi bi-telephone me-2 text-primary"></i>Điện thoại:</span>
+                            <span class="fw-semibold text-dark" th:text="${userProfile.phone != null and !userProfile.phone.isEmpty() ? userProfile.phone : 'Chưa cập nhật'}">0901234567</span>
+                        </div>
+                        <div class="list-group-item px-0 py-2 border-0 d-flex justify-content-between align-items-center bg-transparent">
+                            <span class="text-secondary"><i class="bi bi-buildings me-2 text-info"></i>Đơn vị:</span>
+                            <span class="fw-semibold text-dark text-truncate ms-2" style="max-width: 190px;" th:text="${userProfile.departmentName}">Khoa CNTT</span>
+                        </div>
+                        <div class="list-group-item px-0 py-2 border-0 d-flex justify-content-between align-items-center bg-transparent">
+                            <span class="text-secondary"><i class="bi bi-calendar-check me-2 text-secondary"></i>Tham gia:</span>
+                            <span class="text-secondary fw-medium" th:text="${userProfile.createdAt != null ? #temporals.format(userProfile.createdAt, 'dd/MM/yyyy') : 'N/A'}">01/01/2026</span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Avatar Presets -->
+                    <div class="border-top pt-3 mt-2 text-start">
+                        <label class="form-label small fw-bold text-secondary mb-2">
+                            <i class="bi bi-palette me-1"></i>Chọn avatar mẫu nhanh:
+                        </label>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-secondary p-1 rounded-circle" style="width: 38px; height: 38px;" onclick="setAvatarPreset('https://api.dicebear.com/7.x/bottts/svg?seed=student1')" title="Robot Trợ Lý">
+                                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=student1" class="w-100 h-100 rounded-circle" alt="Preset 1">
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary p-1 rounded-circle" style="width: 38px; height: 38px;" onclick="setAvatarPreset('https://api.dicebear.com/7.x/avataaars/svg?seed=Felix')" title="Nam Sinh Viên">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-100 h-100 rounded-circle" alt="Preset 2">
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary p-1 rounded-circle" style="width: 38px; height: 38px;" onclick="setAvatarPreset('https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka')" title="Nữ Sinh Viên">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" class="w-100 h-100 rounded-circle" alt="Preset 3">
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary p-1 rounded-circle" style="width: 38px; height: 38px;" onclick="setAvatarPreset('https://api.dicebear.com/7.x/identicon/svg?seed=hcmute')" title="Geometric">
+                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=hcmute" class="w-100 h-100 rounded-circle" alt="Preset 4">
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Bảo Mật & Lưu Ý Card -->
+            <div class="card border-0 shadow-sm rounded-4 p-4" style="background-color: #f8fafc; border: 1px solid #e2e8f0 !important;">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-shield-check text-success fs-5"></i>
+                    <h6 class="fw-bold text-dark mb-0 font-serif">Quy Định Bảo Mật</h6>
+                </div>
+                <ul class="text-secondary small ps-3 mb-0" style="line-height: 1.6;">
+                    <li>Mật khẩu mới tối thiểu 6 ký tự, nên kết hợp chữ hoa, chữ thường và chữ số.</li>
+                    <li>Tên đăng nhập và Email trường cấp được khóa cố định để đảm bảo định danh học vụ.</li>
+                    <li>Nếu cần cập nhật đơn vị công tác hoặc vai trò, vui lòng liên hệ Quản Trị Viên hệ thống.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Cột Phải (col-lg-8): Form Cập Nhật Thông Tin & Đổi Mật Khẩu -->
+        <div class="col-lg-8">
+            <div class="card border-0 bg-white shadow-sm rounded-4 overflow-hidden">
+                
+                <!-- Nav Tabs Header -->
+                <div class="card-header bg-white border-bottom p-3 px-4">
+                    <ul class="nav nav-pills card-header-pills gap-2" id="profileTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded-pill px-3 py-2 fw-semibold" id="tab-info" data-bs-toggle="pill" data-bs-target="#content-info" type="button" role="tab" aria-selected="true">
+                                <i class="bi bi-person-vcard me-1.5"></i>Thông Tin Cá Nhân
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-pill px-3 py-2 fw-semibold" id="tab-password" data-bs-toggle="pill" data-bs-target="#content-password" type="button" role="tab" aria-selected="false">
+                                <i class="bi bi-key me-1.5"></i>Đổi Mật Khẩu
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <div class="tab-content" id="profileTabsContent">
+
+                        <!-- TAB 1: CẬP NHẬT THÔNG TIN CÁ NHÂN -->
+                        <div class="tab-pane fade show active" id="content-info" role="tabpanel" aria-labelledby="tab-info">
+                            <div class="border-bottom pb-3 mb-4">
+                                <h5 class="fw-bold text-dark mb-1">Cập Nhật Thông Tin Cá Nhân</h5>
+                                <p class="small text-secondary mb-0">Thay đổi họ tên hiển thị, số điện thoại liên hệ và ảnh đại diện</p>
+                            </div>
+
+                            <form id="profileUpdateForm" th:action="@{/profile/update}" th:object="${updateProfileForm}" method="post">
+                                
+                                <div class="row g-3">
+                                    <!-- Tên đăng nhập (Khóa) -->
+                                    <div class="col-md-6">
+                                        <label class="form-label profile-label text-secondary">Tên đăng nhập (Username):</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text profile-input-addon border-end-0"><i class="bi bi-at"></i></span>
+                                            <input type="text" class="form-control profile-form-control border-start-0" th:value="${userProfile.username}" disabled readonly>
+                                        </div>
+                                        <small class="text-secondary d-block mt-1" style="font-size: 0.75rem;"><i class="bi bi-lock-fill me-1"></i>Không thể thay đổi tên tài khoản</small>
+                                    </div>
+
+                                    <!-- Email (Khóa) -->
+                                    <div class="col-md-6">
+                                        <label class="form-label profile-label text-secondary">Email nhà trường:</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text profile-input-addon border-end-0"><i class="bi bi-envelope"></i></span>
+                                            <input type="email" class="form-control profile-form-control border-start-0" th:value="${userProfile.email}" disabled readonly>
+                                        </div>
+                                        <small class="text-secondary d-block mt-1" style="font-size: 0.75rem;"><i class="bi bi-lock-fill me-1"></i>Email định danh học vụ cố định</small>
+                                    </div>
+
+                                    <!-- Họ và tên (Cho phép sửa) -->
+                                    <div class="col-md-6">
+                                        <label for="fullNameInput" class="form-label profile-label">Họ và tên hiển thị: <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text profile-input-addon border-end-0"><i class="bi bi-person"></i></span>
+                                            <input type="text" class="form-control profile-form-control border-start-0" id="fullNameInput" th:field="*{fullName}" 
+                                                   placeholder="Nhập họ và tên của bạn" required maxlength="150">
+                                        </div>
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></div>
+                                    </div>
+
+                                    <!-- Số điện thoại (Cho phép sửa) -->
+                                    <div class="col-md-6">
+                                        <label for="phoneInput" class="form-label profile-label">Số điện thoại liên hệ:</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text profile-input-addon border-end-0"><i class="bi bi-telephone"></i></span>
+                                            <input type="tel" class="form-control profile-form-control border-start-0" id="phoneInput" th:field="*{phone}" 
+                                                   placeholder="Ví dụ: 0912345678" maxlength="30">
+                                        </div>
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
+                                    </div>
+
+                                    <!-- URL Ảnh đại diện (Cho phép sửa) -->
+                                    <div class="col-12">
+                                        <label for="avatarUrlInput" class="form-label profile-label">Đường dẫn ảnh đại diện (Avatar URL):</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text profile-input-addon border-end-0"><i class="bi bi-image"></i></span>
+                                            <input type="url" class="form-control profile-form-control border-start-0" id="avatarUrlInput" th:field="*{avatarUrl}" 
+                                                   placeholder="Dán đường dẫn ảnh HTTPS hoặc chọn mẫu ở cột bên trái" maxlength="500"
+                                                   oninput="updateAvatarPreview(this.value)">
+                                        </div>
+                                        <small class="text-secondary d-block mt-1" style="font-size: 0.75rem;">Hỗ trợ liên kết ảnh trực tiếp (.png, .jpg, .svg) hoặc chọn từ các mẫu nhanh bên trái</small>
+                                    </div>
+
+                                    <!-- Vai Trò & Đơn Vị (Hiển thị) -->
+                                    <div class="col-md-6">
+                                        <label class="form-label profile-label text-secondary">Vai trò trong hệ thống:</label>
+                                        <input type="text" class="form-control profile-form-control" th:value="${userProfile.roleDescription}" disabled readonly>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label profile-label text-secondary">Khoa / Phòng ban trực thuộc:</label>
+                                        <input type="text" class="form-control profile-form-control" th:value="${userProfile.departmentName}" disabled readonly>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="d-flex align-items-center justify-content-end gap-2 mt-4 pt-3 border-top">
+                                    <a th:href="@{/}" class="btn btn-outline-secondary px-3 rounded-pill fw-medium">Hủy Bỏ</a>
+                                    <button type="submit" class="btn btn-primary fw-semibold px-4 rounded-pill shadow-sm" id="btnSaveProfile">
+                                        <i class="bi bi-check-lg me-1"></i>Lưu Thay Đổi
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- TAB 2: ĐỔI MẬT KHẨU -->
+                        <div class="tab-pane fade" id="content-password" role="tabpanel" aria-labelledby="tab-password">
+                            <div class="border-bottom pb-3 mb-4">
+                                <h5 class="fw-bold text-dark mb-1">Thiết Lập Mật Khẩu Mới</h5>
+                                <p class="small text-secondary mb-0">Đổi mật khẩu định kỳ giúp bảo vệ tài khoản và thông tin học vụ của bạn an toàn</p>
+                            </div>
+
+                            <form id="passwordForm" th:action="@{/profile/change-password}" th:object="${changePasswordForm}" method="post">
+                                
+                                <div class="row g-3">
+                                    <!-- Mật khẩu hiện tại -->
+                                    <div class="col-12">
+                                        <label for="currentPasswordInput" class="form-label profile-label">Mật khẩu hiện tại: <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text profile-input-addon border-end-0"><i class="bi bi-shield-lock"></i></span>
+                                            <input type="password" class="form-control profile-form-control border-start-0 border-end-0" id="currentPasswordInput" 
+                                                   th:field="*{currentPassword}" placeholder="Nhập mật khẩu bạn đang dùng" required>
+                                            <button class="btn btn-outline-secondary border-start-0 profile-input-addon" type="button" onclick="togglePasswordVisibility('currentPasswordInput', this)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Mật khẩu mới -->
+                                    <div class="col-md-6">
+                                        <label for="newPasswordInput" class="form-label profile-label">Mật khẩu mới: <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text profile-input-addon border-end-0"><i class="bi bi-key"></i></span>
+                                            <input type="password" class="form-control profile-form-control border-start-0 border-end-0" id="newPasswordInput" 
+                                                   th:field="*{newPassword}" placeholder="Ít nhất 6 ký tự" minlength="6" required
+                                                   oninput="checkPasswordStrength(this.value)">
+                                            <button class="btn btn-outline-secondary border-start-0 profile-input-addon" type="button" onclick="togglePasswordVisibility('newPasswordInput', this)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                        <!-- Strength meter -->
+                                        <div class="progress mt-2" style="height: 5px; background-color: #e5e7eb;">
+                                            <div id="passwordStrengthBar" class="progress-bar" role="progressbar" style="width: 0%;"></div>
+                                        </div>
+                                        <small id="passwordStrengthText" class="text-secondary d-block mt-1 fw-medium" style="font-size: 0.75rem;">Độ mạnh: Chưa nhập</small>
+                                    </div>
+
+                                    <!-- Xác nhận mật khẩu mới -->
+                                    <div class="col-md-6">
+                                        <label for="confirmPasswordInput" class="form-label profile-label">Xác nhận mật khẩu mới: <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text profile-input-addon border-end-0"><i class="bi bi-check2-circle"></i></span>
+                                            <input type="password" class="form-control profile-form-control border-start-0 border-end-0" id="confirmPasswordInput" 
+                                                   th:field="*{confirmPassword}" placeholder="Nhập lại mật khẩu mới" required
+                                                   oninput="checkPasswordMatch()">
+                                            <button class="btn btn-outline-secondary border-start-0 profile-input-addon" type="button" onclick="togglePasswordVisibility('confirmPasswordInput', this)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                        <small id="passwordMatchText" class="d-block mt-1 fw-medium" style="font-size: 0.75rem;"></small>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="d-flex align-items-center justify-content-end gap-2 mt-4 pt-3 border-top">
+                                    <button type="reset" class="btn btn-outline-secondary px-3 rounded-pill fw-medium">Xóa Trắng</button>
+                                    <button type="submit" class="btn btn-danger fw-semibold px-4 rounded-pill shadow-sm" id="btnChangePassword" style="background-color: #A51C30; border-color: #A51C30;">
+                                        <i class="bi bi-key-fill me-1"></i>Đổi Mật Khẩu
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Interactive Client-side Script -->
+<script>
+    function togglePasswordVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    }
+
+    function setAvatarPreset(url) {
+        const input = document.getElementById('avatarUrlInput');
+        if (input) {
+            input.value = url;
+            updateAvatarPreview(url);
+            if (typeof showToast === 'function') {
+                showToast('Đã chọn avatar mẫu! Bấm "Lưu Thay Đổi" để áp dụng.', 'info');
+            }
+        }
+    }
+
+    function updateAvatarPreview(url) {
+        const previewImg = document.getElementById('previewAvatarImg');
+        if (previewImg && url && url.trim().length > 0) {
+            previewImg.src = url.trim();
+        }
+    }
+
+    function checkPasswordStrength(password) {
+        const bar = document.getElementById('passwordStrengthBar');
+        const text = document.getElementById('passwordStrengthText');
+        if (!bar || !text) return;
+
+        let strength = 0;
+        if (password.length >= 6) strength += 25;
+        if (password.length >= 8) strength += 25;
+        if (/[A-Z]/.test(password)) strength += 25;
+        if (/[0-9]/.test(password) || /[^A-Za-z0-9]/.test(password)) strength += 25;
+
+        bar.style.width = strength + '%';
+        if (strength <= 25) {
+            bar.className = 'progress-bar bg-danger';
+            text.textContent = 'Độ mạnh: Yếu (Cần thêm ký tự)';
+            text.style.color = '#dc2626'; // Crisp Red
+        } else if (strength <= 50) {
+            bar.className = 'progress-bar bg-warning';
+            text.textContent = 'Độ mạnh: Trung bình';
+            text.style.color = '#d97706'; // High-contrast Amber-600 (not washed out yellow)
+        } else if (strength <= 75) {
+            bar.className = 'progress-bar bg-info';
+            text.textContent = 'Độ mạnh: Khá tốt';
+            text.style.color = '#0284c7'; // Deep Sky Blue (not faint cyan)
+        } else {
+            bar.className = 'progress-bar bg-success';
+            text.textContent = 'Độ mạnh: Rất mạnh';
+            text.style.color = '#16a34a'; // Crisp Forest Green
+        }
+    }
+
+    function checkPasswordMatch() {
+        const newPwd = document.getElementById('newPasswordInput')?.value;
+        const confirmPwd = document.getElementById('confirmPasswordInput')?.value;
+        const matchText = document.getElementById('passwordMatchText');
+        if (!matchText) return;
+
+        if (!confirmPwd) {
+            matchText.textContent = '';
+            return;
+        }
+
+        if (newPwd === confirmPwd) {
+            matchText.textContent = '✓ Mật khẩu xác nhận trùng khớp';
+            matchText.style.color = '#16a34a'; // Crisp Green
+        } else {
+            matchText.textContent = '✗ Mật khẩu xác nhận chưa khớp';
+            matchText.style.color = '#dc2626'; // Crisp Red
+        }
+    }
+</script>
+</body>
+</html>
+

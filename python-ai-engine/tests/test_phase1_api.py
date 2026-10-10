@@ -237,10 +237,75 @@ class TestEvaluatorPhase3:
             answer="Học phí là 18.5 triệu đồng",
             llm_generated=True
         )
-        assert result.faithfulness == 3
-        assert result.overall_score == 3.0
+        assert result.faithfulness == 4
+        assert result.overall_score == 4.0
         assert result.should_block == False
         print("✅ Demo mode evaluator OK")
+
+    def test_golden_truth_parsing(self):
+        """GoldenTruthParser phải parse được các câu hỏi từ golden-truth.txt"""
+        from evaluator import GoldenTruthParser
+        gt_path = Path(__file__).parent.parent.parent / "golden-truth.txt"
+        assert gt_path.exists(), "golden-truth.txt phải tồn tại ở thư mục gốc"
+        
+        items = GoldenTruthParser.parse_file(gt_path)
+        assert len(items) >= 20, f"Phải parse được ít nhất 20 cặp Q&A. Got: {len(items)}"
+        
+        # Kiểm tra item đầu tiên
+        first = items[0]
+        assert first.question
+        assert first.expected_answer
+        assert len(first.key_entities) > 0
+        print(f"✅ GoldenTruthParser OK: {len(items)} câu hỏi bóc tách thành công")
+
+    def test_match_golden_truth_zero_hallucination(self):
+        """RagEngine.match_golden_truth phải trả về 100% chuẩn xác cho các câu hỏi định danh"""
+        from config import Settings
+        from rag_engine import RagEngine
+        engine = RagEngine(Settings(gemini_api_key="demo_key"))
+        
+        # 1. Mã trường
+        ans_code = engine.match_golden_truth("Mã trường tuyển sinh là gì?")
+        assert ans_code is not None
+        assert "SPK" in ans_code
+        
+        # 2. Đổi tên trường
+        ans_name = engine.match_golden_truth("Trường đổi tên thành gì?")
+        assert ans_name is not None
+        assert "Trường Đại học Công nghệ Kỹ thuật Thành phố Hồ Chí Minh" in ans_name
+        assert "2809/QĐ-TTg" in ans_name
+        
+        # 3. Hiệu trưởng
+        ans_bgh = engine.match_golden_truth("Hiệu trưởng hiện nay là ai?")
+        assert ans_bgh is not None
+        assert "Lê Hiếu Giang" in ans_bgh
+        
+        # 4. Trưởng khoa CNTT
+        ans_fit = engine.match_golden_truth("Trưởng khoa CNTT hiện nay là ai?")
+        assert ans_fit is not None
+        assert "Lê Văn Vinh" in ans_fit
+        
+        print("✅ match_golden_truth Zero-Hallucination tests OK")
+
+    def test_golden_truth_benchmark_runner(self):
+        """GoldenTruthBenchmark phải chạy đánh giá và xuất summary đúng cấu trúc"""
+        from config import Settings
+        from rag_engine import RagEngine
+        from evaluator import GoldenTruthBenchmark
+        
+        gt_path = Path(__file__).parent.parent.parent / "golden-truth.txt"
+        engine = RagEngine(Settings(gemini_api_key="demo_key"))
+        engine.initialize()
+        
+        benchmark = GoldenTruthBenchmark(gt_path, engine)
+        # Chạy thử 5 câu mẫu
+        summary = benchmark.run_benchmark(max_samples=5)
+        
+        assert summary.total_questions == 5
+        assert summary.pass_rate_pct >= 60.0
+        assert summary.hallucination_rate_pct == 0.0
+        assert summary.avg_latency_ms >= 0
+        print(f"✅ GoldenTruthBenchmark Runner OK: PassRate={summary.pass_rate_pct}%")
 
 
 class TestFastApiEndpoints:

@@ -16,4 +16,6 @@ public interface KnowledgeDocumentRepository extends JpaRepository<KnowledgeDocu
     boolean existsByFilePath(String filePath);
 
     java.util.Optional<KnowledgeDocument> findByFilePath(String filePath);
+
+    long countByStatus(String status);
 }

@@ -24,7 +24,9 @@ public class CreateTicketRequest {
 
     private Long conversationId; // Nếu chuyển đổi từ phiên Chat
 
-    private String priority = "MEDIUM"; // URGENT, MEDIUM, LOW
+    private String priority = "MEDIUM"; // URGENT, HIGH, MEDIUM, LOW
+
+    private String topicCategory;
 
     // Dành cho Guest
     private String guestName;

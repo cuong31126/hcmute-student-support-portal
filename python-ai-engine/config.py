@@ -10,8 +10,8 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # Gemini API
     gemini_api_key: str = Field(default="demo_key")
-    gemini_chat_model: str = Field(default="gemini-1.5-flash")
-    gemini_embedding_model: str = Field(default="models/text-embedding-004")
+    gemini_chat_model: str = Field(default="gemini-2.5-flash")
+    gemini_embedding_model: str = Field(default="models/gemini-embedding-001")
 
     # Server
     ai_engine_port: int = Field(default=8001)

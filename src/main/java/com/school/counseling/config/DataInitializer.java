@@ -11,14 +11,14 @@ import com.school.counseling.module.auth.entity.User;
 import com.school.counseling.module.auth.repository.DepartmentRepository;
 import com.school.counseling.module.auth.repository.RoleRepository;
 import com.school.counseling.module.auth.repository.UserRepository;
-import com.school.counseling.module.feed.entity.Comment;
 import com.school.counseling.module.feed.entity.Post;
-import com.school.counseling.module.feed.entity.PostAttachment;
 import com.school.counseling.module.feed.repository.PostRepository;
 import com.school.counseling.module.ai.entity.KnowledgeChunk;
 import com.school.counseling.module.ai.repository.KnowledgeChunkRepository;
 import com.school.counseling.module.ai.service.GeminiApiClient;
 import com.school.counseling.module.ai.service.RagKnowledgeService;
+import com.school.counseling.module.ai.service.BatchDocumentIngestionService;
+import com.school.counseling.module.ai.repository.KnowledgeDocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -52,6 +52,8 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final SmartFaqMatcherService smartFaqMatcherService;
+    private final BatchDocumentIngestionService batchDocumentIngestionService;
+    private final KnowledgeDocumentRepository knowledgeDocumentRepository;
 
     @Override
     public void run(String... args) {
@@ -78,9 +80,6 @@ public class DataInitializer implements CommandLineRunner {
             initUser("staff_daotao", defaultPassword, "ThS. Phạm Thị Thu Sương", "daotao.staff@hcmute.edu.vn", roleStaff, deptDaoTao);
             initUser("staff_cntt", defaultPassword, "TS. Trần Khoa CNTT", "cntt.staff@hcmute.edu.vn", roleStaff, deptCntt);
             initUser("staff_doan", defaultPassword, "Đ/c Lê Bí Thư Đoàn", "doantn.staff@hcmute.edu.vn", roleStaff, deptDoan);
-            initUser("student01", defaultPassword, "Trương Lê Trung Hiếu (SV)", "student01@student.hcmute.edu.vn", roleStudent, null);
-            initUser("student02", defaultPassword, "Nguyễn Ngọc Hương Thanh (SV)", "student02@student.hcmute.edu.vn", roleStudent, null);
-
             // ── Tài khoản thực tế của nhóm phát triển (mk: 123456) ──
             initUser("lecuong", "123456", "Lê Quốc Cường (SV)", "lecuong@gmail.com", roleStudent, null);
             initUser("admin_main", "123456", "Admin Hệ Thống (Main)", "admin@gmail.com", roleAdmin, null);
@@ -104,11 +103,12 @@ public class DataInitializer implements CommandLineRunner {
                 } catch (Exception ignored) {}
             }
 
-            if (existingFaqCount != expectedFaqCount || missingPostDate) {
-                log.info("Phát hiện kho FAQ chưa chuẩn hóa (hiện có {} câu, kỳ vọng {} câu, missingPostDate={}). Tiến hành dọn sạch và nạp kho tri thức tinh tuyển...",
-                        existingFaqCount, expectedFaqCount, missingPostDate);
-                faqRepository.hardDeleteAllFaqs();
-                faqRepository.resetAutoIncrement();
+            if (existingFaqCount == 0 || (existingFaqCount < expectedFaqCount && missingPostDate)) {
+                log.info("Kho FAQ chưa khởi tạo hoặc thiếu dữ liệu (hiện có {} câu, kỳ vọng ít nhất {} câu). Tiến hành nạp kho tri thức tinh tuyển...",
+                        existingFaqCount, expectedFaqCount);
+                if (existingFaqCount == 0) {
+                    faqRepository.resetAutoIncrement();
+                }
                 seedFaqsFromDataset(deptDoan, deptTuyenSinh, deptDaoTao, deptCntt, deptNn);
             }
 
@@ -117,12 +117,41 @@ public class DataInitializer implements CommandLineRunner {
                 syncKnowledgeChunksFromFaqs();
             }
 
+            // Đồng bộ Tập Tri Thức Chuẩn Mực (Tầng 0 GOLDEN_TRUTH - Điểm Vàng) vào KnowledgeChunk
+            seedGoldenTruthChunks(deptCntt, deptDaoTao);
+
             // 5. Đồng bộ vào bộ nhớ Cache RAM cho Smart FAQ Matcher
             smartFaqMatcherService.reloadCache();
 
-            // 6. Khởi tạo bài viết mẫu cho Bảng Tin & Diễn Đàn Sinh Viên (Sprint 3)
-            if (postRepository.count() == 0) {
-                seedSamplePosts(deptDaoTao, deptCntt, deptDoan);
+            // 7. Tự động nạp sẵn toàn bộ kho 91 công văn (D:\HK5\CongNghePhanMem\tailieuAI) và đăng tải lên Bảng tin
+            if (batchDocumentIngestionService != null && knowledgeDocumentRepository != null) {
+                User adminUser = userRepository.findByUsername("admin").orElse(null);
+
+                // Đăng tải ngay các công văn đã có trong KnowledgeDocument lên Bảng tin (Feed Campaign)
+                try {
+                    var feedSummary = batchDocumentIngestionService.publishAllDocumentsToFeedCampaign(adminUser);
+                    log.info("[DataInitializer] 📢 Đã đồng bộ {} công văn lên Bảng tin chính thức (bỏ qua {} bài trùng lặp)!",
+                            feedSummary.getTotalPublished(), feedSummary.getTotalSkipped());
+                } catch (Exception ex) {
+                    log.warn("[DataInitializer] Không thể đồng bộ công văn lên Bảng tin: {}", ex.getMessage());
+                }
+
+                long completedDocCount = knowledgeDocumentRepository.countByStatus("COMPLETED");
+                if (completedDocCount < 80) {
+                    java.util.concurrent.CompletableFuture.runAsync(() -> {
+                        try {
+                            log.info("[DataInitializer] 🚀 Bắt đầu tự động nạp sẵn kho công văn từ D:\\HK5\\CongNghePhanMem\\tailieuAI (hiện có {}/80+ COMPLETED)...", completedDocCount);
+                            var summary = batchDocumentIngestionService.ingestAllYearFolders("D:\\HK5\\CongNghePhanMem\\tailieuAI");
+                            log.info("[DataInitializer] ✅ Tự động nạp thành công {} công văn, tạo {} chunks vector!",
+                                    summary.getSuccessfulDocuments(), summary.getTotalChunksCreated());
+
+                            // Sau khi nạp thêm văn bản mới, tiếp tục đồng bộ lên Bảng tin
+                            batchDocumentIngestionService.publishAllDocumentsToFeedCampaign(adminUser);
+                        } catch (Exception ex) {
+                            log.warn("[DataInitializer] Lỗi khi tự động nạp kho công văn: {}", ex.getMessage());
+                        }
+                    });
+                }
             }
 
         } catch (Exception e) {
@@ -268,7 +297,15 @@ public class DataInitializer implements CommandLineRunner {
             for (Faq faq : faqs) {
                 int effectiveYear = faq.getPostDate() != null ? faq.getPostDate().getYear() : 2026;
                 String chunkContent = "Câu hỏi: " + faq.getQuestion() + "\n\nGiải đáp: " + faq.getAnswer();
-                float[] vector = geminiApiClient.getEmbedding(faq.getQuestion());
+                float[] vector = null;
+                try {
+                    vector = geminiApiClient.getEmbedding(faq.getQuestion());
+                } catch (Exception e) {
+                    vector = generateDeterministicEmbedding(faq.getQuestion());
+                }
+                if (vector == null || vector.length == 0) {
+                    vector = generateDeterministicEmbedding(faq.getQuestion());
+                }
 
                 KnowledgeChunk chunk = KnowledgeChunk.builder()
                         .title(faq.getQuestion())
@@ -288,6 +325,101 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Đã nạp thành công {} đoạn tri thức FAQ vào KnowledgeChunk và đồng bộ Cache Vector RAM!", chunks.size());
         } catch (Exception e) {
             log.warn("Lỗi khi đồng bộ FAQ sang KnowledgeChunk: {}", e.getMessage(), e);
+        }
+    }
+
+    private float[] generateDeterministicEmbedding(String text) {
+        return GeminiApiClient.generateDeterministicVector(text);
+    }
+
+    private void seedGoldenTruthChunks(Department deptCntt, Department deptDaoTao) {
+        try {
+            long existing = knowledgeChunkRepository.countBySourceType("GOLDEN_TRUTH");
+            if (existing > 0) {
+                log.info("[GoldenTruth] Đã có sẵn {} bản ghi Chân lý Golden Truth trong MySQL.", existing);
+                return;
+            }
+
+            File file = new File("golden-truth.txt");
+            if (!file.exists()) {
+                file = new File("src/main/resources/golden-truth.txt");
+            }
+
+            List<KnowledgeChunk> chunks = new ArrayList<>();
+            if (file.exists()) {
+                String content = java.nio.file.Files.readString(file.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+                String[] lines = content.split("\\r?\\n");
+
+                String currentQ = null;
+                StringBuilder currentA = new StringBuilder();
+
+                for (String line : lines) {
+                    String trimmed = line.trim();
+                    if (trimmed.startsWith("#### Q:")) {
+                        if (currentQ != null && currentA.length() > 0) {
+                            chunks.add(buildGoldenChunk(currentQ, currentA.toString().trim(), deptCntt, deptDaoTao));
+                            currentA.setLength(0);
+                        }
+                        currentQ = trimmed.substring(7).trim();
+                    } else if (currentQ != null) {
+                        if (trimmed.startsWith("#### ") && !trimmed.startsWith("#### Q:")) {
+                            chunks.add(buildGoldenChunk(currentQ, currentA.toString().trim(), deptCntt, deptDaoTao));
+                            currentQ = null;
+                            currentA.setLength(0);
+                        } else {
+                            currentA.append(line).append("\n");
+                        }
+                    }
+                }
+                if (currentQ != null && currentA.length() > 0) {
+                    chunks.add(buildGoldenChunk(currentQ, currentA.toString().trim(), deptCntt, deptDaoTao));
+                }
+            }
+
+            // Đảm bảo luôn có các thông tin nhân sự và cơ cấu tối quan trọng
+            addEssentialGoldenChunks(chunks, deptCntt, deptDaoTao);
+
+            if (!chunks.isEmpty()) {
+                knowledgeChunkRepository.saveAll(chunks);
+                ragKnowledgeService.reloadVectorCache();
+                log.info("[GoldenTruth] ✅ Đã nạp thành công {} đoạn tri thức Chuẩn mực (GOLDEN_TRUTH - Điểm Vàng) vào MySQL và RAM!", chunks.size());
+            }
+        } catch (Exception e) {
+            log.warn("[GoldenTruth] Lỗi khi nạp Golden Truth: {}", e.getMessage(), e);
+        }
+    }
+
+    private KnowledgeChunk buildGoldenChunk(String q, String a, Department deptCntt, Department deptDaoTao) {
+        String answerClean = a.startsWith("**A:**") ? a.substring(6).trim() : a.trim();
+        String fullContent = "Câu hỏi: " + q + "\n\nTrả lời chuẩn mực (Golden Truth): " + answerClean;
+        float[] vector = GeminiApiClient.generateDeterministicVector(q + " " + answerClean);
+
+        String qLower = q.toLowerCase();
+        Department dept = (qLower.contains("công nghệ thông tin") || qLower.contains("cntt") || qLower.contains("fit"))
+                ? deptCntt : deptDaoTao;
+
+        KnowledgeChunk chunk = KnowledgeChunk.builder()
+                .title(q)
+                .content(fullContent)
+                .articleHeader("Tập Chân Lý Học Vụ (Golden Truth)")
+                .sourceType("GOLDEN_TRUTH")
+                .priorityLevel(1)
+                .effectiveYear(2026)
+                .department(dept)
+                .isActive(true)
+                .build();
+        chunk.setEmbeddingArray(vector);
+        return chunk;
+    }
+
+    private void addEssentialGoldenChunks(List<KnowledgeChunk> chunks, Department deptCntt, Department deptDaoTao) {
+        boolean hasItDean = chunks.stream().anyMatch(c -> c.getTitle() != null && c.getTitle().toLowerCase().contains("trưởng khoa công nghệ thông tin"));
+        if (!hasItDean) {
+            chunks.add(buildGoldenChunk(
+                    "Ai đang giữ chức vụ Trưởng khoa Công nghệ Thông tin (FIT / IT) và thông tin liên hệ là gì?",
+                    "Trưởng khoa Công nghệ Thông tin hiện nay là GVC. TS. Lê Văn Vinh (đồng thời là giảng viên thuộc Bộ môn Công nghệ Phần mềm). Email liên hệ: vinhlv@hcmute.edu.vn.",
+                    deptCntt, deptDaoTao
+            ));
         }
     }
 
@@ -318,110 +450,5 @@ public class DataInitializer implements CommandLineRunner {
         return "Quy chế học vụ";
     }
 
-    private void seedSamplePosts(Department deptDaoTao, Department deptCntt, Department deptDoan) {
-        try {
-            User staffDaotao = userRepository.findByUsername("staff_daotao").orElse(null);
-            User staffCntt = userRepository.findByUsername("staff_cntt").orElse(null);
-            User student01 = userRepository.findByUsername("student01").orElse(null);
-            User student02 = userRepository.findByUsername("student02").orElse(null);
 
-            if (staffDaotao != null) {
-                Post post1 = Post.builder()
-                        .title("Thông báo về việc Đăng ký môn học Học kỳ 1 năm học 2024 - 2025")
-                        .content("<p>Phòng Đào tạo thông báo đến toàn thể sinh viên các khóa thời gian và quy định đăng ký môn học trực tuyến cho Học kỳ 1.</p>"
-                                + "<p><strong>1. Thời gian đăng ký:</strong> Từ ngày 15/08 đến ngày 25/08 qua cổng đào tạo.</p>"
-                                + "<p><strong>2. Lưu ý:</strong> Sinh viên cần kiểm tra kỹ học phần tiên quyết và đảm bảo số tín chỉ tối thiểu theo quy định học vụ.</p>")
-                        .postType("OFFICIAL_ANNOUNCEMENT")
-                        .department(deptDaoTao)
-                        .author(staffDaotao)
-                        .status("APPROVED")
-                        .isPinned(true)
-                        .viewCount(156)
-                        .likeCount(24)
-                        .videoStatus("NONE")
-                        .build();
-
-                post1.addAttachment(PostAttachment.builder()
-                        .fileName("Ke-hoach-dang-ky-mon-hoc-HK1-2024-2025.pdf")
-                        .fileUrl("/documents/Ke-hoach-dang-ky-mon-hoc-HK1-2024-2025.pdf")
-                        .fileType("PDF")
-                        .fileSize(2450000L)
-                        .build());
-
-                postRepository.save(post1);
-            }
-
-            if (staffCntt != null) {
-                Post post2 = Post.builder()
-                        .title("Kế hoạch Thực tập tốt nghiệp và Đồ án Khóa 2021 - Khoa CNTT")
-                        .content("<p>Khoa Công nghệ Thông tin triển khai kế hoạch thực tập doanh nghiệp và đăng ký đề tài tốt nghiệp cho sinh viên khóa 2021.</p>"
-                                + "<p>Đề nghị các bạn sinh viên chuẩn bị CV và liên hệ đơn vị thực tập hoặc tham gia ngày hội phỏng vấn tuyển dụng của Khoa.</p>")
-                        .postType("OFFICIAL_ANNOUNCEMENT")
-                        .department(deptCntt)
-                        .author(staffCntt)
-                        .status("APPROVED")
-                        .isPinned(false)
-                        .viewCount(98)
-                        .likeCount(15)
-                        .videoStatus("COMPLETED")
-                        .videoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
-                        .build();
-
-                post2.addAttachment(PostAttachment.builder()
-                        .fileName("Bieu-mau-thuc-tap-doanh-nghiep-CNTT.docx")
-                        .fileUrl("/documents/Bieu-mau-thuc-tap-doanh-nghiep-CNTT.docx")
-                        .fileType("DOCX")
-                        .fileSize(512000L)
-                        .build());
-
-                postRepository.save(post2);
-            }
-
-            if (student01 != null) {
-                Post forum1 = Post.builder()
-                        .title("Xin kinh nghiệm ôn thi TOEIC chuẩn đầu ra 550+ trong 3 tháng")
-                        .content("Chào mọi người, em hiện tại đang là sinh viên năm 3 và cần đạt chuẩn TOEIC 550+ để kịp xét tốt nghiệp. Anh chị và các bạn cho em xin lời khuyên về lộ trình ôn thi và tài liệu luyện nghe hiệu quả với ạ. Cảm ơn mọi người nhiều!")
-                        .postType("STUDENT_FORUM")
-                        .author(student01)
-                        .status("APPROVED")
-                        .isPinned(false)
-                        .viewCount(42)
-                        .likeCount(8)
-                        .videoStatus("NONE")
-                        .build();
-
-                if (student02 != null) {
-                    Comment comment1 = Comment.builder()
-                            .author(student02)
-                            .content("Bạn nên làm bộ đề ETS 2023 hoặc 2024, mỗi ngày nghe Part 1 & Part 2 tầm 30 phút, tập chép chính tả thì điểm Listening sẽ lên rất nhanh nhé!")
-                            .likeCount(3)
-                            .build();
-                    forum1.addComment(comment1);
-                }
-
-                postRepository.save(forum1);
-            }
-
-            if (student02 != null) {
-                // Bài viết PENDING_APPROVAL để sẵn sàng kiểm thử Moderation Queue
-                Post forumPending = Post.builder()
-                        .title("Hỏi về quy trình xin cấp lại Thẻ sinh viên tích hợp thẻ xe bus")
-                        .content("Em bị rơi mất thẻ sinh viên vào tuần trước, cho em hỏi thời gian làm lại thẻ mất khoảng bao lâu và lệ phí bao nhiêu ạ? Em có cần báo qua phòng CTSV trước không?")
-                        .postType("STUDENT_FORUM")
-                        .author(student02)
-                        .status("PENDING_APPROVAL")
-                        .isPinned(false)
-                        .viewCount(0)
-                        .likeCount(0)
-                        .videoStatus("NONE")
-                        .build();
-
-                postRepository.save(forumPending);
-            }
-
-            log.info("Đã khởi tạo các bài viết mẫu (Bảng tin chính thức & Diễn đàn sinh viên)!");
-        } catch (Exception ex) {
-            log.warn("Lỗi khi tạo bài viết mẫu: {}", ex.getMessage());
-        }
-    }
 }

@@ -247,15 +247,13 @@ classDiagram
 
 ---
 
-## 7. Quy Chuẩn Auto Git Workflow & Conventional Commits
+## 7. Quy Chuẩn Git Workflow & Conventional Commits
 
-Mọi lập trình viên và AI Agent khi hoàn thành bất kỳ tính năng, module, hoặc sửa lỗi nào bắt buộc thực hiện chuỗi lệnh:
-```bash
-git add .
-git commit -m "<type>(<scope>): <mô tả ngắn gọn chức năng vừa làm>"
-git push origin <tên-nhánh-hiện-tại>
-```
-
-* **Chuẩn Commit:** `feat(...)`, `fix(...)`, `refactor(...)`, `docs(...)`, `style(...)`.
-* **An toàn:** Tuyệt đối cấm cờ `--force`. Dừng lại và báo cáo ngay nếu có xung đột (conflict/rejected).
+- **Thao tác Git:** AI Agent KHÔNG tự động commit hoặc push lên GitHub. Mọi thao tác commit và push sẽ do Developer / Lập trình viên chủ động thực hiện trên máy cục bộ, hoặc chỉ chạy khi có yêu cầu cụ thể từ người dùng.
+- **Quy cách Commit:** Khi người dùng hoặc AI thực hiện commit, tuân thủ định dạng Conventional Commits:
+  ```bash
+  git commit -m "<type>(<scope>): <mô tả ngắn gọn chức năng vừa làm>"
+  ```
+* **Chuẩn Commit Type:** `feat(...)`, `fix(...)`, `refactor(...)`, `docs(...)`, `style(...)`.
+* **An toàn:** Tuyệt đối cấm cờ `--force`. Dừng lại và kiểm tra ngay nếu có xung đột (conflict/rejected).
 

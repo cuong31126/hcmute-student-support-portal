@@ -463,9 +463,6 @@
                         </div>
                         <div>
                             <div class="fw-bold text-dark small" th:text="${currentUserFullName != null ? currentUserFullName : 'Bạn'}">Sinh viên</div>
-                            <span class="badge bg-light text-secondary border" style="font-size: 10px;">
-                                <i class="bi bi-globe-americas me-1"></i>Công khai toàn trường
-                            </span>
                         </div>
                     </div>
 
@@ -497,11 +494,6 @@
                                     <input type="file" id="postImageInput" name="image" class="d-none" accept="image/*" onchange="handleImageSelected(this)">
                                 </label>
                             </div>
-                        </div>
-
-                        <!-- Moderation Notice -->
-                        <div class="alert alert-warning py-2 px-3 small rounded-2 mb-3" style="font-size: 11.5px;">
-                            <i class="bi bi-shield-lock me-1"></i>Theo quy định <strong>BRULE-POST-002</strong>: Bài thảo luận sinh viên sẽ được Cán bộ phê duyệt trước khi xuất hiện trên bảng tin chung.
                         </div>
 
                         <!-- Submit Button with Spinner -->

@@ -15,6 +15,12 @@ import org.hibernate.annotations.SQLRestriction;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @deprecated Entity bảng conversations (Prototype Chat Realtime - Chưa gắn UI).
+ * Lưu ý: Được liên kết trong Ticket.java qua trường `conversation` (nullable).
+ * Xem chi tiết tại: docs/requirements/chat_module_and_ticketing_architecture_guide.md
+ */
+@Deprecated
 @Getter
 @Setter
 @NoArgsConstructor

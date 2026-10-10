@@ -35,6 +35,17 @@ public class CreatePostRequest {
     // Video thông báo (Link nhúng YouTube/Drive hoặc URL file nội bộ)
     private String videoEmbedUrl;
     private String videoUrl;
+    private String youtubeUrl;
+
+    public String getVideoEmbedUrl() {
+        if (videoEmbedUrl != null && !videoEmbedUrl.isBlank()) return videoEmbedUrl;
+        return youtubeUrl;
+    }
+
+    public String getYoutubeUrl() {
+        if (youtubeUrl != null && !youtubeUrl.isBlank()) return youtubeUrl;
+        return videoEmbedUrl;
+    }
 
     // File đính kèm tài liệu (PDF, Word, TXT)
     private String fileUrl;
